@@ -1,0 +1,25 @@
+%%{init: {"sequence": {"mirrorActors": false}} }%%
+sequenceDiagram
+    autonumber
+    actor T as Technician<br/>(Senior or Tier 1)
+    participant F as Foundry agent<br/>(Microsoft Entra Agent ID)
+    participant E as Microsoft Entra ID
+    participant G as API Management<br/>(MCP gateway)
+    participant M as MCP server<br/>(managed identity id-mcp)
+    participant K as Key Vault
+    participant D as Dataverse<br/>(application user)
+    Note over M,K: At startup
+    M->>K: Managed identity token for vault.azure.net
+    K-->>M: Gateway key (mcp-backend-key)
+    T->>F: Request in the playground<br/>(user token for ai.azure.com)
+    F->>E: OAuth connection servicedesk-mcp<br/>(user's delegated token)
+    E-->>F: Token for api://gateway app<br/>with scope ServiceDesk.Access
+    F->>G: tools/call with the user's token
+    Note over G: Validate the token, set x-user-oid,<br/>x-correlation-id and x-backend-key,<br/>remove the token
+    G->>M: tools/call with the gateway key<br/>and who the user is
+    M->>D: Managed identity token for Dataverse<br/>with CallerObjectId = the user
+    Note over D: Allowed only if the user's role<br/>and the application user's role allow it
+    D-->>M: Result, or 403 from the platform
+    M-->>G: Result with correlation_id
+    G-->>F: Result
+    F-->>T: Answer, after approval for writes

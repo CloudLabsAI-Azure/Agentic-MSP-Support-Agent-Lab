@@ -29,7 +29,7 @@ EXERCISE map (keep the lab guides in step with any change here)
 # category, priority (1-4 or None), status, technician, product, affected, channel,
 # elapsed_bh, kb (related article or None), notes [(is_internal, author, body, after_bh)]
 OPEN_TICKETS = [
-    # ---------------------------------------------------------------- Woodgrove Bank
+    # ================================================================ Woodgrove Bank
     {"number": "TCK-10484", "customer": "CUST-007", "contact": 0,
      "title": "Remote Access calls drop during long client calls",
      "description": "One of our relationship managers says calls over Remote Access cut off after roughly an hour, then reconnect. It happens most days when she is working from client offices.",
@@ -68,7 +68,7 @@ OPEN_TICKETS = [
      "category": "Endpoint", "priority": 3, "status": "New", "technician": None,
      "product": "Relecloud Endpoint Agent", "affected": 1, "channel": "Portal", "elapsed_bh": 3.0, "kb": None,
      "notes": []},
-    # ---------------------------------------------------------------- SLA anchors
+    # ================================================================ SLA anchors
     {"number": "TCK-10500", "customer": "CUST-001", "contact": 0,
      "title": "Laboratory building network down",
      "description": "All 60 staff in the laboratory building lost network access this morning. The building switch shows amber lights. Production scheduling in the lab is halted.",
@@ -102,7 +102,7 @@ OPEN_TICKETS = [
      "category": "Printing", "priority": 3, "status": "In Progress", "technician": "TECH-03",
      "product": "Printer or scanner", "affected": 1, "channel": "Phone", "elapsed_bh": 54.0, "kb": None,
      "notes": [(True, "Elena Petrova", "Break-Fix customer: quote approved yesterday, 1 hour logged so far.", 20.0)]},
-    # ---------------------------------------------------------------- other open tickets
+    # ================================================================ other open tickets
     {"number": "TCK-10475", "customer": "CUST-004", "contact": 0, "title": "Firewall rule for new supplier portal",
      "description": "Please allow outbound HTTPS from the purchasing team's subnet to our new supplier portal.",
      "category": "Network and VPN", "priority": 4, "status": "In Progress", "technician": "TECH-08",
@@ -221,7 +221,7 @@ OPEN_TICKETS = [
      "description": "Our accounting system says cannot connect to database on every PC. We run payroll tomorrow.",
      "category": "Line-of-Business App", "priority": 2, "status": "In Progress", "technician": "TECH-06",
      "product": "Line-of-business application", "affected": 3, "channel": "Phone", "elapsed_bh": 5.0, "kb": "KB0131", "notes": []},
-    # ---------------------------------------------------------------- untriaged (no priority, no category)
+    # ================================================================ untriaged (no priority, no category)
     {"number": "TCK-10512", "customer": "CUST-008", "contact": 2,
      "title": "Payroll application shows a certificate warning",
      "description": "Since about 08:30 the four people in our finance team get a warning that the security certificate has expired when they open the payroll application, and they cannot continue. Payroll has to be submitted by Thursday.",

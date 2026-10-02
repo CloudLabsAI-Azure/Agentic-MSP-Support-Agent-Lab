@@ -10,7 +10,7 @@ Placeholders: {server} {device} {site} {count} {app} {printer} {first} {weekday}
 """
 
 TEMPLATES = [
-    # ------------------------------------------------------------------ Backup
+    # ================================================================== Backup
     {"kb": "KB0007", "weight": 18, "days": (3, 268), "patch_cycle": True, "exclude": ["CUST-008"],
      "titles": ["Nightly backup failed with RBA-1043 on {server}",
                 "Snapshot timeout on {server} backup after patching",
@@ -97,7 +97,7 @@ TEMPLATES = [
                     "Device was replaced; removed the old record from the backup policy."],
      "internal": ["Last check-in 72 hours ago."],
      "impacts": [(4, 1, 1, 1)], "channel": "Monitoring Alert"},
-    # ------------------------------------------------------------------ Network
+    # ================================================================== Network
     {"kb": "KB0031", "weight": 9, "days": (5, 268), "versions": {"rra": ["3.8", "3.9"]},
      "titles": ["Remote Access disconnects every hour", "VPN keeps dropping for {first}", "Kicked off VPN about every 60 minutes"],
      "descriptions": ["{first} says Remote Access drops roughly every hour and has to reconnect. It has been happening all week.",
@@ -177,7 +177,7 @@ TEMPLATES = [
      "resolution": ["Enabled the collaboration split-tunnel profile; calls clear after reconnecting (KB0055)."],
      "internal": ["Drops were random, not hourly, so not the KB0031 or KB0058 issue."],
      "impacts": [(3, 1, 1, 1), (2, 3, 15, 1)], "channel": "Phone"},
-    # ------------------------------------------------------------------ Endpoint
+    # ================================================================== Endpoint
     {"kb": "KB0061", "weight": 4, "days": (10, 268),
      "titles": ["Reimaged laptop shows offline in console"],
      "descriptions": ["We reimaged {device} and now it appears twice in the portal, one offline."],
@@ -231,7 +231,7 @@ TEMPLATES = [
                     "Break-Fix: sent the two-hour quote; approved; device built (KB0074)."],
      "internal": ["Quote reference recorded on the ticket."],
      "impacts": [(4, 0, 0, 1)], "channel": "Email"},
-    # ------------------------------------------------------------------ Email and Collaboration
+    # ================================================================== Email and Collaboration
     {"kb": "KB0081", "weight": 10, "days": (3, 268),
      "titles": ["Shared mailbox access for {first}", "Add the team to the accounts shared mailbox"],
      "descriptions": ["Please give {first} access to the shared mailbox.", "The accounts team needs access to the shared mailbox."],
@@ -263,7 +263,7 @@ TEMPLATES = [
                     "Blocked the sender domain. One user clicked but did not enter a password; session revoked as a precaution."],
      "internal": ["Sender domain registered three days ago."],
      "impacts": [(4, 1, 1, 2), (3, 2, 10, 1)], "channel": "Email"},
-    # ------------------------------------------------------------------ Identity and Access
+    # ================================================================== Identity and Access
     {"kb": "KB0091", "weight": 12, "days": (3, 268),
      "titles": ["Password reset for {first}", "{first} locked out after holiday"],
      "descriptions": ["{first} forgot their password after leave.", "{first} cannot sign in and needs a reset."],
@@ -300,7 +300,7 @@ TEMPLATES = [
      "resolution": ["Written approval received; time-limited elevation granted for eight hours (KB0101)."],
      "internal": ["Approval from the primary IT contact attached."],
      "impacts": [(4, 1, 1, 1)], "channel": "Email"},
-    # ------------------------------------------------------------------ Printing
+    # ================================================================== Printing
     {"kb": "KB0111", "weight": 8, "days": (3, 268),
      "titles": ["{printer} printer offline", "Printer showing offline after Wi-Fi change"],
      "descriptions": ["The {printer} printer shows offline for everyone since the network work.", "Nobody can print to the {printer} printer."],
@@ -319,7 +319,7 @@ TEMPLATES = [
      "resolution": ["Cleared the spooler folder and restarted the Print Spooler service (KB0115)."],
      "internal": ["One corrupt 400 MB job blocking the queue."],
      "impacts": [(3, 2, 25, 1), (4, 1, 1, 1)], "channel": "Phone"},
-    # ------------------------------------------------------------------ Hardware
+    # ================================================================== Hardware
     {"kb": "KB0121", "weight": 6, "days": (3, 268),
      "titles": ["Laptop screen cracked for {first}", "Keyboard keys not working on {device}"],
      "descriptions": ["{first} dropped their laptop; the screen is cracked.", "Several keys stopped working on {device}."],
@@ -332,7 +332,7 @@ TEMPLATES = [
      "resolution": ["Updated dock firmware and replaced one display cable (KB0123)."],
      "internal": ["Firmware was two versions behind."],
      "impacts": [(4, 1, 1, 1)], "channel": "Email"},
-    # ------------------------------------------------------------------ Line-of-Business App
+    # ================================================================== Line-of-Business App
     {"kb": "KB0131", "weight": 4, "days": (10, 268),
      "titles": ["Accounting system cannot connect to database", "Finance app error: cannot connect to database"],
      "descriptions": ["Nobody in finance can open the accounting system; it says cannot connect to database.",
@@ -347,7 +347,7 @@ TEMPLATES = [
      "resolution": ["Renewed the TLS certificate on the application server and bound it to the site; users confirmed (KB0133)."],
      "internal": ["Certificate expired at midnight UTC; no renewal reminder configured."],
      "impacts": [(2, 3, 30, 3), (3, 1, 1, 1)], "channel": "Phone"},
-    # ------------------------------------------------------------------ Security
+    # ================================================================== Security
     {"kb": "KB0141", "weight": 5, "days": (3, 268),
      "titles": ["Suspicious sign-in alert for {first}", "Impossible travel alert"],
      "descriptions": ["Monitoring: sign-in for {first} from an unfamiliar country.", "Impossible travel alert on a finance account."],

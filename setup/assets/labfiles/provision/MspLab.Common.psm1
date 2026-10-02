@@ -6,7 +6,7 @@
     Two identities are used, and no credential is ever written to disk or put on a command line:
       Azure Resource Manager  the Azure CLI session. During first-boot provisioning that is the
                               lab VM's provisioning managed identity (outside Azure's mandatory
-                              MFA); when a facilitator re-runs a step it is their own 'az login'.
+                              MFA); when support re-runs a step it is their own 'az login'.
       Dataverse               the team user, because the team user owns the developer
                               environment. During provisioning the token is requested in-process
                               with the password in MSPLAB_SIGNIN_SECRET; otherwise it comes from
@@ -164,10 +164,26 @@ function New-DvLabel {
     }
 }
 
+function Get-VmTags {
+    <#
+        The lab VM's tags, read from the Azure Instance Metadata Service (no sign-in needed).
+        deploy-01.json puts the non-secret per-team lab settings there (msplab-*), so they never
+        travel on a command line. Returns a hashtable of tag name to value.
+    #>
+    $tags = @{}
+    try {
+        $list = Invoke-RestMethod -Headers @{ Metadata = 'true' } -TimeoutSec 10 -NoProxy `
+            -Uri 'http://169.254.169.254/metadata/instance/compute/tagsList?api-version=2021-02-01'
+        foreach ($t in @($list)) { $tags[$t.name] = $t.value }
+    }
+    catch { Write-Step "  could not read the VM tags: $($_.Exception.Message)" }
+    return $tags
+}
+
 function Read-TeamSettings {
     param([string]$Path = 'C:\LabFiles\team-settings.json')
     return Get-Content $Path -Raw | ConvertFrom-Json
 }
 
 Export-ModuleMember -Function Write-Step, Set-StepStatus, Invoke-WithRetry, Get-AzCliToken, Set-UserSignIn,
-    Get-DataverseToken, Invoke-Dataverse, Get-EntityIdFromHeader, New-DvLabel, Read-TeamSettings
+    Get-DataverseToken, Invoke-Dataverse, Get-EntityIdFromHeader, New-DvLabel, Get-VmTags, Read-TeamSettings

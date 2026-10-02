@@ -6,7 +6,8 @@
     and extracts to C:\LabFiles.
 
 .DESCRIPTION
-    Excludes generated and local-only content (seed data output, Python caches). The MCP server
+    Excludes generated and local-only content (seed data output, the search export, Python
+    caches), and adds the repository's solutions folder as C:\LabFiles\solutions. The MCP server
     source comes from its private repository at a release tag, through 'git archive', so the
     archive holds exactly the tagged files and the lab VMs never need access to GitHub. It lands
     in provision\mcp-server; provisioning builds the starter image from it and gives each team a
@@ -23,19 +24,19 @@
     with the clone next to this lab repository.
 
 .PARAMETER McpRelease
-    The release tag to pack. Its __version__ must match the tag (v1.0.0 and "1.0.0").
+    The release tag to pack. Its __version__ must match the tag (v2.0.0 and "2.0.0").
 
 .EXAMPLE
     pwsh setup/Build-LabFilesZip.ps1
 
 .EXAMPLE
-    pwsh setup/Build-LabFilesZip.ps1 -McpServerRepo D:\src\agentic-msp-mcp-server -McpRelease v1.0.0
+    pwsh setup/Build-LabFilesZip.ps1 -McpServerRepo D:\src\agentic-msp-mcp-server -McpRelease v2.0.0
 #>
 [CmdletBinding()]
 param([string]$Source = (Join-Path $PSScriptRoot 'assets\labfiles'),
       [string]$Destination = (Join-Path $PSScriptRoot 'assets\msp-labfiles.zip'),
       [string]$McpServerRepo = (Join-Path $PSScriptRoot '..\..\agentic-msp-mcp-server'),
-      [string]$McpRelease = 'v1.0.0')
+      [string]$McpRelease = 'v2.0.0')
 
 $ErrorActionPreference = 'Stop'
 if (-not (Test-Path (Join-Path $McpServerRepo '.git'))) {
@@ -48,8 +49,11 @@ $staging = Join-Path ([IO.Path]::GetTempPath()) "msp-labfiles-$([guid]::NewGuid(
 New-Item -ItemType Directory -Path $staging | Out-Null
 try {
     Copy-Item -Path (Join-Path $Source '*') -Destination $staging -Recurse
-    Get-ChildItem $staging -Recurse -Directory -Include '__pycache__', 'data', 'mcp-src', 'mcp-server' | Remove-Item -Recurse -Force
+    Get-ChildItem $staging -Recurse -Directory -Include '__pycache__', 'data', 'mcp-src', 'mcp-server', 'export' | Remove-Item -Recurse -Force
     Get-ChildItem $staging -Recurse -File -Include '*.pyc', 'environment.json' | Remove-Item -Force
+    # Reference solutions (the repository's solutions folder) land in C:\LabFiles\solutions.
+    $solutions = Join-Path $PSScriptRoot '..\solutions'
+    if (Test-Path $solutions) { Copy-Item -Path $solutions -Destination (Join-Path $staging 'solutions') -Recurse }
 
     # The MCP server release, exactly as tagged.
     $mcpZip = Join-Path ([IO.Path]::GetTempPath()) "mcp-server-$([guid]::NewGuid().ToString('N')).zip"

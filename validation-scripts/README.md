@@ -27,17 +27,23 @@ the table:
 | Module | Task | Step name | Script | Score | Guide location |
 |---|---|---|---|---|---|
 | Exercise 1 | Task 2 | Knowledge index loaded and connected | `ex1-task2-knowledge-index.ps1` | 10 | `Instructions/exercise-1.md`, end of Task 2 |
-| Exercise 3 | Task 2 | Agent calls a read tool through the gateway | `ex3-task2-agent-read-tool.ps1` | 10 | `Instructions/exercise-3.md`, end of Task 2 |
+| Exercise 2 | Task 1 | Agent reads the new incident | `ex2-task1-new-incident.ps1` | 5 | `Instructions/exercise-2.md`, end of Task 1 |
+| Exercise 3 | Task 2 | Agent calls a read tool through the gateway | `ex3-task2-agent-read-tool.ps1` | 5 | `Instructions/exercise-3.md`, end of Task 2 |
 | Exercise 3 | Task 4 | Changed MCP server redeployed | `ex3-task4-redeploy.ps1` | 10 | `Instructions/exercise-3.md`, end of Task 4 |
-| Exercise 4 | Task 1 | Ticket assigned by the agent | `ex4-task1-assign-ticket.ps1` | 10 | `Instructions/exercise-4.md`, end of Task 1 |
-| Exercise 4 | Task 2 | Customer reply and internal note separated | `ex4-task2-customer-reply.ps1` | 10 | `Instructions/exercise-4.md`, end of Task 2 |
-| Exercise 4 | Task 3 | Grounded triage and assignment | `ex4-task3-grounded-action.ps1` | 10 | `Instructions/exercise-4.md`, end of Task 3 |
-| Exercise 4 | Task 4 | Priority boundary enforced | `ex4-task4-priority-boundary.ps1` | 10 | `Instructions/exercise-4.md`, end of Task 4 |
-| Exercise 5 | Task 2 | Dataverse denies the forbidden action | `ex5-task2-platform-denial.ps1` | 15 | `Instructions/exercise-5.md`, end of Task 2 |
-| Exercise 5 | Task 3 | Contact columns protected | `ex5-task3-column-security.ps1` | 15 | `Instructions/exercise-5.md`, end of Task 3 |
+| Exercise 4 | Task 1 | Write tool called with approval | `ex4-task1-write-approval.ps1` | 5 | `Instructions/exercise-4.md`, end of Task 1 |
+| Exercise 4 | Task 2 | Customer reply and internal note separated | `ex4-task2-customer-reply.ps1` | 5 | `Instructions/exercise-4.md`, end of Task 2 |
+| Exercise 4 | Task 3 | Grounded action on the new incident | `ex4-task3-grounded-action.ps1` | 10 | `Instructions/exercise-4.md`, end of Task 3 |
+| Exercise 4 | Task 4 | Tool boundary tightened | `ex4-task4-limit-boundary.ps1` | 5 | `Instructions/exercise-4.md`, end of Task 4 |
+| Exercise 4 | Task 5 | Scoped tool added and called | `ex4-task5-scoped-tool.ps1` | 10 | `Instructions/exercise-4.md`, end of Task 5 |
+| Exercise 5 | Task 3 | Least-privilege boundary enforced by Dataverse | `ex5-task3-least-privilege.ps1` | 10 | `Instructions/exercise-5.md`, end of Task 3 |
+| Exercise 5 | Task 4 | User-level authorization | `ex5-task4-user-authorization.ps1` | 10 | `Instructions/exercise-5.md`, end of Task 4 |
+| Exercise 6 | Task 1 | Contact columns protected | `ex6-task1-column-security.ps1` | 5 | `Instructions/exercise-6.md`, end of Task 1 |
+| Exercise 6 | Task 2 | Purview withholds sensitive content | `ex6-task2-purview.ps1` | 5 | `Instructions/exercise-6.md`, end of Task 2 |
+| Exercise 7 | Task 1 | End-to-end scenario completed | `ex7-task1-end-to-end.ps1` | 5 | `Instructions/exercise-7.md`, end of Task 1 |
 
-Exercise 2 and the remaining tasks are conversational or manual (agent answers, trace joins),
-so the guide uses Success Criteria checklists there instead of platform validation.
+The scores add up to 100. Every exercise has at least one validated step. The remaining tasks
+and the business case are conversational or manual (agent answers, trace reviews), so the
+guide uses Expected results checklists there instead of platform validation.
 
 ## What the scripts rely on
 
@@ -46,13 +52,14 @@ so the guide uses Success Criteria checklists there instead of platform validati
 - The validation identity (Run As **System**) needs read access to the lab resource group,
   `listAdminKeys` on the search service and query access to the Log Analytics workspace.
   The CloudLabs service principal has these through its subscription role.
-- Exercises 3 to 5 read the MCP server's own tool-call log in `ContainerAppConsoleLogs`. Each
-  tool call writes one JSON line with `tool`, `outcome`, `error_code`, `caller` (`agent` or
-  `operator`) and `arguments`. Console logs can take a few minutes to arrive, so every script
-  retries three times, 60 seconds apart, and the failure messages tell the learner to validate
-  again shortly.
+- Exercises 2 to 7 read the MCP server's own tool invocation log in `ContainerAppConsoleLogs`.
+  Each tool call writes one JSON line with `tool`, `outcome`, `error_code`, `caller` (`agent`
+  or `operator`), `user`, `correlation_id`, `authorization`, `dataverse`, `purview`, `record`
+  and `arguments` (see the MCP server's README). Console logs can take a few minutes to arrive,
+  so every script retries three times, 60 seconds apart, and the failure messages tell the
+  learner to validate again shortly.
 - The Container Apps diagnostic setting can take up to 90 minutes to deliver its first data in
-  a new workspace. Provision the environments at least two hours before the session (see
+  a new workspace. Provision the environments at least two hours before the event (see
   `setup/README.md`).
 
 ## Before the event

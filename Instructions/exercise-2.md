@@ -4,70 +4,109 @@
 
 ## Scenario
 
-Relecloud's technicians don't need an agent that recites articles; they need one that spots the pattern in a new incident, sees what a customer's open queue really looks like, triages what arrived without a priority, and warns before an SLA is breached. Those are the four jobs that eat the third of handling time the service review measured.
+Relecloud's technicians don't need an agent that recites articles; they need one that spots the pattern in a new incident, sees what a customer's history really looks like, triages what arrived without a priority, and warns before an SLA is breached. Those are the four jobs that eat the third of handling time the service review measured.
 
 ## Overview
 
-In this exercise, you use the grounded agent from Exercise 1 on four service desk jobs. You match an incident your facilitator gives you to historical tickets, summarize one customer's open issues, recommend triage for an untriaged ticket, and find the tickets closest to breaching their SLA. You check every answer against the Service Desk app. The agent still has only its knowledge index; it gets tools in Exercise 3.
+In this exercise, you use the grounded agent from Exercise 1 on four service desk jobs. You match a new incident that is waiting in your queue, and that the agent has never seen, to historical tickets; summarize one customer's support history; recommend priority, category and assignment for the new incident; and find the tickets closest to breaching their SLA. You check every answer against the Service Desk app and the expected results in this guide. The agent reads live tickets through its read tools; it doesn't change anything in this exercise.
 
 ## Objectives
 
 In this exercise, you will complete the following tasks:
 
-- Task 1: Find similar incidents
-- Task 2: Summarize open issues for a customer
-- Task 3: Recommend a priority and category for a new ticket
-- Task 4: Identify SLA risk
+- Task 1: Identify Similar Historical Incidents
+- Task 2: Summarise a Customer's Support History
+- Task 3: Recommend Priority, Category and Assignment
+- Task 4: Detect an SLA Risk
 
-## Task 1: Find similar incidents
+## Task 1: Identify Similar Historical Incidents
 
-In this task, you will give the agent an incident it has never seen and ask it to find the closest historical tickets, explaining the similarity in more than shared keywords.
+In this task, you will find the historical tickets closest to a new incident. Similarity that can be explained is worth more than similarity that cannot.
 
-1. Your facilitator shares a new incident with your team. Copy its text.
+1. Open the new, unclassified incident waiting in your Service Desk queue; it is not in your search index, so your agent has never seen it. In the Service Desk app, open **Tickets**, select the **Untriaged Tickets** view, and open **TCK-10514** from **A. Datum Corporation**, *Nightly protection job stopped creating recovery points*. Read its description: the job stopped creating recovery points on Saturday night, the console says the cloud storage allowance is used up, and the customer copied a 2019 to 2024 drawing archive onto the server last week. **Priority**, **Category** and **Assigned Technician** are empty.
 
-   <details>
-   <summary>If your facilitator hasn't shared an incident, use this one</summary>
+   > **[SCREENSHOT PENDING: E2T1S1 | TCK-10514 in the Untriaged Tickets view with its description | source: capture]**
 
-   ```
-   From the operations lead at a research consultancy: since Saturday the nightly protection job for our analytics file share has stopped creating new recovery points. The console says our cloud storage allowance has been used up. We copied a large research archive onto that share last week.
-   ```
-
-   </details>
-
-1. In the agent playground, start a new chat and send the following prompt, then paste the incident text on the next line of the same message:
+1. Ask the agent to find the closest historical tickets in your environment. In the playground, start a new chat and send:
 
    ```
-   Here is a new incident that is not in the Service Desk yet. Find the three historical tickets most similar to it. For each one, explain the similarity in terms of the symptom pattern, its timing, what changed just before it started, the product and versions involved, and how it was resolved, not just the words they share. Then tell me which knowledge article the matches point to and what I would need to confirm with the customer before following it. Incident:
+   A new incident, TCK-10514, is waiting in the Service Desk queue. Read it with the Service Desk tools, then find the five historical tickets most similar to it, and any open ticket that looks like the same problem.
    ```
 
-   > **[SCREENSHOT PENDING: E2T1S2 | Agent answer listing three similar historical tickets with explained similarity | source: capture]**
+   The agent reads the incident with **get_ticket**, because it isn't in the index, and then searches the index.
+
+1. Ask it to explain what makes each one similar, beyond keyword overlap:
+
+   ```
+   For each match, explain what makes it similar beyond shared words: the symptom, the error code, what changed just before it started, the product, the cause and how it was resolved. Then name any ticket that only looks similar, and say why it isn't the same problem.
+   ```
+
+   > **[SCREENSHOT PENDING: E2T1S3 | Agent answer listing similar historical tickets with explained similarity | source: capture]**
 
    > **Note:** The provided screenshot is for your reference; the output you receive may vary.
 
-1. Review the answer. A good answer explains why the tickets match in terms of the pattern, the trigger and the cause, not shared words (the incident may use none of the words in the matching tickets), and it says what is still unknown, such as a product version or a contract detail that decides between two articles.
+1. Open one of the results in the Service Desk app, confirm it is a genuine match, and compare your list with the expected matches below. Select a ticket citation, or open **Tickets**, select the **All Tickets** view, and type the ticket number in the **Filter by keyword** box. Compare its **Description**, **Related Article** and **Resolution Summary** with what the agent said.
 
-1. Open one of the matched tickets in the Service Desk app: select its citation, or open **Tickets**, select the **All Tickets** view, and type the ticket number in the **Filter by keyword** box (it's labeled **Quick find** in some environments). Compare the ticket's **Resolution Summary** with what the agent said about it.
+   **Expected results: true matches.** The new incident is a cloud vault that reached its contracted size after a large data import, so jobs stop creating restore points. That is **KB0023** *RBA-2201: cloud vault storage quota exceeded*, and the historical tickets resolved with it are the true matches:
 
-   > **[SCREENSHOT PENDING: E2T1S4 | Historical ticket form with its resolution summary in the Service Desk app | source: capture]**
+   | Ticket | Customer | Title | Why it matches |
+   |---|---|---|---|
+   | TCK-10004, TCK-10035, TCK-10061 | Contoso Pharmaceuticals | *Backup failed: RBA-2201 vault quota exceeded*, *No new restore points: vault full* | Same cause (vault quota reached), same symptom (no new restore points), same error RBA-2201, resolved with KB0023 |
+   | TCK-10029 | Adventure Works Cycles | *No new restore points: vault full* | Same |
+   | TCK-10040 | Northwind Traders | *Backup failed: RBA-2201 vault quota exceeded* | Same |
+   | TCK-10092, TCK-10205, TCK-10264, TCK-10390, TCK-10402 | Bellows College, Proseware Inc, Wide World Importers, Fabrikam Residences, Lucerne Publishing | *No new restore points: vault full* or *RBA-2201 vault quota exceeded* | Same |
+   | TCK-10486 (open) | Trey Research | *Backup failing with RBA-2201 vault quota exceeded* | The same problem at another customer, open now |
 
-### Success Criteria
+   Every one of the ten historical KB0023 tickets was **P3 Medium**, assigned to **Priya Raman** (TECH-01, Backup and Recovery), and **escalated to the Account Manager**, because a vault size increase needs a quote and the customer's approval. A strong answer also notes A. Datum's own procedure **CUST-019-PR3**: vault size increases need written approval from the customer's IT manager, and large archive imports must be announced a week ahead.
 
-- [ ] The agent returned three historical tickets, each with a ticket number and a citation
-- [ ] Each explanation goes beyond shared words (pattern, timing, trigger, versions or resolution)
-- [ ] The ticket you opened in the app matches what the agent said about its resolution
-- [ ] The agent named what must be confirmed before choosing an article, instead of assuming it
+   **Expected results: decoys.** These share words or a product area with the incident but are a different problem:
 
-## Task 2: Summarize open issues for a customer
+   | Ticket or article | Shares | Why it isn't the same problem |
+   |---|---|---|
+   | KB0012 and KB0013 tickets, for example TCK-10399 *Backup failed twice for ADCFS01* (A. Datum) | "nightly backup failed" | The standard response to a failed job by SLA tier; the cause is not a full vault |
+   | KB0033 tickets, for example TCK-10110 *Backup jobs running into the morning* | "vault" | Slow backups after vault encryption was turned on; restore points are still created |
+   | KB0036 tickets, for example TCK-10332 *Backup uploading large .pst files every night* (A. Datum) | large files in the backup | A file exclusion problem, not a storage limit |
+   | KB0039 and the open TCK-10494 *CAD workstation backup status Unknown* (A. Datum) | same customer, backup status | The device is offline and not reporting; nothing is wrong with the vault |
+   | KB0007 tickets, for example TCK-10007 | a failed backup job | Error RBA-1043, a snapshot timeout after patching |
 
-In this task, you will ask for a summary of one customer's open tickets, grouped and checked for recurring issues, and confirm the count in the app.
+   > **[SCREENSHOT PENDING: E2T1S4 | Historical ticket TCK-10035 with its related article KB0023 and resolution summary | source: capture]**
 
-1. Start a new chat and send:
+### Expected results
+
+- [ ] The agent read TCK-10514 with a Service Desk tool before it searched
+- [ ] Its matches are KB0023 tickets, and it found the open TCK-10486
+- [ ] Each explanation goes beyond shared words (cause, error code, trigger, resolution)
+- [ ] It told at least one decoy apart from the real matches, for example TCK-10494
+- [ ] The ticket you opened in the app matches what the agent said about it
+
+> **Congratulations** on completing the task! Now, it's time to validate it. Here are the steps:
+> - Hit the Validate button for the corresponding task. If you receive a success message, you can proceed to the next task.
+> - If not, carefully read the error message and retry the step, following the instructions in the lab guide.
+> - If you need any assistance, please contact us at cloudlabs-support@spektrasystems.com. We are available 24/7 to help.
+
+<validation step="REPLACE-WITH-VALIDATION-GUID" />
+
+<!-- TODO: replace with the GUID minted when "Agent reads the new incident" is registered (validation-scripts/README.md). -->
+
+## Task 2: Summarise a Customer's Support History
+
+In this task, you will produce the summary a support lead asks for first about any account.
+
+1. Pick a customer with several open tickets. **Woodgrove Bank** (CUST-007) has six, more than any other customer.
+
+1. Ask the agent to summarise open issues by category or urgency, and how previous incidents for this customer were resolved. Start a new chat and send:
 
    ```
-   Summarize all open tickets for Woodgrove Bank. Group them by category and by urgency, show each ticket's number, status, priority and SLA remaining, and flag any issue that appears in more than one ticket.
+   Summarise Woodgrove Bank's support history. Group the open tickets by category and urgency, with each ticket's number, status, priority and SLA remaining. Then summarise how Woodgrove Bank's previous incidents were resolved: the most common problems and the knowledge articles that resolved them.
    ```
 
-1. Check the answer against the expected result. Woodgrove Bank has **6** open tickets:
+1. Ask it to flag anything recurring or previously escalated:
+
+   ```
+   Flag any issue that recurs across Woodgrove Bank tickets, and any of their previous tickets that were escalated, with the escalation level.
+   ```
+
+   **Expected results.** Woodgrove Bank has **6** open tickets:
 
    | Category | Ticket | Priority | Status | SLA remaining (business hours) |
    |---|---|---|---|---|
@@ -78,60 +117,74 @@ In this task, you will ask for a summary of one customer's open tickets, grouped
    | Endpoint | TCK-10502 | P3 Medium | New | 13.0 of 16 |
    | Email and Collaboration | TCK-10481 | P4 Low | In Progress | 28.0 of 40 |
 
-   The recurring issue is the hourly Remote Access disconnect in **TCK-10484**, **TCK-10504** and **TCK-10507**. Woodgrove runs client 4.2.0 on firmware 10.1.4, so the three tickets point to KB0058 and one gateway change.
+   - **Recurring:** the hourly Remote Access disconnect in **TCK-10484**, **TCK-10504** and **TCK-10507**. Woodgrove runs client 4.2.0 on firmware 10.1.4, so all three point to **KB0058** and one gateway change. TCK-10502 (*Laptop very slow since this week's agent update*) matches **KB0067** for Woodgrove's Endpoint Agent 7.4.0.
+   - **How previous incidents were resolved:** 30 resolved or closed tickets, most often with **KB0055** (choppy calls over Remote Access, split tunnelling) and **KB0044** (firewall rule change requests), three tickets each.
+   - **Previously escalated:** TCK-10038, TCK-10077 and TCK-10257 (KB0055) and TCK-10313, TCK-10395 and TCK-10430 (KB0044), all to the **L3 Specialist**, and **TCK-10365** to **Major Incident** (KB0143, ransomware indicator).
 
-   > **[SCREENSHOT PENDING: E2T2S2 | Agent summary of Woodgrove Bank's six open tickets grouped by category with the recurring VPN issue flagged | source: capture]**
+   > **[SCREENSHOT PENDING: E2T2S3 | Agent summary of Woodgrove Bank's open tickets and escalated history | source: capture]**
 
    > **Note:** The provided screenshot is for your reference; the output you receive may vary. SLA figures are a snapshot, so the agent should say when they were calculated.
 
-1. Verify the count in the Service Desk app: open **Tickets**, select the **Open Tickets** view, select the **Customer** column header, choose **Filter by**, and filter on **Woodgrove Bank**. The list shows **6** rows.
+1. Verify the open ticket count against the Service Desk app. Open **Tickets**, select the **Open Tickets** view, select the **Customer** column header, choose **Filter by**, and filter on **Woodgrove Bank**. The list shows **6** rows. Then open the **Escalated Tickets** view and find Woodgrove Bank's escalated tickets.
 
-   > **[SCREENSHOT PENDING: E2T2S3 | Open Tickets view filtered on Woodgrove Bank showing six rows | source: capture]**
+   > **[SCREENSHOT PENDING: E2T2S4 | Open Tickets view filtered on Woodgrove Bank showing six rows | source: capture]**
 
-### Success Criteria
+### Expected results
 
-- [ ] The summary lists exactly the six open Woodgrove Bank tickets and no closed tickets
-- [ ] The tickets are grouped by category and urgency
-- [ ] The recurring Remote Access issue across TCK-10484, TCK-10504 and TCK-10507 is flagged
+- [ ] The summary lists exactly the six open Woodgrove Bank tickets and no closed tickets, grouped by category and urgency
+- [ ] It summarises how previous incidents were resolved, naming KB0055 and KB0044
+- [ ] It flags the recurring Remote Access issue and the escalated tickets with their levels
 - [ ] The count in the app matches the summary
 
-## Task 3: Recommend a priority and category for a new ticket
+## Task 3: Recommend Priority, Category and Assignment
 
-In this task, you will ask the agent to triage a ticket that has neither a priority nor a category, citing the historical pattern, and compare its recommendation with your own.
+In this task, you will see whether the agent learns the desk's conventions or guesses. Classification is where the difference shows.
 
-1. In the Service Desk app, open **Tickets** and select the **Untriaged Tickets** view. Open **TCK-10512** from Lucerne Publishing and read its description.
+1. Use the same new incident, **TCK-10514**, which has no priority, category or technician set.
 
-1. In the playground, start a new chat and send:
-
-   ```
-   TCK-10512 has no priority and no category yet. Recommend a priority and a category for it. Cite the knowledge article and the historical tickets that support your recommendation, and say which Relecloud priority rule applies.
-   ```
-
-1. Check the recommendation. Expect category **Line-of-Business App** and priority **P2 High**: four finance users are blocked on a time-critical process, payroll, which is the P2 rule. The agent should cite **KB0133** *Line-of-business application shows a certificate expired warning*, whose last step says several users blocked on payroll or claims intake is P2, and historical certificate tickets resolved with KB0133.
-
-   > **[SCREENSHOT PENDING: E2T3S3 | Agent recommendation for TCK-10512 citing KB0133 and historical tickets | source: capture]**
-
-   > **Note:** The provided screenshot is for your reference; the output you receive may vary.
-
-1. As a team, decide whether you agree. Consider what would change the priority: if only one person were affected, the P3 rule would apply; if the whole business couldn't work, P1. Record your decision and the reason in **Lab notes.txt** next to **Triage recommendation for TCK-10512**. Don't apply the triage yet. The agent can't change tickets until it has write tools in Exercise 4.
-
-### Success Criteria
-
-- [ ] The recommendation names a category and a priority and the rule behind the priority
-- [ ] It cites KB0133 and at least one historical ticket by number
-- [ ] Your team has recorded whether it agrees and why
-
-## Task 4: Identify SLA risk
-
-In this task, you will find the open tickets closest to breaching their SLA, with the figures in business hours, and verify one of them on its record.
-
-1. Start a new chat and send:
+1. Ask the agent to recommend priority, category and the technician or team, citing the historical pattern it used. In the chat from Task 1, send:
 
    ```
-   Which open tickets are closest to breaching their SLA? For the three closest, show the customer, priority, SLA target, elapsed and remaining business hours, and when the figures were calculated. List any tickets that have already breached separately.
+   TCK-10514 has no priority, category or technician yet. Recommend a priority, a category, and the technician or team to assign it to. Cite the historical tickets, the knowledge article and the customer procedure your recommendation is based on, and say which Relecloud priority rule applies. Don't change the ticket.
    ```
 
-1. Check the answer against the expected result:
+   **Expected results.** Category **Backup and Recovery**; priority **P3 Medium**, which every historical KB0023 ticket had: one server, existing restore points intact, no data lost; technician **Priya Raman** (TECH-01, Backup and Recovery team, L2, skills include vault storage), who resolved all ten historical KB0023 tickets. A strong answer adds that the historical tickets were escalated to the **Account Manager**, that A. Datum's account manager is **Owen Fletcher**, and that procedure **CUST-019-PR3** requires the customer's written approval for a vault increase. With A. Datum's **Silver** tier, a P3 has an SLA target of **32** business hours.
+
+   > **[SCREENSHOT PENDING: E2T3S2 | Agent recommendation for TCK-10514 citing KB0023, historical tickets and the customer procedure | source: capture]**
+
+   > **Note:** The provided screenshot is for your reference; the output you receive may vary. You apply this recommendation through a write tool in Exercise 4.
+
+1. Open a seeded ticket with incomplete information and confirm the agent asks for what is missing rather than guessing. In the **Untriaged Tickets** view, open **TCK-10513** from **VanArsdel Ltd**: *It stopped working again*, with no product, version or number of affected users. Start a new chat and send:
+
+   ```
+   Triage TCK-10513: recommend a priority, category and technician.
+   ```
+
+   **Expected results.** The agent reads the ticket, says it can't triage it from the information given, and asks what is missing: which system or application stopped working, the error message, how many people are affected, when it started, and which earlier ticket "same as last time" refers to. It may list VanArsdel's recent tickets as candidates, but it must not pick one and triage on a guess.
+
+### Expected results
+
+- [ ] The TCK-10514 recommendation is Backup and Recovery, P3 and Priya Raman, and cites KB0023 and historical tickets by number
+- [ ] The recommendation names the priority rule and the customer procedure behind it
+- [ ] For TCK-10513, the agent asked for the missing details instead of guessing
+
+## Task 4: Detect an SLA Risk
+
+In this task, you will find the tickets closest to breaching their resolution SLA. SLA fields and a business calendar are seeded in your environment and are arithmetically consistent.
+
+1. Ask the agent which open tickets are closest to breaching their resolution SLA. Start a new chat and send:
+
+   ```
+   Which open tickets are closest to breaching their resolution SLA? List the three closest, and list separately any that have already breached.
+   ```
+
+1. Ask it to show the working: priority, SLA target and elapsed business hours:
+
+   ```
+   For each of those tickets, show the customer and SLA tier, the priority, the SLA target, the elapsed and remaining business hours, and when the figures were calculated.
+   ```
+
+   **Expected results:**
 
    | Ticket | Customer | Priority | Target | Elapsed | Remaining |
    |---|---|---|---|---|---|
@@ -139,19 +192,17 @@ In this task, you will find the open tickets closest to breaching their SLA, wit
    | TCK-10489 | Humongous Insurance (Platinum) | P2 High | 8 | 7.0 | 1.0 |
    | TCK-10474 | Bellows College (Gold) | P3 Medium | 24 | 22.0 | 2.0 |
 
-   Already breached: **TCK-10471** (Tailspin Toys, Bronze, P3, 6.0 hours over) and **TCK-10480** (Northwind Traders, Gold, P2, 1.5 hours over). Every other open ticket has at least 6 business hours left.
+   Already breached: **TCK-10471** (Tailspin Toys, Bronze, P3, 48 target, 54.0 elapsed, 6.0 hours over) and **TCK-10480** (Northwind Traders, Gold, P2, 12 target, 13.5 elapsed, 1.5 hours over). Untriaged tickets have no priority, so no SLA clock yet: the index's SLA snapshot lists three (TCK-10511, TCK-10512 and TCK-10513), and the **Untriaged Tickets** view also shows the two new incidents, which aren't indexed. Target minus elapsed equals remaining; business hours run Monday to Friday, 08:00 to 18:00 UTC, so a 4-hour P1 target opened at 16:00 on a Friday is due at 10:00 on Monday.
 
-   > **[SCREENSHOT PENDING: E2T4S2 | Agent list of the three tickets closest to SLA breach with business-hour figures | source: capture]**
+   > **[SCREENSHOT PENDING: E2T4S2 | Agent list of the tickets closest to SLA breach with business-hour figures | source: capture]**
 
    > **Note:** The provided screenshot is for your reference; the output you receive may vary.
 
-1. Check the arithmetic: target minus elapsed equals remaining. Business hours run Monday to Friday, 08:00 to 18:00 UTC, so a 4-hour P1 target opened at 16:00 on a Friday is due at 10:00 on Monday.
+1. Verify one result against the SLA fields on the ticket record itself. In the Service Desk app, open **TCK-10500** and compare **SLA Target**, **SLA Elapsed**, **SLA Remaining**, **SLA Due On** and **SLA Calculated On** in the **SLA** section with the agent's answer. Then open **Tickets** and select the **Open Tickets by SLA Remaining** view: its first five rows are TCK-10471, TCK-10480, TCK-10500, TCK-10489 and TCK-10474.
 
-1. Verify one ticket on its record: in the Service Desk app, open **TCK-10500** and compare **SLA Target**, **SLA Elapsed**, **SLA Remaining**, **SLA Due On** and **SLA Calculated On** in the **SLA** section with the agent's answer. Then open **Tickets** and select the **Open Tickets by SLA Remaining** view. It sorts by remaining hours, lowest first, so its first five rows are the two breached tickets (TCK-10471, TCK-10480) followed by TCK-10500, TCK-10489 and TCK-10474.
+   > **[SCREENSHOT PENDING: E2T4S3 | TCK-10500 SLA section in the Service Desk app | source: capture]**
 
-   > **[SCREENSHOT PENDING: E2T4S4 | Open Tickets by SLA Remaining view in the Service Desk app | source: capture]**
-
-### Success Criteria
+### Expected results
 
 - [ ] The three closest tickets are TCK-10500, TCK-10489 and TCK-10474, in that order, with priority, target, elapsed and remaining hours
 - [ ] TCK-10471 and TCK-10480 are reported as already breached, not as at risk
@@ -163,9 +214,9 @@ In this task, you will find the open tickets closest to breaching their SLA, wit
 <details>
 <summary>Select to show fixes for common problems in this exercise</summary>
 
+- **The agent says it can't find TCK-10514:** that is expected from the index alone. Ask it to read the ticket with the Service Desk tools.
 - **The agent lists closed tickets as open, or misses some:** ask it to use the customer's profile, which lists the open tickets, or the SLA risk snapshot; then check the count in the app.
-- **The agent invents ticket numbers:** start a new chat and ask again. If it persists, check that the agent's instructions are the grounded ones from Exercise 1 (they say never to invent numbers).
-- **Answers have no citations:** the knowledge tool may be missing from the latest agent version. Run `C:\LabFiles\tools\Update-AgentDefinition.ps1 -Knowledge` and start a new chat.
+- **The agent invents ticket numbers:** start a new chat and ask again. If it persists, check that the agent's instructions are the grounded ones from Exercise 1, which say never to invent numbers.
 - **SLA figures differ from the app by a little:** the index holds the snapshot taken at **SLA Calculated On**; compare the same columns on the record, not the time now.
 
 </details>
@@ -174,9 +225,9 @@ In this task, you will find the open tickets closest to breaching their SLA, wit
 
 In this exercise, you have completed the following:
 
-- Matched an unseen incident to historical tickets and checked one of them in the Service Desk app
-- Summarized Woodgrove Bank's open tickets by category and urgency and flagged the recurring Remote Access issue
-- Got a cited triage recommendation for the untriaged ticket TCK-10512 and compared it with your own judgment
+- Matched the new incident TCK-10514, which the agent had never seen, to its true historical matches and told the decoys apart
+- Summarised Woodgrove Bank's open issues, how earlier incidents were resolved, and what recurred or was escalated
+- Got a cited priority, category and assignment recommendation for TCK-10514, and saw the agent ask for missing details on TCK-10513
 - Found the tickets closest to SLA breach in business hours and verified one on its record
 
 #### You have successfully completed this exercise. Click **Next >>** from the lower right corner to proceed to the next exercise.

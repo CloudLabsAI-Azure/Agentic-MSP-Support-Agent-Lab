@@ -12,25 +12,25 @@ Search for "EXERCISE" before changing anything.
 MSP_NAME = "Relecloud Managed Services"
 MSP_DOMAIN = "relecloud.example"
 
-# ---------------------------------------------------------------------------
+# ===========================================================================
 # Choice sets. Values follow the publisher option-value prefix 76540.
 # The MCP server and the Dataverse schema use exactly these integers.
-# ---------------------------------------------------------------------------
+# ===========================================================================
 CHOICES = {
-    "msp_priority": {
+    "spk_priority": {
         "P1 Critical": 765400001,
         "P2 High": 765400002,
         "P3 Medium": 765400003,
         "P4 Low": 765400004,
     },
-    "msp_ticketstatus": {
+    "spk_ticketstatus": {
         "New": 765400101,
         "In Progress": 765400102,
         "Waiting on Customer": 765400103,
         "Resolved": 765400104,
         "Closed": 765400105,
     },
-    "msp_category": {
+    "spk_category": {
         "Backup and Recovery": 765400201,
         "Network and VPN": 765400202,
         "Endpoint": 765400203,
@@ -41,29 +41,29 @@ CHOICES = {
         "Line-of-Business App": 765400208,
         "Security": 765400209,
     },
-    "msp_slatier": {
+    "spk_slatier": {
         "Platinum": 765400301,
         "Gold": 765400302,
         "Silver": 765400303,
         "Bronze": 765400304,
     },
-    "msp_contracttype": {
+    "spk_contracttype": {
         "Fully Managed": 765400401,
         "Co-Managed": 765400402,
         "Break-Fix": 765400403,
     },
-    "msp_slastatus": {
+    "spk_slastatus": {
         "On Track": 765400501,
         "At Risk": 765400502,
         "Breached": 765400503,
         "Met": 765400504,
     },
-    "msp_kbstatus": {
+    "spk_kbstatus": {
         "Published": 765400601,
         "Draft": 765400602,
         "Retired": 765400603,
     },
-    "msp_technicianteam": {
+    "spk_technicianteam": {
         "Service Desk": 765400701,
         "Network": 765400702,
         "Endpoint": 765400703,
@@ -72,18 +72,18 @@ CHOICES = {
         "Collaboration": 765400706,
         "Security": 765400707,
     },
-    "msp_techniciantier": {
+    "spk_techniciantier": {
         "L1": 765400801,
         "L2": 765400802,
         "L3": 765400803,
     },
-    "msp_channel": {
+    "spk_channel": {
         "Email": 765400901,
         "Phone": 765400902,
         "Portal": 765400903,
         "Monitoring Alert": 765400904,
     },
-    "msp_product": {
+    "spk_product": {
         "Relecloud Backup Agent": 765401001,
         "Relecloud Remote Access": 765401002,
         "Relecloud Secure Gateway": 765401003,
@@ -94,13 +94,28 @@ CHOICES = {
         "Laptop or desktop": 765401008,
         "Not product specific": 765401009,
     },
+    "spk_escalationlevel": {
+        "L3 Specialist": 765401101,
+        "Vendor": 765401102,
+        "Account Manager": 765401103,
+        "Major Incident": 765401104,
+    },
+    "spk_proceduretype": {
+        "Change approval": 765401201,
+        "Maintenance window": 765401202,
+        "Escalation contacts": 765401203,
+        "Billing and quotes": 765401204,
+        "Access and security": 765401205,
+        "Business hours": 765401206,
+        "Data handling": 765401207,
+    },
 }
 
 PRIORITY_LABELS = {1: "P1 Critical", 2: "P2 High", 3: "P3 Medium", 4: "P4 Low"}
 
-# ---------------------------------------------------------------------------
+# ===========================================================================
 # SLA policies: resolution and response targets in business hours.
-# ---------------------------------------------------------------------------
+# ===========================================================================
 SLA_RESOLUTION_HOURS = {
     "Platinum": {1: 4, 2: 8, 3: 16, 4: 40},
     "Gold": {1: 6, 2: 12, 3: 24, 4: 60},
@@ -122,13 +137,13 @@ PRIORITY_RULES = (
     "single-user issues with a workaround."
 )
 
-# ---------------------------------------------------------------------------
+# ===========================================================================
 # Customers (Dataverse account table). EXERCISE: Fabrikam Residences, Northwind
 # Traders, Woodgrove Bank, Humongous Insurance, Contoso Pharmaceuticals, Bellows
 # College, Lucerne Publishing and Tailspin Toys are referenced by the guides.
 # rba = Relecloud Backup Agent, rra = Relecloud Remote Access client,
 # rsg = Relecloud Secure Gateway firmware, rea = Relecloud Endpoint Agent.
-# ---------------------------------------------------------------------------
+# ===========================================================================
 CUSTOMERS = [
     {"code": "CUST-001", "name": "Contoso Pharmaceuticals", "industry": "Life sciences", "city": "Boston",
      "tier": "Platinum", "contract": "Fully Managed", "seats": 420, "sites": 3,
@@ -252,9 +267,9 @@ CUSTOMERS = [
      "profile": "Software company. Their engineers manage their own build servers; Relecloud manages the office network, identity and backup."},
 ]
 
-# ---------------------------------------------------------------------------
+# ===========================================================================
 # Contacts: three per customer. Names are drawn deterministically from these pools.
-# ---------------------------------------------------------------------------
+# ===========================================================================
 FIRST_NAMES = [
     "Aisha", "Ben", "Carmen", "Dev", "Erin", "Felix", "Gabriela", "Hiro", "Ines", "Jamal",
     "Keiko", "Liam", "Mei", "Noah", "Olga", "Pavel", "Quinn", "Rosa", "Samir", "Tara",
@@ -282,10 +297,10 @@ CONTACT_ROLES = [
     ("Finance Director", "Executive sponsor"),
 ]
 
-# ---------------------------------------------------------------------------
+# ===========================================================================
 # Technicians. EXERCISE: Marcus Webb is unavailable (on leave), so an agent that
 # assigns network work must choose Lucas Moreau instead.
-# ---------------------------------------------------------------------------
+# ===========================================================================
 TECHNICIANS = [
     {"code": "TECH-01", "name": "Priya Raman", "tier": "L2", "team": "Backup and Recovery", "available": True,
      "skills": "Relecloud Backup Agent, restores, vault storage"},
@@ -325,7 +340,7 @@ CATEGORY_TEAMS = {
     "Security": ["TECH-07"],
 }
 
-# ---------------------------------------------------------------------------
+# ===========================================================================
 # Knowledge articles. "versions" is a dict of product -> list of version prefixes the
 # article applies to (empty = any version). "tiers"/"contracts" empty = any.
 # EXERCISE conflict pairs:
@@ -334,9 +349,9 @@ CATEGORY_TEAMS = {
 #   KB0044 vs KB0045  same request, decided by contract type
 #   KB0073 vs KB0074  same request, decided by contract type
 #   KB0019 is Retired and superseded by KB0007
-# ---------------------------------------------------------------------------
+# ===========================================================================
 KB_ARTICLES = [
-    # ----------------------------- Backup and Recovery -----------------------------
+    # ============================= Backup and Recovery =============================
     {"number": "KB0007", "title": "Backup job fails with RBA-1043: snapshot provider timed out",
      "category": "Backup and Recovery", "product": "Relecloud Backup Agent",
      "versions": {"rba": ["5.1", "5.2"]}, "tiers": [], "contracts": [], "status": "Published", "reviewed_days_ago": 41,
@@ -414,7 +429,7 @@ KB_ARTICLES = [
      "cause": "The device is powered off, disconnected, or the agent cannot reach the vault.",
      "resolution": "1. Check the device in the Endpoint Agent console. 2. If it is a laptop, ask the user to connect it to the network overnight. 3. If it is a server, treat it as a failed backup and follow KB0012 or KB0013 according to the customer's SLA tier.",
      "keywords": "Unknown status, offline, agent not reporting"},
-    # ----------------------------- Network and VPN -----------------------------
+    # ============================= Network and VPN =============================
     {"number": "KB0031", "title": "Remote Access client disconnects every 60 minutes (client 3.x)",
      "category": "Network and VPN", "product": "Relecloud Remote Access",
      "versions": {"rra": ["3.8", "3.9"]}, "tiers": [], "contracts": [], "status": "Published", "reviewed_days_ago": 96,
@@ -485,7 +500,7 @@ KB_ARTICLES = [
      "cause": "All meeting traffic is routed through head office.",
      "resolution": "1. Enable the collaboration split-tunnel profile on the gateway for the customer. 2. Ask the user to reconnect Remote Access. 3. Calls that drop exactly every hour are a different issue: see KB0031 or KB0058.",
      "keywords": "choppy audio, video calls, split tunnel, Remote Access"},
-    # ----------------------------- Endpoint -----------------------------
+    # ============================= Endpoint =============================
     {"number": "KB0061", "title": "Endpoint Agent shows the device offline after a reimage",
      "category": "Endpoint", "product": "Relecloud Endpoint Agent",
      "versions": {}, "tiers": [], "contracts": [], "status": "Published", "reviewed_days_ago": 190,
@@ -542,7 +557,7 @@ KB_ARTICLES = [
      "cause": "Not a fault. Request that may be billable.",
      "resolution": "1. Co-Managed: the customer's IT team builds the device; Relecloud only enrols it in monitoring. 2. Break-Fix: building the device is billable; send the standard two-hour quote and wait for written approval.",
      "keywords": "new laptop, provisioning, quote, Co-Managed, Break-Fix"},
-    # ----------------------------- Email and Collaboration -----------------------------
+    # ============================= Email and Collaboration =============================
     {"number": "KB0081", "title": "Grant access to a shared mailbox",
      "category": "Email and Collaboration", "product": "Microsoft 365",
      "versions": {}, "tiers": [], "contracts": [], "status": "Published", "reviewed_days_ago": 130,
@@ -578,7 +593,7 @@ KB_ARTICLES = [
      "cause": "Possible phishing.",
      "resolution": "1. Ask whether the user clicked a link or entered a password. 2. If they did, treat it as a security incident: reset the password, revoke sessions, and open a P1 Security ticket (KB0141). 3. If not, block the sender and thank the user.",
      "keywords": "phishing, suspicious e-mail, security"},
-    # ----------------------------- Identity and Access -----------------------------
+    # ============================= Identity and Access =============================
     {"number": "KB0091", "title": "Password reset: identity verification steps",
      "category": "Identity and Access", "product": "Microsoft 365",
      "versions": {}, "tiers": [], "contracts": [], "status": "Published", "reviewed_days_ago": 45,
@@ -621,7 +636,7 @@ KB_ARTICLES = [
      "cause": "Not a fault. Request.",
      "resolution": "1. Admin rights are granted only with written approval from the customer's primary IT contact. 2. Grant time-limited elevation for eight hours rather than permanent rights.",
      "keywords": "admin rights, elevation, request"},
-    # ----------------------------- Printing -----------------------------
+    # ============================= Printing =============================
     {"number": "KB0111", "title": "Printer shows offline after a network change",
      "category": "Printing", "product": "Printer or scanner",
      "versions": {}, "tiers": [], "contracts": [], "status": "Published", "reviewed_days_ago": 90,
@@ -643,7 +658,7 @@ KB_ARTICLES = [
      "cause": "A corrupted job blocks the spooler.",
      "resolution": "1. Stop the Print Spooler service on the print server. 2. Delete the files in the spool folder. 3. Start the service and print a test page.",
      "keywords": "print queue, spooler, stuck jobs"},
-    # ----------------------------- Hardware -----------------------------
+    # ============================= Hardware =============================
     {"number": "KB0121", "title": "Laptop warranty replacement process",
      "category": "Hardware", "product": "Laptop or desktop",
      "versions": {}, "tiers": [], "contracts": [], "status": "Published", "reviewed_days_ago": 150,
@@ -658,7 +673,7 @@ KB_ARTICLES = [
      "cause": "Outdated dock firmware or a damaged cable.",
      "resolution": "1. Update the dock firmware from the Endpoint Agent software library. 2. Replace the display cable.",
      "keywords": "dock, monitor flicker, display"},
-    # ----------------------------- Line-of-Business App -----------------------------
+    # ============================= Line-of-Business App =============================
     {"number": "KB0131", "title": "Accounting application cannot connect after a database password rotation",
      "category": "Line-of-Business App", "product": "Line-of-business application",
      "versions": {}, "tiers": [], "contracts": [], "status": "Published", "reviewed_days_ago": 85,
@@ -673,7 +688,7 @@ KB_ARTICLES = [
      "cause": "The application server's TLS certificate expired and was not renewed, or it was renewed on the wrong server.",
      "resolution": "1. Check the certificate on the application server. 2. Renew it and bind the new certificate to the application site. 3. Ask one user to confirm the warning is gone. 4. Several users blocked on a time-critical process such as payroll or claims intake is P2.",
      "keywords": "certificate expired, TLS, payroll application, document management, warning"},
-    # ----------------------------- Security -----------------------------
+    # ============================= Security =============================
     {"number": "KB0141", "title": "Triage a suspicious sign-in alert",
      "category": "Security", "product": "Microsoft 365",
      "versions": {}, "tiers": [], "contracts": [], "status": "Published", "reviewed_days_ago": 25,

@@ -4,7 +4,8 @@
   "metadata": {
     "lab": "Agentic MSP Support Agent Guided Lab",
     "environment": "01 (one deployment per team)",
-    "notes": "Deploy into Sweden Central: East US and East US 2 currently block new Azure AI Search services. The lab VM uses the Spektra jump-VM image with a userData bootstrap (psscript-01.ps1), which finishes provisioning as the team user: it builds the MCP server image, creates the Power Platform developer environment, imports the Service Desk solution, seeds Dataverse and creates the Foundry agent. Nothing here creates Entra app registrations; the MCP gateway audience comes from the one-time tenant preparation (setup/tenant/Initialize-LabTenant.ps1)."
+    "notes": "Deploy into Sweden Central: East US and East US 2 currently block new Azure AI Search services. The lab VM uses the Spektra jump-VM image with a userData bootstrap (psscript-01.ps1), which finishes provisioning: it builds the MCP server image, creates the Power Platform developer environment, imports the Service Desk solution, seeds Dataverse, adds the Tier 1 Technician and creates the Foundry agent with its MCP tool. Nothing here creates Entra app registrations: the MCP gateway app (delegated scope ServiceDesk.Access, OAuth client of the agent's MCP connection) and the Purview app come from the one-time tenant preparation (setup/tenant/Initialize-LabTenant.ps1). Secrets live only in the team's Key Vault and in the Foundry project connection; the MCP server reads its gateway key from Key Vault at startup.",
+    "pilot": "Verify on the first deployment: the metadata keys of the servicedesk-mcp OAuth2 connection (compare with a reference connection created by the Azure Developer CLI with auth type oauth2), and that the connection's redirect URL is registered on the gateway app (setup/README.md)."
   },
   "parameters": {
     "adminUsername": { "type": "string", "metadata": { "description": "Lab VM local admin. Parameters file: azureuser." } },
@@ -13,10 +14,17 @@
     "AzurePassword": { "type": "securestring", "metadata": { "description": "Team user password. Parameters file: GET-AZUSER-PASSWORD." } },
     "ODLID": { "type": "string", "metadata": { "description": "ODL instance ID. Parameters file: GET-ODL-ID." } },
     "DeploymentID": { "type": "string", "metadata": { "description": "Per-team unique suffix. Parameters file: GET-DEPLOYMENT-ID." } },
-    "trainerUserName": { "type": "string", "metadata": { "description": "Instructor account. Parameters file: trainer." } },
-    "trainerUserPassword": { "type": "securestring", "metadata": { "description": "Instructor password. Parameters file: GEN-PASSWORD." } },
-    "azuserobjectid": { "type": "string", "metadata": { "description": "Team user object ID for data-plane role assignments. Parameters file: GET-AZUSER-OBJECTID." } },
-    "mcpGatewayAppId": { "type": "string", "metadata": { "description": "Application (client) ID of the tenant-wide 'Relecloud Service Desk MCP Gateway' app registration created once by setup/tenant/Initialize-LabTenant.ps1. Its App ID URI api://<id> is the audience the agent identity requests a token for. Not a secret." } },
+    "trainerUserName": { "type": "string", "metadata": { "description": "CloudLabs support shadow account on the lab VM (Embedded Shadow). Parameters file: trainer." } },
+    "trainerUserPassword": { "type": "securestring", "metadata": { "description": "Support shadow account password. Parameters file: GEN-PASSWORD." } },
+    "azuserobjectid": { "type": "string", "metadata": { "description": "Object ID of the team user, who is the Senior Technician, for data-plane role assignments. Parameters file: GET-AZUSER-OBJECTID." } },
+    "tier1UserName": { "type": "string", "defaultValue": "", "metadata": { "description": "UPN of the team's second lab user, the Tier 1 Technician (read-only on tickets). Needs the Power Apps Developer Plan licence. Empty skips Exercise 5 Task 4 setup." } },
+    "tier1UserObjectId": { "type": "string", "defaultValue": "", "metadata": { "description": "Object ID of the Tier 1 Technician." } },
+    "mcpGatewayAppId": { "type": "string", "metadata": { "description": "Application (client) ID of the tenant-wide 'Relecloud Service Desk MCP Gateway' app registration created once by setup/tenant/Initialize-LabTenant.ps1. It exposes the delegated scope ServiceDesk.Access (audience api://<id>) and is the OAuth client of each team's MCP connection. Not a secret." } },
+    "mcpOAuthClientSecret": { "type": "securestring", "metadata": { "description": "Client secret of the MCP gateway app, from Initialize-LabTenant.ps1. Stored only in the team's Foundry project connection (OAuth identity passthrough)." } },
+    "purviewClientId": { "type": "string", "defaultValue": "", "metadata": { "description": "Application ID of the tenant-wide Purview app (Content.Process.All). Empty turns the MCP server's Purview checks off." } },
+    "purviewClientSecret": { "type": "securestring", "defaultValue": "", "metadata": { "description": "Client secret of the Purview app. Stored in the team's Key Vault as purview-client-secret." } },
+    "sensitivityLabelId": { "type": "string", "defaultValue": "", "metadata": { "description": "ID of the tenant's sensitivity label that the seeded customer configuration document carries (Exercise 6). Empty leaves the document unlabelled." } },
+    "sensitivityLabelName": { "type": "string", "defaultValue": "Confidential", "metadata": { "description": "Name of that sensitivity label. The MCP server never returns documents with this label." } },
     "mcpBackendKeySeed": { "type": "securestring", "defaultValue": "[newGuid()]", "metadata": { "description": "Do not set. Seeds the per-team gateway-to-server key stored in Key Vault; secure so deployment history does not show it." } }
   },
   "variables": {
@@ -52,8 +60,15 @@
     "dataverseDomain": "[concat('mspdesk', variables('did'))]",
     "dataverseUrlSuffix": "crm4.dynamics.com",
     "dataverseUrl": "[concat('https://', variables('dataverseDomain'), '.', variables('dataverseUrlSuffix'))]",
-    "serviceDeskAppUrl": "[concat(variables('dataverseUrl'), '/main.aspx?appname=msp_ServiceDesk')]",
+    "serviceDeskAppUrl": "[concat(variables('dataverseUrl'), '/main.aspx?appname=spk_ServiceDesk')]",
     "mcpGatewayAudience": "[concat('api://', parameters('mcpGatewayAppId'))]",
+    "mcpGatewayScope": "ServiceDesk.Access",
+    "mcpGatewayUrl": "[concat('https://', variables('apimName'), '.azure-api.net/servicedesk/mcp')]",
+    "mcpConnectionName": "servicedesk-mcp",
+    "loginBase": "[concat('https://login.microsoftonline.com/', variables('AzureTenantID'), '/oauth2/v2.0')]",
+    "purviewEnabled": "[not(empty(parameters('purviewClientId')))]",
+    "tier1Enabled": "[not(empty(parameters('tier1UserObjectId')))]",
+    "restrictedLabels": "[if(empty(parameters('sensitivityLabelId')), 'Confidential,Highly Confidential', concat(parameters('sensitivityLabelName'), ',', parameters('sensitivityLabelId'), ',Highly Confidential'))]",
     "backendKey": "[concat(uniqueString(parameters('mcpBackendKeySeed'), 'a'), uniqueString(parameters('mcpBackendKeySeed'), 'b'), uniqueString(parameters('mcpBackendKeySeed'), 'c'))]",
     "roles": {
       "Reader": "acdd72a7-3385-48ef-bd42-f606fba81ae7",
@@ -61,6 +76,7 @@
       "AcrPush": "8311e382-0749-4cb8-b61a-304f252e45ec",
       "RegistryTasksContributor": "fb382eab-e894-4461-af04-94435c366c3f",
       "KeyVaultSecretsUser": "4633458b-17de-408a-b874-0445c86b69e6",
+      "KeyVaultReader": "21090545-7ca7-4776-b22c-e363652d74d2",
       "CognitiveServicesOpenAIUser": "5e0bd9bd-7b93-4f28-af87-19fc36ad61bd",
       "SearchIndexDataReader": "1407120a-92aa-4202-b7e9-c0e197c71c8f",
       "SearchIndexDataContributor": "8ebe5a00-799e-43f5-93ac-243d3dce84a7",
@@ -81,8 +97,8 @@
     "arg5LabVM": "[concat(' -trainerUserName ', parameters('trainerUserName'), ' -trainerUserPassword ', parameters('trainerUserPassword'))]",
     "arg6LabVM": "[concat(' -ResourceGroupName ', resourceGroup().name, ' -McpGatewayAppId ', parameters('mcpGatewayAppId'))]",
     "argLabVM": "[concat(variables('arg1LabVM'), variables('arg2LabVM'), variables('arg3LabVM'), variables('arg4LabVM'), variables('arg5LabVM'), variables('arg6LabVM'))]",
-    "agentPolicy": "<policies><inbound><base /><set-header name=\"Origin\" exists-action=\"delete\" /><validate-azure-ad-token tenant-id=\"{{tenant-id}}\" header-name=\"Authorization\" failed-validation-httpcode=\"401\" failed-validation-error-message=\"Unauthorized. This gateway accepts only the Relecloud service desk agent identity.\" output-token-variable-name=\"agentToken\"><client-application-ids><application-id>{{agent-client-id}}</application-id></client-application-ids><audiences><audience>{{mcp-gateway-audience}}</audience><audience>{{mcp-gateway-app-id}}</audience></audiences></validate-azure-ad-token><rate-limit-by-key calls=\"120\" renewal-period=\"60\" counter-key=\"@(context.Request.IpAddress)\" /><set-header name=\"Authorization\" exists-action=\"delete\" /><set-header name=\"x-backend-key\" exists-action=\"override\"><value>{{mcp-backend-key}}</value></set-header><set-header name=\"x-apim-correlation-id\" exists-action=\"override\"><value>@(context.RequestId.ToString())</value></set-header><set-header name=\"x-gateway-caller\" exists-action=\"override\"><value>agent</value></set-header></inbound><backend><base /></backend><outbound><base /></outbound><on-error><base /></on-error></policies>",
-    "diagPolicy": "<policies><inbound><base /><set-header name=\"Origin\" exists-action=\"delete\" /><rate-limit-by-key calls=\"60\" renewal-period=\"60\" counter-key=\"@(context.Subscription.Id)\" /><set-header name=\"x-backend-key\" exists-action=\"override\"><value>{{mcp-backend-key}}</value></set-header><set-header name=\"x-apim-correlation-id\" exists-action=\"override\"><value>@(context.RequestId.ToString())</value></set-header><set-header name=\"x-gateway-caller\" exists-action=\"override\"><value>operator</value></set-header></inbound><backend><base /></backend><outbound><base /></outbound><on-error><base /></on-error></policies>"
+    "agentPolicy": "<policies><inbound><base /><set-header name=\"Origin\" exists-action=\"delete\" /><validate-azure-ad-token tenant-id=\"{{tenant-id}}\" header-name=\"Authorization\" failed-validation-httpcode=\"401\" failed-validation-error-message=\"Unauthorized. This gateway accepts only a signed-in technician's token for the Service Desk scope.\" output-token-variable-name=\"userToken\"><client-application-ids><application-id>{{mcp-gateway-app-id}}</application-id></client-application-ids><audiences><audience>{{mcp-gateway-audience}}</audience><audience>{{mcp-gateway-app-id}}</audience></audiences><required-claims><claim name=\"scp\" match=\"any\" separator=\" \"><value>{{mcp-gateway-scope}}</value></claim></required-claims></validate-azure-ad-token><set-variable name=\"userOid\" value=\"@(((Jwt)context.Variables[&quot;userToken&quot;]).Claims.GetValueOrDefault(&quot;oid&quot;, &quot;&quot;))\" /><rate-limit-by-key calls=\"120\" renewal-period=\"60\" counter-key=\"@((string)context.Variables[&quot;userOid&quot;])\" /><set-header name=\"x-user-oid\" exists-action=\"override\"><value>@((string)context.Variables[\"userOid\"])</value></set-header><set-header name=\"x-user-name\" exists-action=\"override\"><value>@{ var jwt = (Jwt)context.Variables[\"userToken\"]; return jwt.Claims.GetValueOrDefault(\"preferred_username\", jwt.Claims.GetValueOrDefault(\"upn\", \"\")); }</value></set-header><set-header name=\"x-client-app-id\" exists-action=\"override\"><value>@{ var jwt = (Jwt)context.Variables[\"userToken\"]; return jwt.Claims.GetValueOrDefault(\"azp\", jwt.Claims.GetValueOrDefault(\"appid\", \"\")); }</value></set-header><set-header name=\"Authorization\" exists-action=\"delete\" /><set-header name=\"x-backend-key\" exists-action=\"override\"><value>{{mcp-backend-key}}</value></set-header><set-header name=\"x-correlation-id\" exists-action=\"override\"><value>@(context.RequestId.ToString())</value></set-header><set-header name=\"x-gateway-caller\" exists-action=\"override\"><value>agent</value></set-header></inbound><backend><base /></backend><outbound><base /><set-header name=\"x-correlation-id\" exists-action=\"override\"><value>@(context.RequestId.ToString())</value></set-header></outbound><on-error><base /><set-header name=\"x-correlation-id\" exists-action=\"override\"><value>@(context.RequestId.ToString())</value></set-header></on-error></policies>",
+    "diagPolicy": "<policies><inbound><base /><set-header name=\"Origin\" exists-action=\"delete\" /><rate-limit-by-key calls=\"60\" renewal-period=\"60\" counter-key=\"@(context.Subscription.Id)\" /><set-header name=\"x-user-oid\" exists-action=\"delete\" /><set-header name=\"x-user-name\" exists-action=\"delete\" /><set-header name=\"x-client-app-id\" exists-action=\"delete\" /><set-header name=\"x-backend-key\" exists-action=\"override\"><value>{{mcp-backend-key}}</value></set-header><set-header name=\"x-correlation-id\" exists-action=\"override\"><value>@(context.RequestId.ToString())</value></set-header><set-header name=\"x-gateway-caller\" exists-action=\"override\"><value>operator</value></set-header></inbound><backend><base /></backend><outbound><base /><set-header name=\"x-correlation-id\" exists-action=\"override\"><value>@(context.RequestId.ToString())</value></set-header></outbound><on-error><base /></on-error></policies>"
   },
   "resources": [
     {
@@ -212,6 +228,32 @@
       }
     },
     {
+      "condition": "[variables('purviewEnabled')]",
+      "type": "Microsoft.KeyVault/vaults/secrets",
+      "apiVersion": "2023-07-01",
+      "name": "[concat(variables('kvName'), '/purview-client-secret')]",
+      "dependsOn": [ "[resourceId('Microsoft.KeyVault/vaults', variables('kvName'))]" ],
+      "properties": {
+        "value": "[parameters('purviewClientSecret')]",
+        "contentType": "Client secret the MCP server uses for the Microsoft Purview processContent API"
+      }
+    },
+    {
+      "type": "Microsoft.Insights/diagnosticSettings",
+      "apiVersion": "2021-05-01-preview",
+      "scope": "[format('Microsoft.KeyVault/vaults/{0}', variables('kvName'))]",
+      "name": "kv-to-log-analytics",
+      "dependsOn": [
+        "[resourceId('Microsoft.KeyVault/vaults', variables('kvName'))]",
+        "[resourceId('Microsoft.OperationalInsights/workspaces', variables('logName'))]"
+      ],
+      "properties": {
+        "workspaceId": "[resourceId('Microsoft.OperationalInsights/workspaces', variables('logName'))]",
+        "logAnalyticsDestinationType": "Dedicated",
+        "logs": [ { "category": "AuditEvent", "enabled": true } ]
+      }
+    },
+    {
       "type": "Microsoft.Authorization/roleAssignments",
       "apiVersion": "2022-04-01",
       "scope": "[format('Microsoft.KeyVault/vaults/{0}', variables('kvName'))]",
@@ -313,13 +355,6 @@
               "server": "[concat(variables('acrName'), '.azurecr.io')]",
               "identity": "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('mcpIdentityName'))]"
             }
-          ],
-          "secrets": [
-            {
-              "name": "mcp-backend-key",
-              "keyVaultUrl": "[concat(reference(resourceId('Microsoft.KeyVault/vaults', variables('kvName')), '2023-07-01').vaultUri, 'secrets/mcp-backend-key')]",
-              "identity": "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('mcpIdentityName'))]"
-            }
           ]
         },
         "template": {
@@ -332,8 +367,17 @@
                 { "name": "DATA_BACKEND", "value": "dataverse" },
                 { "name": "DATAVERSE_URL", "value": "[variables('dataverseUrl')]" },
                 { "name": "AZURE_CLIENT_ID", "value": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('mcpIdentityName')), '2023-01-31').clientId]" },
-                { "name": "MCP_BACKEND_KEY", "secretRef": "mcp-backend-key" },
+                { "name": "KEY_VAULT_URL", "value": "[reference(resourceId('Microsoft.KeyVault/vaults', variables('kvName')), '2023-07-01').vaultUri]" },
+                { "name": "BACKEND_KEY_SECRET_NAME", "value": "mcp-backend-key" },
                 { "name": "REQUIRE_BACKEND_KEY", "value": "true" },
+                { "name": "DATAVERSE_IMPERSONATION", "value": "true" },
+                { "name": "REQUIRE_USER_FOR_WRITES", "value": "true" },
+                { "name": "AGENT_NAME", "value": "[variables('agentName')]" },
+                { "name": "AGENT_ID", "value": "" },
+                { "name": "PURVIEW_ENABLED", "value": "[if(variables('purviewEnabled'), 'true', 'false')]" },
+                { "name": "PURVIEW_TENANT_ID", "value": "[variables('AzureTenantID')]" },
+                { "name": "PURVIEW_CLIENT_ID", "value": "[parameters('purviewClientId')]" },
+                { "name": "PURVIEW_RESTRICTED_LABELS", "value": "[variables('restrictedLabels')]" },
                 { "name": "MCP_ALLOWED_HOSTS", "value": "[concat(variables('caName'), '.', reference(resourceId('Microsoft.App/managedEnvironments', variables('caeName')), '2024-03-01').defaultDomain)]" },
                 { "name": "MCP_STATELESS", "value": "true" },
                 { "name": "LOG_LEVEL", "value": "INFO" },
@@ -427,6 +471,34 @@
         "isSharedToAll": true,
         "credentials": { "key": "[reference(resourceId('Microsoft.Insights/components', variables('appiName')), '2020-02-02').ConnectionString]" },
         "metadata": { "ApiType": "Azure", "ResourceId": "[resourceId('Microsoft.Insights/components', variables('appiName'))]" }
+      }
+    },
+    {
+      "type": "Microsoft.CognitiveServices/accounts/projects/connections",
+      "apiVersion": "2026-07-01",
+      "name": "[concat(variables('foundryName'), '/', variables('projectName'), '/', variables('mcpConnectionName'))]",
+      "dependsOn": [
+        "[resourceId('Microsoft.CognitiveServices/accounts/projects', variables('foundryName'), variables('projectName'))]",
+        "[resourceId('Microsoft.ApiManagement/service/apis/policies', variables('apimName'), 'servicedesk-mcp', 'policy')]"
+      ],
+      "properties": {
+        "category": "RemoteTool",
+        "target": "[variables('mcpGatewayUrl')]",
+        "authType": "OAuth2",
+        "isSharedToAll": true,
+        "credentials": {
+          "clientId": "[parameters('mcpGatewayAppId')]",
+          "clientSecret": "[parameters('mcpOAuthClientSecret')]",
+          "tenantId": "[variables('AzureTenantID')]",
+          "authUrl": "[concat(variables('loginBase'), '/authorize')]"
+        },
+        "metadata": {
+          "type": "custom_MCP",
+          "authorizationUrl": "[concat(variables('loginBase'), '/authorize')]",
+          "tokenUrl": "[concat(variables('loginBase'), '/token')]",
+          "refreshUrl": "[concat(variables('loginBase'), '/token')]",
+          "scopes": "[concat(variables('mcpGatewayAudience'), '/', variables('mcpGatewayScope'), ' offline_access')]"
+        }
       }
     },
     {
@@ -560,14 +632,9 @@
     {
       "type": "Microsoft.ApiManagement/service/namedValues",
       "apiVersion": "2024-05-01",
-      "name": "[concat(variables('apimName'), '/agent-client-id')]",
+      "name": "[concat(variables('apimName'), '/mcp-gateway-scope')]",
       "dependsOn": [ "[resourceId('Microsoft.ApiManagement/service', variables('apimName'))]" ],
-      "properties": {
-        "displayName": "agent-client-id",
-        "value": "00000000-0000-0000-0000-000000000000",
-        "secret": false,
-        "tags": [ "set-by-provisioning" ]
-      }
+      "properties": { "displayName": "mcp-gateway-scope", "value": "[variables('mcpGatewayScope')]", "secret": false }
     },
     {
       "type": "Microsoft.ApiManagement/service/namedValues",
@@ -612,7 +679,7 @@
       "properties": {
         "type": "mcp",
         "displayName": "Service Desk MCP",
-        "description": "MCP endpoint for the Relecloud service desk agent. Accepts only an Entra token issued to the team's Foundry agent identity for the MCP gateway audience.",
+        "description": "MCP endpoint for the Relecloud service desk agent. Accepts only a signed-in technician's Entra token for the MCP gateway audience with the ServiceDesk.Access scope (OAuth identity passthrough), and forwards who the user is to the MCP server.",
         "path": "servicedesk",
         "protocols": [ "https" ],
         "serviceUrl": "[concat('https://', reference(resourceId('Microsoft.App/containerApps', variables('caName')), '2024-03-01').configuration.ingress.fqdn)]",
@@ -627,7 +694,7 @@
       "dependsOn": [
         "[resourceId('Microsoft.ApiManagement/service/apis', variables('apimName'), 'servicedesk-mcp')]",
         "[resourceId('Microsoft.ApiManagement/service/namedValues', variables('apimName'), 'tenant-id')]",
-        "[resourceId('Microsoft.ApiManagement/service/namedValues', variables('apimName'), 'agent-client-id')]",
+        "[resourceId('Microsoft.ApiManagement/service/namedValues', variables('apimName'), 'mcp-gateway-scope')]",
         "[resourceId('Microsoft.ApiManagement/service/namedValues', variables('apimName'), 'mcp-gateway-audience')]",
         "[resourceId('Microsoft.ApiManagement/service/namedValues', variables('apimName'), 'mcp-gateway-app-id')]",
         "[resourceId('Microsoft.ApiManagement/service/namedValues', variables('apimName'), 'mcp-backend-key')]"
@@ -645,7 +712,7 @@
       "properties": {
         "type": "mcp",
         "displayName": "Service Desk MCP (operator diagnostics)",
-        "description": "Same MCP server for operator testing from the lab VM. Requires the subscription key of the Service Desk Operators product.",
+        "description": "Same MCP server for diagnostics from the lab VM. Requires the subscription key of the Service Desk Operators product. Carries no signed-in user, so the server's write tools refuse every call made through it.",
         "path": "servicedesk-diag",
         "protocols": [ "https" ],
         "serviceUrl": "[concat('https://', reference(resourceId('Microsoft.App/containerApps', variables('caName')), '2024-03-01').configuration.ingress.fqdn)]",
@@ -737,6 +804,20 @@
       }
     },
     {
+      "condition": "[variables('tier1Enabled')]",
+      "type": "Microsoft.Authorization/roleAssignments",
+      "apiVersion": "2022-04-01",
+      "scope": "[format('Microsoft.CognitiveServices/accounts/{0}/projects/{1}', variables('foundryName'), variables('projectName'))]",
+      "name": "[guid(resourceGroup().id, variables('projectName'), parameters('tier1UserObjectId'), 'foundryuser')]",
+      "dependsOn": [ "[resourceId('Microsoft.CognitiveServices/accounts/projects', variables('foundryName'), variables('projectName'))]" ],
+      "properties": {
+        "description": "Tier 1 Technician: chats with the team's agent in the Foundry portal. In production, give technicians who only use an agent the Foundry Agent Consumer role through a client app instead.",
+        "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('roles').FoundryUser)]",
+        "principalId": "[parameters('tier1UserObjectId')]",
+        "principalType": "User"
+      }
+    },
+    {
       "type": "Microsoft.Authorization/roleAssignments",
       "apiVersion": "2022-04-01",
       "scope": "[format('Microsoft.CognitiveServices/accounts/{0}', variables('foundryName'))]",
@@ -768,6 +849,19 @@
       "dependsOn": [ "[resourceId('Microsoft.Search/searchServices', variables('searchName'))]" ],
       "properties": {
         "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('roles').SearchServiceContributor)]",
+        "principalId": "[parameters('azuserobjectid')]",
+        "principalType": "User"
+      }
+    },
+    {
+      "type": "Microsoft.Authorization/roleAssignments",
+      "apiVersion": "2022-04-01",
+      "scope": "[format('Microsoft.KeyVault/vaults/{0}', variables('kvName'))]",
+      "name": "[guid(resourceGroup().id, variables('kvName'), parameters('azuserobjectid'), 'kvreader')]",
+      "dependsOn": [ "[resourceId('Microsoft.KeyVault/vaults', variables('kvName'))]" ],
+      "properties": {
+        "description": "Team user: sees the vault's secrets and their metadata (Exercise 5), never their values.",
+        "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('roles').KeyVaultReader)]",
         "principalId": "[parameters('azuserobjectid')]",
         "principalType": "User"
       }
@@ -970,8 +1064,18 @@
         "[extensionResourceId(resourceId('Microsoft.App/containerApps', variables('caName')), 'Microsoft.Authorization/roleAssignments', guid(resourceGroup().id, variables('caName'), variables('provIdentityName'), 'contributor'))]",
         "[extensionResourceId(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('mcpIdentityName')), 'Microsoft.Authorization/roleAssignments', guid(resourceGroup().id, variables('mcpIdentityName'), variables('provIdentityName'), 'mioperator'))]",
         "[extensionResourceId(resourceId('Microsoft.ApiManagement/service', variables('apimName')), 'Microsoft.Authorization/roleAssignments', guid(resourceGroup().id, variables('apimName'), variables('provIdentityName'), 'apimcontributor'))]",
-        "[extensionResourceId(resourceId('Microsoft.CognitiveServices/accounts/projects', variables('foundryName'), variables('projectName')), 'Microsoft.Authorization/roleAssignments', guid(resourceGroup().id, variables('projectName'), variables('provIdentityName'), 'foundryuser'))]"
+        "[extensionResourceId(resourceId('Microsoft.CognitiveServices/accounts/projects', variables('foundryName'), variables('projectName')), 'Microsoft.Authorization/roleAssignments', guid(resourceGroup().id, variables('projectName'), variables('provIdentityName'), 'foundryuser'))]",
+        "[resourceId('Microsoft.CognitiveServices/accounts/projects/connections', variables('foundryName'), variables('projectName'), variables('mcpConnectionName'))]",
+        "[extensionResourceId(resourceId('Microsoft.CognitiveServices/accounts/projects', variables('foundryName'), variables('projectName')), 'Microsoft.Authorization/roleAssignments', guid(resourceGroup().id, variables('projectName'), parameters('tier1UserObjectId'), 'foundryuser'))]"
       ],
+      "tags": {
+        "msplab-tier1-user": "[parameters('tier1UserName')]",
+        "msplab-tier1-oid": "[parameters('tier1UserObjectId')]",
+        "msplab-label-id": "[parameters('sensitivityLabelId')]",
+        "msplab-label-name": "[parameters('sensitivityLabelName')]",
+        "msplab-mcp-connection": "[variables('mcpConnectionName')]",
+        "msplab-purview": "[if(variables('purviewEnabled'), 'enabled', 'not configured')]"
+      },
       "plan": { "name": "win2022mssd", "publisher": "spektra", "product": "cloudlabs-windows-jumpvm" },
       "identity": {
         "type": "UserAssigned",
@@ -1029,7 +1133,10 @@
     "AI Search Service Name": { "type": "string", "value": "[variables('searchName')]" },
     "AI Search Endpoint": { "type": "string", "value": "[concat('https://', variables('searchName'), '.search.windows.net')]" },
     "MCP Server URL": { "type": "string", "value": "[concat('https://', reference(resourceId('Microsoft.App/containerApps', variables('caName')), '2024-03-01').configuration.ingress.fqdn)]" },
-    "MCP Gateway URL": { "type": "string", "value": "[concat('https://', variables('apimName'), '.azure-api.net/servicedesk/mcp')]" },
+    "MCP Gateway URL": { "type": "string", "value": "[variables('mcpGatewayUrl')]" },
+    "MCP Connection Name": { "type": "string", "value": "[variables('mcpConnectionName')]" },
+    "Tier 1 Technician Username": { "type": "string", "value": "[parameters('tier1UserName')]" },
+    "Key Vault URL": { "type": "string", "value": "[reference(resourceId('Microsoft.KeyVault/vaults', variables('kvName')), '2023-07-01').vaultUri]" },
     "MCP Diagnostics URL": { "type": "string", "value": "[concat('https://', variables('apimName'), '.azure-api.net/servicedesk-diag/mcp')]" },
     "MCP Gateway Audience": { "type": "string", "value": "[variables('mcpGatewayAudience')]" },
     "API Management Name": { "type": "string", "value": "[variables('apimName')]" },

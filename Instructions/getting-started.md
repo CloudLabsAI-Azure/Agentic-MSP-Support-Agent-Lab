@@ -1,41 +1,51 @@
 # Agentic MSP Support Agent Guided Lab
 
-### Overall Estimated Duration: 4 hours
+### Overall Estimated Duration: 305 minutes of exercises, in a 6-hour session
 
 ## Lab Scenario
 
-Relecloud Managed Services is a managed service provider that runs IT for 24 customers, from Woodgrove Bank and Humongous Insurance to Fabrikam Residences and Tailspin Toys. Every incident and request lands in Relecloud's Service Desk app, where 12 technicians work the queue. Last quarter's service review found that engineers spent about a third of their handling time searching old tickets and knowledge articles, that new tickets waited in the queue until a technician found time to set their priority and category, and that Platinum and Gold SLA breaches were costing service credits. Today two open tickets still have no priority or category, and five are within two business hours of their SLA target or already past it. As a member of the Relecloud service desk automation team, you are responsible for building an AI support agent that answers from Relecloud's own Service Desk data, acts on tickets through governed tools, and leaves an audit trail that the security team can follow from the agent's answer to the database record.
+Relecloud Managed Services is a managed service provider that runs IT for 24 customers, from Woodgrove Bank and Humongous Insurance to Fabrikam Residences and Tailspin Toys. Every incident and request lands in Relecloud's Service Desk app, where 12 technicians work the queue. Last quarter's service review found that engineers spent about a third of their handling time searching old tickets, runbooks and knowledge articles, that new tickets waited in the queue until a technician found time to set their priority and category, and that Platinum and Gold SLA breaches were costing service credits. Today five open tickets still have no priority or category, two of them reported this morning, and five are within two business hours of their SLA target or already past it. As a member of the Relecloud service desk automation team, you are responsible for building an AI support agent that answers from Relecloud's own Service Desk data, acts on tickets through governed tools on behalf of the technician who asks, and leaves an audit trail that the security team can follow from the agent's answer to the database record.
 
 ## Lab Overview
 
-In this lab, your team builds an AI agent over a live ticketing environment. Every team has an identical environment: a dedicated Azure resource group, a Microsoft Foundry agent registered under its own Microsoft Entra Agent ID, a Service Desk model-driven app on Microsoft Dataverse seeded with customers, contacts, knowledge articles, technicians and historical tickets, a starter MCP (Model Context Protocol) server with reference tools, and the identity, secret storage, gateway and logging around them. Permissions are enforced by Dataverse security roles.
+In this lab, you build an AI agent that acts as a workplace intelligence layer over a live ticketing and support environment, built end to end on Microsoft services. Every team environment is provisioned and validated in advance and is identical: a dedicated Azure resource group, a Microsoft Foundry agent registered under its own Microsoft Entra Agent ID, a Service Desk app on Microsoft Dataverse holding the seeded customer documentation, knowledge articles, runbooks and ticket history, a working MCP (Model Context Protocol) server with a baseline catalogue of read tools and approval-gated write tools, and the identity, secret storage, gateway, data protection and logging services that support them.
 
-The MCP server source is already on your lab VM, as a local Git repository of the release your Container App runs. You change it there and redeploy it to your team's Container App; you don't need a GitHub account. When you arrive, the agent has no knowledge connection, no tools beyond its model, and no permission model. You add each of these during the lab.
+The Service Desk is a custom Power Apps model-driven app, built by Spektra over Dataverse tables for this lab (their names start with `spk_`), so the ticket data your agent reads and writes is the same data a support engineer sees in the console. Dataverse is the only ticketing backend. Permissions are enforced by Dataverse itself through security roles, so a denied action is denied by the platform, and no change to your code can talk it out of that.
 
-The session runs for 5 hours, of which 4 hours are hands-on:
+Your environment is safe by default. Identities start least-privileged with read and write separated, the MCP server reads its backend credential from Azure Key Vault, sensitive write tools require approval, every tool validates its input, and every request carries a correlation identifier from the user through the agent, the MCP tool and Dataverse. The exercises extend and test these controls; none of them asks you to fix an exposure before the environment is safe to use.
 
-| Time | Segment | Duration |
+Each team signs in with two issued identities: a **Senior Technician**, used for most of the lab, and a **Tier 1 Technician** with narrower permissions, used to show user-level authorization. The MCP server source is already cloned on your lab VM from a single shared repository; you modify, build and redeploy your own team's copy. No GitHub account is required.
+
+Your agent starts with no knowledge connection. Every team begins from the identical environment, so what is compared at the end is what was built: grounding quality, MCP tool design, security and the strength of the business case.
+
+The six hours below are wall-clock, inclusive of sign-in and breaks. Hands-on exercise time totals just over five hours.
+
+| Time | Activity | Duration |
 |---|---|---|
-| 00:00 | Arrival, sign-in and orientation (this page) | 15 min |
-| 00:15 | Exercise 1: Environment Verification and Grounding | 65 min |
-| 01:20 | Break | 10 min |
-| 01:30 | Exercise 2: Ticket and Incident Intelligence | 35 min |
-| 02:05 | Exercise 3: MCP Read Tools | 45 min |
-| 02:50 | Break | 10 min |
-| 03:00 | Exercise 4: MCP Action Tools | 50 min |
-| 03:50 | Exercise 5: Security, Governance, and Audit | 45 min |
-| 04:35 | Wrap-up | 15 min |
-| 04:50 | Close and float | 10 min |
+| 00:00 | Sign in, launch your assigned lab and verify readiness | 15 min |
+| 00:15 | Exercise 1: Environment Readiness and Grounding the Agent | 50 min |
+| 01:05 | Break | 10 min |
+| 01:15 | Exercise 2: Ticket and Incident Intelligence | 35 min |
+| 01:50 | Exercise 3: Using the MCP Read Tools | 45 min |
+| 02:35 | Break | 10 min |
+| 02:45 | Exercise 4: Using the MCP Action Tools | 60 min |
+| 03:45 | Break | 10 min |
+| 03:55 | Exercise 5: Identity, Secrets and Authorization | 45 min |
+| 04:40 | Exercise 6: Data Protection and Auditability | 45 min |
+| 05:25 | Exercise 7: End-to-End Scenario and Business Case | 25 min |
+| 05:50 | Close, with schedule float retained | 10 min |
 
 ## Lab Objectives
 
 After completing this lab, you will be able to:
 
-- **Environment verification and grounding:** Verify a team environment end to end, build a search index over Dataverse data, and ground a Foundry agent in it so that every answer cites its source.
-- **Ticket and incident intelligence:** Use the grounded agent to find similar incidents, summarize a customer's open issues, recommend triage, and spot SLA risk in business hours.
-- **MCP read tools:** Trace an MCP tool from its manifest to its Dataverse Web API query, call it from the agent through API Management, test its error handling, and redeploy a change.
-- **MCP action tools:** Let the agent change tickets through write tools, keep internal notes out of customer replies, chain grounding into action, and tighten an argument boundary in code.
-- **Security, governance, and audit:** Replace an over-privileged backend identity with a least-privilege Dataverse role, protect contact data with column security, and trace one agent action across four logs.
+- **Environment readiness and grounding:** Confirm a team environment is ready, build a search index over the Service Desk data, and ground a Foundry agent in it so that every answer cites its source.
+- **Ticket and incident intelligence:** Use the grounded agent to find similar incidents, summarize a customer's support history, recommend priority, category and assignment, and spot SLA risk in business hours.
+- **MCP read tools:** Trace an MCP tool from its catalogue entry to its Dataverse Web API query, call it from the agent, test its error handling, and redeploy a change.
+- **MCP action tools:** Let the agent change tickets through approval-gated write tools, keep internal notes out of customer replies, chain grounding into action, tighten a tool boundary, and design a new scoped tool.
+- **Identity, secrets and authorization:** Map every identity and token in a request, verify secret handling in Key Vault, and show that Dataverse enforces both a least-privilege boundary and the signed-in user's own role.
+- **Data protection and auditability:** Restrict what the agent can return with column security and Microsoft Purview, and follow one correlation identifier through every log.
+- **End-to-end scenario and business case:** Run a new incident from intake to an authorized, audited action, and present what you built as something an MSP could deploy.
 
 ## Prerequisites
 
@@ -49,35 +59,36 @@ Before starting the lab, you should have:
 The following are prerequisites, **already configured in this lab environment**:
 
 - An **Azure subscription** with your team's resource group and every Azure resource in it (pre-provisioned)
-- A **Microsoft Entra ID** work account for your team (pre-created; its credentials are on the **Environment** tab)
-- A **Power Apps Developer Plan** licence on your team account, and a **Power Platform developer environment** with the Service Desk app and seeded data (pre-provisioned)
-- The **Foundry agent** `msp-support-agent`, already registered with its own **Microsoft Entra Agent ID** (pre-created, with no knowledge and no tools)
-- The **starter MCP server**, release `v1.0.0`, running in your Container App, with its source on your lab VM in `C:\LabFiles\mcp-server` (pre-deployed)
+- Two **Microsoft Entra ID** work accounts for your team, the **Senior Technician** and the **Tier 1 Technician** (pre-created; their credentials are on the **Environment** tab)
+- A **Power Apps Developer Plan** licence and a **Microsoft 365 E5** licence on both accounts, and a **Power Platform developer environment** with the Service Desk app, its seeded data and least-privileged security roles (pre-provisioned)
+- The **Foundry agent** `msp-support-agent`, registered with its own **Microsoft Entra Agent ID**, with the baseline Service Desk MCP tools and no knowledge source (pre-created)
+- The **MCP server**, release `v2.0.0`, running in your Container App, with its source already cloned on your lab VM in `C:\LabFiles\mcp-server` (pre-deployed)
 
 ## Architecture
 
-The service desk engineer works in three places: the Foundry agent playground, the Service Desk app, and the lab VM. The Foundry agent runs on the `gpt-5.4-mini` model. It reads knowledge from an Azure AI Search index that you build from the Dataverse tables, and it calls MCP tools through Azure API Management, which accepts only a Microsoft Entra token issued to the agent's own agent identity. API Management forwards each call to the MCP server in Azure Container Apps with a gateway key from Azure Key Vault, so the server can't be called around the gateway. The MCP server reads and writes Dataverse as its own managed identity, which Dataverse knows as an application user; that application user's security role is the real limit on what the agent can do. You build new versions of the MCP server from its source on the lab VM with Azure Container Registry. Foundry agent traces go to Application Insights, and API Management and the MCP server write their logs to the same Log Analytics workspace, which is how you trace one action end to end.
+The service desk technician works in three places: the Foundry agent playground, the Service Desk app, and the lab VM. The Foundry agent runs on the `gpt-5.4-mini` model. It reads knowledge from an Azure AI Search index that you build from the Service Desk content, and it calls MCP tools through Azure API Management with the signed-in technician's own token (OAuth identity passthrough). API Management validates that token, passes on who the user is, adds a correlation identifier and a gateway key from Azure Key Vault, and forwards the call to the MCP server in Azure Container Apps. The MCP server reads its gateway key from Key Vault at startup through its managed identity, and calls Dataverse as that identity, which Dataverse knows as an application user, on behalf of the technician: Dataverse allows a call only when both the technician's security role and the application user's allow it. Ticket text and customer documents pass through Microsoft Purview before they reach the agent. Foundry agent traces go to Application Insights, and API Management, Key Vault and the MCP server write their logs to the same Log Analytics workspace, so one correlation identifier finds a request at every hop.
 
 ## Architecture Diagram
 
-![Architecture of the lab: the support agent in Microsoft Foundry grounded in Azure AI Search, calling the MCP server in Azure Container Apps through API Management with its agent identity, and the MCP server reading and writing Dataverse as a managed identity](./media/architecture.png)
+![Architecture of the lab: the technician signs in to the support agent in Microsoft Foundry, which is grounded in Azure AI Search and calls the MCP server in Azure Container Apps through API Management with the technician's token; the MCP server reads its key from Key Vault and acts in Dataverse on behalf of the technician, with Purview and Log Analytics alongside](./media/architecture.png)
 
 ## Explanation of Components
 
 | Component | Description |
 |-----------|-------------|
-| Microsoft Foundry Agent Service | Hosts `msp-support-agent`, a prompt agent on `gpt-5.4-mini`. You add its knowledge, tools and instructions during the lab and test it in the agent playground. |
-| Microsoft Entra Agent ID | Gives the agent its own agent identity. The agent presents a token for this identity when it calls MCP tools, and API Management checks it. |
-| Microsoft Entra ID | Holds your team account, the agent identity, and the gateway app registration whose Application ID URI is the token audience for the MCP gateway. |
-| MCP server (Azure Container Apps) | The Relecloud Service Desk MCP server: seven read tools and five write tools over the Service Desk tables. It is the only code in the lab. |
-| Azure API Management | The MCP gateway. One API accepts only the agent identity; a second diagnostics API accepts a subscription key so you can call tools yourself. It logs every MCP call. |
-| Microsoft Dataverse | The system of record in your Power Platform developer environment: tickets, ticket notes, customers, contacts, knowledge articles, technicians, SLA policies and the business calendar. |
-| Power Apps model-driven app | The **Service Desk** console. You use it to check every answer and every change the agent makes. |
-| Azure AI Search | Hosts the `servicedesk-knowledge` index that you create and load from Dataverse. It is the agent's knowledge source. |
-| Azure Key Vault | Stores the key that API Management sends to the MCP server, so only the gateway can call the server. |
-| Azure Container Registry | Builds new MCP server images from the source on your lab VM, with `az acr build`, so you don't need Docker on the VM. |
-| Azure Monitor (Log Analytics and Application Insights) | Collects agent traces, API Management gateway and MCP logs, and the MCP server's tool-call log. |
-| Git (on the lab VM) | Your team's copy of the MCP server source at release `v1.0.0`. `git diff` shows exactly what your team changed. |
+| Microsoft Foundry Agent Service | Hosts `msp-support-agent`, a prompt agent on `gpt-5.4-mini`, with the Service Desk MCP tool. You add its knowledge source and grounded instructions during the lab and test it in the agent playground. |
+| Microsoft Entra Agent ID | Gives the agent its own identity in Microsoft Entra ID. The MCP server records it in every tool call it logs. |
+| Microsoft Entra ID | Holds the Senior Technician and Tier 1 Technician accounts, the agent's identity, and the gateway app registration whose scope `ServiceDesk.Access` the technician's token carries. |
+| MCP server (Azure Container Apps) | The Relecloud Service Desk MCP server: nine read tools and five approval-gated write tools over the Service Desk tables. It is the only code in the lab. |
+| Azure API Management | The MCP gateway. One API accepts only a signed-in technician's token; a second diagnostics API accepts a subscription key so you can call read tools yourself. It logs every call with its correlation identifier. |
+| Microsoft Dataverse | The system of record in your Power Platform developer environment: tickets, ticket notes, customers and their procedures, contacts, knowledge articles, runbooks, technicians, SLA definitions and the business calendar. |
+| Power Apps model-driven app | The **Service Desk** console, built by Spektra for this lab. You use it to check every answer and every change the agent makes. |
+| Azure AI Search | Hosts the `servicedesk-knowledge` index that you create and load. It is the agent's knowledge source. |
+| Azure Key Vault | Stores the gateway key that API Management sends to the MCP server, so only the gateway can call the server. Its audit log records every read. |
+| Microsoft Purview | Applies data loss prevention and sensitivity labels to what the tools return to the agent. |
+| Azure Container Registry | Builds new MCP server images from the source on your lab VM, so you don't need Docker on the VM. |
+| Azure Monitor (Log Analytics and Application Insights) | Collects agent traces, gateway logs, Key Vault audit logs and the MCP server's tool invocation log. |
+| Git (on the lab VM) | Your team's copy of the MCP server source at release `v2.0.0`. `git diff` shows exactly what your team changed. |
 
 # Getting Started with the Lab
 
@@ -117,26 +128,26 @@ To adjust the zoom level for the environment page, click the **A↕ : 100%** ico
 
 ## Lab Validation
 
-Some tasks in this lab are automatically graded. After completing a task, click the **Validate** button for the corresponding step - inline in the guide or on the **Lab Validation** tab.
+Some tasks in this lab are automatically graded. After completing a task, click the **Validate** button for the corresponding step, inline in the guide or on the **Lab Validation** tab.
 
 1. If you receive a success message, proceed to the next task.
 1. If validation fails, hover over the information icon to read the error message, retry the step, and validate again.
 
 > **[SCREENSHOT PENDING: GS6 | Lab Validation tab with the Validate button per step | source: reuse]**
 
-> **Note:** Several checks read the MCP server's logs, which reach Log Analytics a few minutes after the action. If a validation fails right after you finish a task, wait two or three minutes and validate again.
+> **Note:** Several checks read the MCP server's logs, which reach Log Analytics a few minutes after the action. If a validation fails right after you finish a task, wait two or three minutes and validate again. Tasks without automatic validation have an **Expected results** checklist: compare your results with it before you move on.
 
 ## Before You Begin: Browser and Clipboard Tips
 
 > **Note:** Use **Microsoft Edge** or **Google Chrome** for the best experience. Firefox and Safari can show a persistent "Paste" button that interferes with clicks.
 
-> **Note:** When the browser asks for clipboard permission, select **Allow** - the copy buttons in this guide need it. If copy-paste into the VM still fails, use the **VM Native Clipboard** slider in the ellipsis (three-dot) menu, or right-click and copy manually.
+> **Note:** When the browser asks for clipboard permission, select **Allow**; the copy buttons in this guide need it. If copy-paste into the VM still fails, use the **VM Native Clipboard** slider in the ellipsis (three-dot) menu, or right-click and copy manually.
 
 > **Note:** If the browser-based VM connection fails, check that your network allows `wss://*.ms-cloudlabs.ai` (minimum 8 Mbps), disable VPN/proxy and ad blockers, or fall back to a native RDP connection using the **LabVM DNS Name**, **LabVM Admin Username**, and **LabVM Admin Password** from the **Environment** tab (prefix a local username with `.\`).
 
 > **Note:** Lab emails (invitations, credentials) come from **noreply@cloudlabsai.net**; check your SPAM/JUNK folder and add the sender to your safe senders list.
 
-> **Note:** Everyone in your team signs in with the same team account. Agree who drives each task, and keep one browser tab per portal so that sign-ins don't collide.
+> **Note:** Your team signs in as the **Senior Technician** for the whole lab, except Exercise 5 Task 4, where you sign in as the **Tier 1 Technician** in a separate browser window. Agree who drives each task, and keep one browser tab per portal so that sign-ins don't collide.
 
 ## Let's Get Started with Azure Portal
 
@@ -146,7 +157,7 @@ Some tasks in this lab are automatically graded. After completing a task, click 
    https://portal.azure.com
    ```
 
-1. On the **Sign into Microsoft** tab, enter the following email/username, and click **Next**:
+1. On the **Sign into Microsoft** tab, enter the Senior Technician's email/username, and click **Next**:
 
    - **Email/Username:** <inject key="AzureAdUserEmail" enableCopy="true"/>
 
@@ -162,7 +173,7 @@ Some tasks in this lab are automatically graded. After completing a task, click 
 
 1. If you're asked to set up a passkey or the Microsoft Authenticator app, select **Skip for now**.
 
-   > **Note:** Don't register a personal phone, authenticator app or passkey on the team account. The whole team shares it, and the Temporary Access Pass is all you need.
+   > **Note:** Don't register a personal phone, authenticator app or passkey on the team accounts. The whole team shares them, and the Temporary Access Pass is all you need.
 
 1. If you see the **Stay signed in?** pop-up, click **No**.
 
@@ -178,7 +189,7 @@ Some tasks in this lab are automatically graded. After completing a task, click 
 
 ## Sign In to the Azure CLI
 
-The lab scripts on the VM use your own Azure CLI sign-in. Sign in once now.
+Some lab scripts on the VM use your own Azure CLI sign-in. Sign in once now.
 
 1. On the VM, select **Start**, type **PowerShell 7**, and open **PowerShell 7 (x64)**.
 
@@ -188,7 +199,7 @@ The lab scripts on the VM use your own Azure CLI sign-in. Sign in once now.
    az login
    ```
 
-1. In the sign-in window that opens, choose **Work or school account** if you are asked, and sign in with the team account:
+1. In the sign-in window that opens, choose **Work or school account** if you are asked, and sign in as the Senior Technician:
 
    - **Email/Username:** <inject key="AzureAdUserEmail" enableCopy="true"/>
    - **Temporary Access Pass:** <inject key="AzureAdUserPassword" enableCopy="true"/>
@@ -200,26 +211,26 @@ The lab scripts on the VM use your own Azure CLI sign-in. Sign in once now.
 1. Confirm the sign-in:
 
    ```powershell
-   az account show --query "{user:user.name, subscription:name}" --output table
+   az account show
    ```
 
-   The **User** column shows your team account.
+   In the output, **user** > **name** is the Senior Technician account.
 
    > **[SCREENSHOT PENDING: GS10 | PowerShell 7 window showing az account show output with the team account | source: capture]**
 
 ## Meet Your Team Environment
 
-1. On the VM desktop, find the shortcuts the environment created for you: **Service Desk**, **Microsoft Foundry**, **Azure Portal**, **Power Platform admin center** and **Microsoft Entra admin center**.
+1. On the VM desktop, find the shortcuts the environment created for you: **Lab readiness check**, **Service Desk**, **Microsoft Foundry**, **Azure Portal**, **Microsoft Purview**, **Power Platform admin center** and **Microsoft Entra admin center**.
 
-1. Open **Team environment.txt** on the desktop. It lists the names and addresses of your team's resources. The full settings, which the lab scripts read, are in `C:\LabFiles\team-settings.json`.
+1. Open **Team environment.txt** on the desktop. It lists the names and addresses of your team's resources and both identities. The full settings, which the lab scripts read, are in `C:\LabFiles\team-settings.json`.
 
-1. Open **Lab notes.txt** on the desktop and keep it open. The exercises ask you to record values here, such as your agent identity's object ID and the time of a change, and later exercises use them.
+1. Open **Lab notes.txt** on the desktop and keep it open. The exercises ask you to record values here, such as correlation identifiers and the outcome of each check, and later exercises use them. The last section is the business case template you complete in Exercise 7.
 
    > **[SCREENSHOT PENDING: GS11 | Lab VM desktop with the lab shortcuts, Team environment.txt and Lab notes.txt | source: capture]**
 
 ## Support Contact
 
-The CloudLabs support team is available 24/7, 365 days a year, via email and live chat.
+The CloudLabs support team is available 24/7, 365 days a year, via email and live chat. Contact support whenever a readiness check fails or the environment behaves differently from the expected results in this guide; don't work around an environment failure.
 
 - Email Support: cloudlabs-support@spektrasystems.com
 - Live Chat Support: https://cloudlabs.ai/labs-support

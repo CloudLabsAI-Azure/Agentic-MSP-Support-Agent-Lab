@@ -2,15 +2,22 @@
   "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
   "contentVersion": "1.0.0.0",
   "parameters": {
-    "adminUsername":       { "value": "azureuser" },
-    "adminPassword":       { "value": "GEN-PASSWORD" },
-    "AzureUserName":       { "value": "GET-AZUSER-UPN" },
-    "AzurePassword":       { "value": "GET-AZUSER-PASSWORD" },
-    "ODLID":               { "value": "GET-ODL-ID" },
-    "DeploymentID":        { "value": "GET-DEPLOYMENT-ID" },
-    "trainerUserName":     { "value": "trainer" },
-    "trainerUserPassword": { "value": "GEN-PASSWORD" },
-    "azuserobjectid":      { "value": "GET-AZUSER-OBJECTID" },
-    "mcpGatewayAppId":     { "value": "REPLACE-WITH-MCP-GATEWAY-APP-ID" }
+    "adminUsername":        { "value": "azureuser" },
+    "adminPassword":        { "value": "GEN-PASSWORD" },
+    "AzureUserName":        { "value": "GET-AZUSER-UPN" },
+    "AzurePassword":        { "value": "GET-AZUSER-PASSWORD" },
+    "ODLID":                { "value": "GET-ODL-ID" },
+    "DeploymentID":         { "value": "GET-DEPLOYMENT-ID" },
+    "trainerUserName":      { "value": "trainer" },
+    "trainerUserPassword":  { "value": "GEN-PASSWORD" },
+    "azuserobjectid":       { "value": "GET-AZUSER-OBJECTID" },
+    "tier1UserName":        { "value": "REPLACE-WITH-TIER1-USER-UPN" },
+    "tier1UserObjectId":    { "value": "REPLACE-WITH-TIER1-USER-OBJECTID" },
+    "mcpGatewayAppId":      { "value": "REPLACE-WITH-MCP-GATEWAY-APP-ID" },
+    "mcpOAuthClientSecret": { "value": "SET-IN-CLOUDLABS-TEMPLATE-SECURE-PARAMETER" },
+    "purviewClientId":      { "value": "REPLACE-WITH-PURVIEW-APP-ID" },
+    "purviewClientSecret":  { "value": "SET-IN-CLOUDLABS-TEMPLATE-SECURE-PARAMETER" },
+    "sensitivityLabelId":   { "value": "REPLACE-WITH-SENSITIVITY-LABEL-ID" },
+    "sensitivityLabelName": { "value": "Confidential" }
   }
 }

@@ -49,7 +49,7 @@ function AuditFlag([bool]$on) {
     return @{ Value = $on; CanBeChanged = $true; ManagedPropertyLogicalName = 'canmodifyauditsettings' }
 }
 
-# ------------------------------------------------------------------ publisher and solution
+# ================================================================== publisher and solution
 Write-Step 'Publisher and solution'
 $pub = $schema.publisher
 $found = (DV GET "publishers?`$select=publisherid&`$filter=uniquename eq '$($pub.uniquename)'").Body.value
@@ -66,7 +66,7 @@ if (-not $found) {
         'publisherid@odata.bind' = "/publishers($publisherId)" } | Out-Null
 }
 
-# ------------------------------------------------------------------ global choices
+# ================================================================== global choices
 Write-Step 'Global choices'
 $choiceIds = @{}
 foreach ($choice in $schema.globalChoices) {
@@ -83,7 +83,7 @@ foreach ($choice in $schema.globalChoices) {
     Write-Step "  $($choice.name)"
 }
 
-# ------------------------------------------------------------------ columns
+# ================================================================== columns
 function New-ColumnBody([hashtable]$col) {
     $common = @{ SchemaName = $col.schemaName; DisplayName = (New-DvLabel $col.displayName)
                  RequiredLevel = (Required ([bool]$col.required)); IsAuditEnabled = (AuditFlag $true) }
@@ -137,7 +137,7 @@ function Add-Columns([string]$table, $columns) {
     }
 }
 
-# ------------------------------------------------------------------ tables
+# ================================================================== tables
 Write-Step 'Tables'
 foreach ($t in $schema.tables) {
     $existing = DV GET "EntityDefinitions(LogicalName='$($t.logicalName)')?`$select=MetadataId" -AllowNotFound
@@ -163,7 +163,7 @@ foreach ($t in $schema.tables) {
 }
 foreach ($t in $schema.extendTables) { Add-Columns $t.logicalName $t.columns }
 
-# ------------------------------------------------------------------ lookups (one-to-many relationships)
+# ================================================================== lookups (one-to-many relationships)
 Write-Step 'Lookups'
 foreach ($t in $schema.tables) {
     foreach ($lk in @($t.lookups)) {
@@ -195,7 +195,7 @@ foreach ($t in $schema.tables) {
     }
 }
 
-# ------------------------------------------------------------------ alternate keys
+# ================================================================== alternate keys
 Write-Step 'Alternate keys'
 $allTables = @($schema.tables) + @($schema.extendTables)
 foreach ($t in $allTables) {
@@ -222,7 +222,7 @@ do {
 } while ($pending.Count -and (Get-Date) -lt $deadline)
 if ($pending.Count) { throw "Alternate key indexes did not become Active: $($pending -join ', ')" }
 
-# ------------------------------------------------------------------ helpers for forms and views
+# ================================================================== helpers for forms and views
 $labels = @{}
 foreach ($t in $allTables) {
     if ($t.primaryName) { $labels["$($t.logicalName).$($t.primaryName.schemaName.ToLower())"] = $t.primaryName.displayName }
@@ -241,7 +241,7 @@ function Get-AttributeType([string]$table, [string]$column) {
 }
 function Esc([string]$s) { return [System.Security.SecurityElement]::Escape($s) }
 
-# ------------------------------------------------------------------ views
+# ================================================================== views
 Write-Step 'Views'
 $viewIds = @()
 foreach ($entry in $schema.views.GetEnumerator()) {
@@ -267,7 +267,7 @@ foreach ($entry in $schema.views.GetEnumerator()) {
     }
 }
 
-# ------------------------------------------------------------------ main forms
+# ================================================================== main forms
 Write-Step 'Main forms'
 $formIds = @()
 foreach ($entry in $schema.forms.GetEnumerator()) {
@@ -292,7 +292,7 @@ foreach ($entry in $schema.forms.GetEnumerator()) {
     Write-Step "  $table main form updated"
 }
 
-# ------------------------------------------------------------------ sitemap and app
+# ================================================================== sitemap and app
 Write-Step 'Sitemap and model-driven app'
 $appUnique = $schema.app.uniqueName
 $areas = foreach ($area in $schema.app.sitemap) {
@@ -320,7 +320,7 @@ $app = (DV GET "appmodules/Microsoft.Dynamics.CRM.RetrieveUnpublishedMultiple()?
 if (-not $app) { $app = (DV GET "appmodules?`$select=appmoduleid,uniquename&`$filter=uniquename eq '$appUnique'").Body.value | Select-Object -First 1 }
 if ($app) { $appId = $app.appmoduleid }
 else {
-    $shortUnique = $appUnique -replace '^msp_', ''
+    $shortUnique = $appUnique -replace '^spk_', ''
     $r = DV POST 'appmodules' @{ name = $schema.app.displayName; uniquename = $shortUnique; description = $schema.app.description
         webresourceid = '953b9fac-1e5e-e611-80d6-00155ded156f' } -InSolution
     $appId = Get-EntityIdFromHeader $r.Headers

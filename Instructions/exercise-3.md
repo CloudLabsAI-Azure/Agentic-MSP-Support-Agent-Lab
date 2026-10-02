@@ -1,130 +1,99 @@
-# Exercise 3: MCP Read Tools
+# Exercise 3: Using the MCP Read Tools
 
 ### Estimated Duration: 45 minutes
 
 ## Scenario
 
-The knowledge index is a snapshot. When a Woodgrove Bank manager phones to ask where a ticket stands, Relecloud's technicians need the live record, not last night's copy. The starter MCP server gives the agent live, read-only access to the Service Desk through tools, and the automation team has to understand exactly what each tool does in Dataverse before anyone trusts it.
+The knowledge index is a snapshot. When a Woodgrove Bank manager phones to ask where a ticket stands, Relecloud's technicians need the live record, not last week's copy. The MCP server gives the agent live, read-only access to the Service Desk through its read tools, and the automation team has to understand exactly what each tool does in Dataverse, and with whose permissions, before anyone trusts it.
 
 ## Overview
 
-In this exercise, you open your team's copy of the MCP server source on the lab VM, read its tool manifest, and trace one tool from its definition to the Dataverse Web API query it sends. You connect the server to the agent through API Management with the agent's own identity, call a read tool from the agent, and find that call in the gateway logs. You then test how the tools report errors, make a small change to the server, and redeploy it to your Container App.
+In this exercise, you open your team's copy of the MCP server on the lab VM, read its tool catalogue, and trace one read tool from its definition to the Dataverse Web API query it sends. You call a read tool from the agent, compare the result with the app, and find the call in the server's tool invocation log by its correlation identifier. You then test how the tools fail, make a small change to the server, redeploy it to your Container App, and note how to roll back.
 
 ## Objectives
 
 In this exercise, you will complete the following tasks:
 
-- Task 1: Explore the MCP server source
-- Task 2: Invoke a read tool from the agent
-- Task 3: Test error handling
-- Task 4: Change and redeploy the server
+- Task 1: Review the MCP Server on Your Lab VM
+- Task 2: Call an Existing Read Tool
+- Task 3: Test Tool Error Handling
+- Task 4: Redeploy Your Copy of the MCP Server
 
-## Task 1: Explore the MCP server source
+## Task 1: Review the MCP Server on Your Lab VM
 
-In this task, you will open your team's copy of the MCP server source, read the tool manifest, and trace one read tool to its Dataverse Web API query and the permissions it needs.
+In this task, you will read the server your agent calls. The MCP server source is already cloned on your lab VM from a single shared repository. No GitHub account is required.
 
-1. In PowerShell 7 on the VM, open the MCP server source. Your team's copy is already on the VM in `C:\LabFiles\mcp-server`: a local Git repository of release `v1.0.0`, the version running in your Container App. Create a branch for your team's changes and open the folder in Visual Studio Code:
+1. Open the MCP server repository already cloned on your lab VM in Visual Studio Code. In PowerShell 7, run:
 
    ```powershell
    Set-Location C:\LabFiles\mcp-server
-   git log --oneline --decorate -1
+   git log -1
    git switch -c team-changes
    code .
    ```
 
-   `git log` shows one commit, tagged `v1.0.0`, and Git reports that you are on the new branch `team-changes`.
+   `git log` shows one commit, *Relecloud Service Desk MCP server v2.0.0*, the release your Container App runs, and Git reports that you are on the new branch `team-changes`. `git diff` will always show exactly what your team changed.
 
-   > **Note:** Relecloud keeps the server's source in a private repository, and your copy has no remote. Your changes reach your Container App only when you deploy them, and `git diff` always shows exactly what your team changed.
-
-1. In Visual Studio Code, open `TOOLS.md`. The **Read tools** table lists seven tools with their inputs, outputs, the Dataverse call each one makes, and the privileges it needs. The **Write tools** table lists five more that you use in Exercise 4.
-
-   > **[SCREENSHOT PENDING: E3T1S2 | TOOLS.md read tools table open in Visual Studio Code | source: capture]**
-
-1. In the Visual Studio Code terminal, read the machine-readable manifest the server returns for `tools/list`:
+1. Read the tool catalogue and list the read tools, their descriptions, input schemas and output schemas. In Visual Studio Code, open `TOOLS.md`. Under **Read tools**, each of the nine tools has a description, an input table (argument, type, allowed values, default) and an output schema. Then, in the Visual Studio Code terminal, read the catalogue the server itself publishes for `tools/list`:
 
    ```powershell
    .\scripts\Invoke-McpTool.ps1 -List
    ```
 
-   The **ReadOnly** column is `True` for the seven read tools. Compare the **Required** column with the inputs in `TOOLS.md`.
+   The **Kind** column is `read` for the nine read tools and `write` for the five write tools, and **Approval** shows which ones need the user's approval. Record the nine read tool names in **Lab notes.txt**.
 
-1. Trace **get_ticket** to its Dataverse query. Open `src/servicedesk_mcp/tools_read.py` and find `async def get_ticket`. The function's docstring is the tool description the agent reads, and the `TicketNumber` type sets the input pattern `^TCK-\d{5}$`. The function calls `repo.get_ticket`.
+   > **[SCREENSHOT PENDING: E3T1S2 | Invoke-McpTool.ps1 -List output with the Kind and Approval columns | source: capture]**
 
-1. Open `src/servicedesk_mcp/dataverse_repository.py` and find `async def get_ticket`. It sends one Web API request that looks the ticket up by its alternate key, the ticket number:
+   > **Note:** The server doesn't publish an output schema in `tools/list`, because Microsoft Foundry rejects schemas with optional fields. `TOOLS.md` documents each tool's output schema instead, and every result ends with the request's `correlation_id`.
 
-   ```text
-   GET /api/data/v9.2/msp_tickets(msp_ticketnumber='TCK-10489')?$select=<TICKET_SELECT>&$expand=<TICKET_EXPAND>
+1. Trace one tool through the source to the Dataverse Web API query it issues. Trace **get_ticket**:
+
+   - Open `src/servicedesk_mcp/tools_read.py` and find `async def get_ticket`. The docstring is the tool description the agent reads, and the `TicketNumber` type sets the input pattern `^TCK-\d{5}$`. The function calls `repo.get_ticket`.
+   - Open `src/servicedesk_mcp/dataverse_repository.py` and find `async def get_ticket`. It sends one Web API request that looks the ticket up by its alternate key, the ticket number:
+
+     ```text
+     GET /api/data/v9.2/spk_tickets(spk_ticketnumber='TCK-10489')?$select=<TICKET_SELECT>&$expand=<TICKET_EXPAND>
+     ```
+
+   - In the same file, find `async def _request`. Every request carries the header `CallerObjectId` with the signed-in user's object ID, so Dataverse runs it on behalf of that user, and `x-ms-client-request-id` with the request's correlation identifier.
+
+   > **[SCREENSHOT PENDING: E3T1S3 | dataverse_repository.py get_ticket with the alternate key request in Visual Studio Code | source: capture]**
+
+1. Note which permission each tool requires, ready for Exercise 5. In `TOOLS.md`, each tool lists its **Permission**, for example *Read on spk_ticket, account, contact, spk_technician, spk_knowledgearticle* for get_ticket; the same text is in each tool's `_meta` as `relecloud/permission`. In **Lab notes.txt**, next to **Permission each read tool needs**, record the permissions of the nine read tools. Keep in mind whose permissions they are: the server's application user holds them through its **Service Desk Agent Read** role, and because each call runs on behalf of the signed-in user, the user's own role must allow the read too.
+
+## Task 2: Call an Existing Read Tool
+
+In this task, you will confirm the tool layer reaches real data in your own environment.
+
+1. Invoke a read tool from your agent with a valid argument. In the playground, start a new chat and send:
+
+   ```
+   Get the current details of ticket TCK-10502 from the Service Desk tools, including its status, priority, assigned technician and SLA figures, and tell me the correlation ID of the tool call.
    ```
 
-   `TICKET_SELECT` and `TICKET_EXPAND`, at the top of the file, list the ticket columns it reads and the related customer, requester, technician and knowledge article it expands.
+   The agent calls **get_ticket** with `TCK-10502`; read tools don't ask for approval.
 
-   > **[SCREENSHOT PENDING: E3T1S5 | dataverse_repository.py get_ticket with the alternate key request in Visual Studio Code | source: capture]**
+1. Confirm the data returned matches the same record in the Service Desk app. Open **TCK-10502** in the app: Woodgrove Bank, *Laptop very slow since this week's agent update*, **New**, **P3 Medium**, unassigned, **13.0** of 16 business hours remaining.
 
-1. Note the permissions. In `TOOLS.md`, the **Privileges** column for get_ticket lists **Read** on `msp_ticket`, `account`, `contact`, `msp_technician` and `msp_knowledgearticle`. The server holds them as its own identity: in `dataverse_repository.py`, `ManagedIdentityCredential(client_id=...)` signs in as the managed identity **id-mcp-<inject key="DeploymentID" enableCopy="false"/>**, which Dataverse knows as an application user. Today that application user has the **System Administrator** role, far more than Read. You fix that in Exercise 5.
+   > **[SCREENSHOT PENDING: E3T2S2 | Agent answer for TCK-10502 next to the ticket form in the Service Desk app | source: capture]**
 
-## Task 2: Invoke a read tool from the agent
-
-In this task, you will add the MCP server to the agent, authenticated by the agent's identity, call a read tool, compare the result with the app, and find the call in the API Management logs.
-
-1. In the Foundry portal, open **Build** > **Agents** > **msp-support-agent**, and on the **Playground** tab open the **Tools** list and select **Add**.
-
-1. In **Select a tool**, select the **Custom (1)** tab, select **Model Context Protocol (MCP) (2)**, and then select **Create (3)**.
-
-   > **[SCREENSHOT PENDING: E3T2S2 | Foundry Select a tool dialog with the Custom tab and Model Context Protocol (MCP) selected | source: capture]**
-
-1. In **Add Model Context Protocol tool**, enter the following details:
-
-   - **Name:** `servicedesk` **(1)**
-   - **Remote MCP Server endpoint:** <inject key="MCP Gateway URL" enableCopy="true"/> **(2)**
-   - **Authentication:** **Microsoft Entra** **(3)**
-   - **Type:** **Agent Identity** **(4)**
-   - **Audience:** <inject key="MCP Gateway Audience" enableCopy="true"/> **(5)**
-
-   Select **Connect (6)**.
-
-   > **[SCREENSHOT PENDING: E3T2S3 | Add Model Context Protocol tool form with the gateway URL, Microsoft Entra agent identity and audience | source: capture]**
-
-   > **Note:** The audience is the Application ID URI of the gateway app registration, not the gateway URL. Foundry asks Microsoft Entra ID for a token for that audience on behalf of your agent identity, and API Management accepts only tokens for this audience whose client ID is your agent identity's.
-
-1. Select **Save** to save the agent with its new tool.
-
-   > **Note:** If your portal doesn't offer these options, run the fallback script below in PowerShell 7 instead. It creates the same MCP connection and tool, keeps the knowledge index, and also applies the tool-use instructions from `instructions-ex3.md`.
+1. Find the call in the tool invocation log and note the correlation identifier recorded with it. In the Visual Studio Code terminal, run:
 
    ```powershell
-   C:\LabFiles\tools\Update-AgentDefinition.ps1 -Tools
+   .\scripts\Show-McpServerLog.ps1 -Tail 50
    ```
 
-1. Give the agent instructions for using tools. In Visual Studio Code, open `C:\LabFiles\agent\instructions-ex3.md`, select all the text and copy it. In the playground, replace the agent's **Instructions** with it and select **Save**. The new rules cover when to use tools rather than the index, how to treat errors such as `DATAVERSE_ACCESS_DENIED`, and how to keep internal notes out of customer text.
+   The script reads the server's live console log and shows one row per tool call. Find the **get_ticket** row: **User** is the Senior Technician, **ActingAs** is `user`, and **CorrelationId** is the identifier API Management gave the request. It matches the `correlation_id` at the end of the tool result the agent quoted. To see every field of the line, including the Dataverse call and its request ID, run it again with the correlation identifier:
 
-1. Start a new chat and ask for live data:
-
-   ```
-   Get the current details of ticket TCK-10489 from the Service Desk tools, including its status, assigned technician and SLA figures.
+   ```powershell
+   .\scripts\Show-McpServerLog.ps1 -CorrelationId <correlation ID> -Detail
    ```
 
-1. When the playground asks you to approve the tool call, check that the tool is **get_ticket** and the argument is `TCK-10489`, then select **Approve**.
+   In **Lab notes.txt**, next to **Correlation ID of your first read tool call**, record it. In Exercise 6 you follow one identifier like this through every log.
 
-   > **[SCREENSHOT PENDING: E3T2S7 | Playground tool approval prompt for get_ticket with its arguments | source: capture]**
+   > **[SCREENSHOT PENDING: E3T2S3 | Show-McpServerLog.ps1 output with the get_ticket call and its correlation ID | source: capture]**
 
-   > **Note:** Every call to this MCP server asks for approval. The approval prompt is your first governance control: you see the tool and its arguments before anything runs.
-
-1. Compare the answer with the record: in the Service Desk app, open **TCK-10489** and check **Status** (**In Progress**), **Assigned Technician** (**Daniel Cho**) and the **SLA** section.
-
-1. In the Azure portal, open the Log Analytics workspace **log-msp-<inject key="DeploymentID" enableCopy="false"/>**, select **Logs**, switch the editor to **KQL mode** if it opens in simple mode, and run:
-
-   ```kql
-   ApiManagementGatewayMCPLog
-   | where TimeGenerated > ago(1h)
-   | where Method == "tools/call" and ToolName == "get_ticket"
-   | project TimeGenerated, ToolName, SessionId, CorrelationId, ClientName, AuthenticationMethod, Error
-   | order by TimeGenerated desc
-   ```
-
-   > **[SCREENSHOT PENDING: E3T2S9 | Log Analytics results for ApiManagementGatewayMCPLog with the get_ticket call | source: capture]**
-
-   > **Note:** Gateway logs reach the workspace 5 to 15 minutes after the call. If the query returns nothing yet, continue with Task 3 and come back.
-
-1. In **Lab notes.txt**, next to **get_ticket call through API Management**, record the **SessionId** and **CorrelationId**. **SessionId** is the MCP session identifier. If it is empty, the session isn't missing by accident: this server runs stateless MCP, so there is no session to record, and **CorrelationId** is the identifier this hop gives you. In Exercise 5 you follow the same two identifiers for a write.
+   > **Note:** The same lines reach the Log Analytics table `ContainerAppConsoleLogs` a few minutes later, where the validation step reads them.
 
 > **Congratulations** on completing the task! Now, it's time to validate it. Here are the steps:
 > - Hit the Validate button for the corresponding task. If you receive a success message, you can proceed to the next task.
@@ -135,109 +104,95 @@ In this task, you will add the MCP server to the agent, authenticated by the age
 
 <!-- TODO: replace with the GUID minted when "Agent calls a read tool through the gateway" is registered (validation-scripts/README.md). -->
 
-## Task 3: Test error handling
+## Task 3: Test Tool Error Handling
 
-In this task, you will send the tools a nonexistent ID and a call with a missing argument, check that each error is structured and readable, and see how the agent recovers.
+In this task, you will see how the tools fail. How a tool fails matters more to an agent than how it succeeds.
 
-1. In the playground, start a new chat so that earlier tickets aren't in context. Ask for a ticket that doesn't exist, and approve the tool call:
+1. Call the tool with a record identifier that does not exist. In the playground, start a new chat and send:
 
    ```
    Show me ticket TCK-99999.
    ```
 
-   **What this validates:** a structured error the agent can act on. The tool returns `TICKET_NOT_FOUND` with the message *No ticket 'TCK-99999' exists in the Service Desk.* and the hint *Check the number with the user, or use search_tickets.* The agent should say the ticket doesn't exist and offer to search, not invent a ticket.
+   The tool returns the structured error `TICKET_NOT_FOUND`: *No ticket 'TCK-99999' exists in the Service Desk.*, with the hint *Check the number with the user, or use search_tickets.*
 
-1. Start another new chat, so that no ticket number is in context, and ask for something without the detail the tool needs:
-
-   ```
-   Get the notes for the ticket.
-   ```
-
-   **What this validates:** the agent asks which ticket you mean instead of guessing a number. If it calls a tool with a guessed number, record that under **Findings** in **Lab notes.txt**.
-
-1. In the Visual Studio Code terminal, call the tool directly with the required argument missing:
+1. Call it again with a required argument missing. The agent's tool schema doesn't let it send a call without `ticket_number`, so call the tool directly, through the gateway's diagnostics API, in the Visual Studio Code terminal:
 
    ```powershell
    .\scripts\Invoke-McpTool.ps1 get_ticket @{}
    ```
 
-   The result shows `isError: True` and a validation message that names `ticket_number` as a required field. The server rejected the call before the tool code ran.
-
-1. Call it with a malformed argument:
+   Then send a malformed value:
 
    ```powershell
    .\scripts\Invoke-McpTool.ps1 get_ticket @{ ticket_number = 'TCK-1' }
    ```
 
-   The message says the value doesn't match the pattern `^TCK-\d{5}$`.
+1. Confirm the agent receives a structured, readable error rather than a raw exception or stack trace. Both direct calls show `isError: True` and the same JSON shape as the not-found error: `ok: false`, an `error` with `code` `INVALID_ARGUMENT`, a `message`, `retryable`, a `hint`, and `details.violations` naming the argument, the problem (*Field required*, or the pattern `^TCK-\d{5}$` with the value you sent), and the allowed values. Every result, failed or not, ends with its `correlation_id`. The server checked the arguments against the input schema before the tool ran, so nothing reached Dataverse, and `Show-McpServerLog.ps1` shows the calls with **Outcome** `rejected`.
 
-   > **[SCREENSHOT PENDING: E3T3S4 | PowerShell output of the malformed get_ticket call with the validation message | source: capture]**
+   > **[SCREENSHOT PENDING: E3T3S3 | INVALID_ARGUMENT error with details.violations for the malformed ticket number | source: capture]**
 
-1. Call it with the nonexistent ticket and look at the full error object:
+1. Confirm the agent either recovers or asks a clarifying question, rather than inventing a result. Look back at the TCK-99999 answer: the agent says the ticket doesn't exist and offers to search, rather than inventing one. Then start another new chat, so that no ticket number is in context, and send:
 
-   ```powershell
-   .\scripts\Invoke-McpTool.ps1 get_ticket @{ ticket_number = 'TCK-99999' }
+   ```
+   Get the notes for the ticket.
    ```
 
-   Every failure that the tool code returns has the same shape: `ok: false` and an `error` with `code`, `message`, `source`, `retryable` and `hint`. Failures that come from Dataverse also carry the platform's own status, code and message under `error.dataverse`; you see one in Exercise 5. The two argument errors before this one look different: the MCP SDK checks arguments against the tool's input schema before any tool code runs, and it reports a failed check as plain text.
+   The agent asks which ticket you mean instead of guessing a number. If it calls a tool with a guessed number, record that under **Findings** in **Lab notes.txt**.
 
-### Success Criteria
+### Expected results
 
-- [ ] The agent reported TCK-99999 as not found and didn't invent ticket details
+- [ ] TCK-99999 came back as `TICKET_NOT_FOUND` and the agent didn't invent ticket details
+- [ ] The missing and malformed arguments came back as `INVALID_ARGUMENT` with `details.violations`, and no stack trace
 - [ ] The agent asked which ticket you meant when the number was missing
-- [ ] The direct calls returned `isError: True` with readable messages for the missing and malformed arguments
 
-## Task 4: Change and redeploy the server
+## Task 4: Redeploy Your Copy of the MCP Server
 
-In this task, you will make a small change to the server, build a new image in your team's registry, deploy it as a new Container App revision, and time the cycle.
+In this task, you will use the edit, build and redeploy path you need for the rest of the lab. Allow time for the image build.
 
-1. In Visual Studio Code, open `src/servicedesk_mcp/__init__.py` and change the version:
+1. Make a small local change on your VM, for example improving a tool description or adding a log field. Improve the description of **get_ticket**:
 
-   ```python
-   __version__ = "1.0.1"
-   ```
+   - In Visual Studio Code, open `src/servicedesk_mcp/__init__.py` and change the version:
 
-1. Open `src/servicedesk_mcp/tools_read.py`, find `async def get_ticket`, and change the first line of its docstring, which is the tool description the agent sees. Keep the line's eight leading spaces; Python uses the indentation, and a misaligned line stops the server from starting. The new line is:
+     ```python
+     __version__ = "2.0.1"
+     ```
 
-   ```python
-           """Get one ticket by number, with its SLA figures and related knowledge article.
-   ```
+   - Open `src/servicedesk_mcp/tools_read.py`, find `async def get_ticket`, and change the first line of its docstring, which is the tool description the agent sees. Keep the line's eight leading spaces; Python uses the indentation, and a misaligned line stops the server from starting. The new line is:
 
-   Save both files.
+     ```python
+             """Get one ticket by number, with its SLA figures, escalation and related knowledge article.
+     ```
 
-1. In the Visual Studio Code terminal, build and deploy the change:
+   Save both files. Run `git diff` in the terminal to see your change.
+
+1. Build the container image into your team's container registry. In the Visual Studio Code terminal, run:
 
    ```powershell
-   .\scripts\Deploy-McpServer.ps1 -Tag v1-0-1
+   .\scripts\Deploy-McpServer.ps1 -Tag v2-0-1
    ```
 
-   The script builds the image with Azure Container Registry Tasks (no Docker needed on the VM), pushes `mcp-server:v1-0-1` to your registry, creates a new revision of your Container App, and waits until the revision is running and healthy. This takes around **4 to 7 minutes**.
+   Stage **[1/3]** builds the image with Azure Container Registry Tasks (no Docker on the VM) and pushes `mcp-server:v2-0-1` to **<inject key="Container Registry Name" enableCopy="false"/>**. Leave the script running; it continues with the next step by itself. The whole run takes around **4 to 7 minutes**.
+
+1. Deploy the new revision to your team's MCP server Container App. Stage **[2/3]** of the same run creates a new revision of **ca-mcp-<inject key="DeploymentID" enableCopy="false"/>** with the new image, and stage **[3/3]** waits until the revision runs, takes all the traffic and reports version `2.0.1` on `/health`. The container app runs in single revision mode: traffic moves only when the new revision is ready, so a revision that fails to start never takes traffic.
 
    > **[SCREENSHOT PENDING: E3T4S3 | Deploy-McpServer.ps1 output with the revision table and the cycle time | source: capture]**
 
-1. Record the two times the script prints, **Build took** and **full cycle**, in **Lab notes.txt** next to **Redeploy cycle time**.
+1. Confirm the revision is running and that the change is visible to your agent.
 
-1. Confirm the new version is running:
+   - In the Azure portal, open the Container App **ca-mcp-<inject key="DeploymentID" enableCopy="false"/>** and select **Revisions and replicas**. The new revision is **Running** with 100% of the traffic.
+   - In the terminal, run `.\scripts\Invoke-McpTool.ps1 -List`: the **Summary** of **get_ticket** shows your new description.
+   - In the playground, start a new chat, so the agent reads the tool list again, and ask about TCK-10502 once more. The answer still works: you changed the description, not the behavior.
 
-   ```powershell
-   Invoke-RestMethod '<inject key="MCP Server URL" enableCopy="false"/>/health'
-   ```
+   > **[SCREENSHOT PENDING: E3T4S4 | Container App Revisions and replicas page with the new revision running | source: capture]**
 
-   The `version` is now `1.0.1`.
-
-1. Confirm the change is visible to clients:
+1. Note how to roll back to the previous revision, and how long the full cycle took. The deploy script prints **Build took** and **full cycle**; record both in **Lab notes.txt** next to **Redeploy**. To roll back, you would run:
 
    ```powershell
-   .\scripts\Invoke-McpTool.ps1 -List
+   .\scripts\Deploy-McpServer.ps1 -Rollback
    ```
 
-   The **Summary** of **get_ticket** shows your new description.
-
-1. In the Azure portal, open the Container App **ca-mcp-<inject key="DeploymentID" enableCopy="false"/>** and select **Revisions and replicas** (under **Application**, or under **Configure** > **More** as **Revisions & Replicas** in the updated menu). Confirm the new revision is **Running** with 100% of the traffic.
-
-   > **[SCREENSHOT PENDING: E3T4S7 | Container App Revisions and replicas page with the new revision running | source: capture]**
-
-1. In the playground, start a new chat so the agent reads the tool list again, and ask about TCK-10489 once more. The answer still works: you changed the description, not the behavior.
+   It creates a new revision from the previous revision's image and settings with `az containerapp revision copy`, and waits until it is healthy, in about a minute because nothing is built. Don't run it now; record the command in your notes.
 
 > **Congratulations** on completing the task! Now, it's time to validate it. Here are the steps:
 > - Hit the Validate button for the corresponding task. If you receive a success message, you can proceed to the next task.
@@ -253,15 +208,10 @@ In this task, you will make a small change to the server, build a new image in y
 <details>
 <summary>Select to show fixes for common problems in this exercise</summary>
 
-- **Git reports *dubious ownership* in `C:\LabFiles\mcp-server`:** run `git config --global --add safe.directory C:/LabFiles/mcp-server` and try again. If the folder is missing, tell your facilitator; provisioning creates it.
-- **Adding the MCP tool fails, or tool calls fail with 401 Unauthorized:** the audience must be exactly <inject key="MCP Gateway Audience" enableCopy="false"/>, not the gateway URL. If it is right and calls still fail, ask your facilitator to check that the gateway accepts your agent identity's client ID.
-- **The playground doesn't ask for approval and nothing happens:** start a new chat; the agent reads its tools when a chat starts.
-- **The log query returns no rows:** gateway logs take 5 to 15 minutes to arrive. Widen the time range to `ago(2h)` and try again later.
-- **`Deploy-McpServer.ps1` times out waiting for the revision:** the new image probably failed to start. Run the command below, fix the error it shows (usually indentation in the file you edited), and run the deploy script again. Each run creates a revision with a new name, so you can reuse the same `-Tag`.
-
-  ```powershell
-  az containerapp logs show --name ca-mcp-<inject key="DeploymentID" enableCopy="false"/> --resource-group <inject key="Resource Group Name" enableCopy="false"/> --type console --tail 50
-  ```
+- **Git reports *dubious ownership* in `C:\LabFiles\mcp-server`:** contact support; provisioning registers the folder for every user on the VM.
+- **The agent asks for consent again:** select **Open consent** and accept; the consent lasts until the token can no longer be refreshed.
+- **`Show-McpServerLog.ps1` shows no rows:** the log stream shows the latest revision's recent lines only. Call a tool again, then rerun the script, or raise `-Tail` to 300.
+- **`Deploy-McpServer.ps1` times out waiting for the revision:** the new image probably failed to start; the previous revision keeps serving traffic. Run `.\scripts\Show-McpServerLog.ps1 -All`, fix the error it shows (usually indentation in the file you edited), and run the deploy script again. Each run creates a revision with a new name, so you can reuse the same `-Tag`.
 
 </details>
 
@@ -269,10 +219,11 @@ In this task, you will make a small change to the server, build a new image in y
 
 In this exercise, you have completed the following:
 
-- Opened your team's copy of the MCP server source and read its tool manifest
-- Traced get_ticket from its tool definition to its Dataverse Web API query and the privileges it needs
-- Connected the MCP server to the agent through API Management with the agent identity, called a read tool, and found the call in the gateway logs
-- Tested the tools with a nonexistent ID and missing and malformed arguments
-- Changed the server, rebuilt it in Azure Container Registry, deployed a new revision, and timed the cycle
+- Opened your team's copy of the MCP server, already cloned on the VM, and read its tool catalogue with input and output schemas
+- Traced get_ticket from its tool definition to its Dataverse Web API query, and saw it run on behalf of the signed-in user
+- Recorded the permission each read tool needs for Exercise 5
+- Called a read tool from the agent, checked the record in the app, and found the call in the tool invocation log by its correlation identifier
+- Tested a nonexistent ID and missing and malformed arguments, and saw structured errors
+- Changed the server, rebuilt it in Azure Container Registry, deployed a new revision, timed the cycle, and noted how to roll back
 
 #### You have successfully completed this exercise. Click **Next >>** from the lower right corner to proceed to the next exercise.

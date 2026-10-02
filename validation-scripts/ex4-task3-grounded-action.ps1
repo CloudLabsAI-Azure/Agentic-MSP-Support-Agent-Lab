@@ -1,54 +1,45 @@
-# Validation: Exercise 4, Task 3 - Chain grounding into an action
+# Validation: Exercise 4, Task 3 - Chain grounding into action
 # Script Type: PowerShellV2   Run As: System
 # Parameters: GET-DEPLOYMENT-ID -> $DeploymentID
 # No authentication code: CloudLabs prepends the Azure sign-in when the step is deployed.
 #
-# Passes when the agent triaged TCK-10511 as Network and VPN, P2, and assigned it to the
-# available Network technician Lucas Moreau (TECH-08). Marcus Webb (TECH-02, L3) is on leave,
-# so assigning him is refused by the tool.
+# Passes when the agent read the new incident TCK-10514 and then changed it through a write
+# tool (triage_ticket, set_ticket_priority or assign_ticket) with the user's approval.
 
 $ErrorActionPreference = 'Stop'
 $status = 'Failed'
 $message = ''
-$query = @"
+
+function Invoke-LogQuery([string]$query) {
+    $workspace = Get-AzResource -ResourceType 'Microsoft.OperationalInsights/workspaces' -Name "log-msp-$DeploymentID" | Select-Object -First 1
+    if (-not $workspace) { throw "Log Analytics workspace log-msp-$DeploymentID was not found." }
+    $customerId = (Get-AzOperationalInsightsWorkspace -ResourceGroupName $workspace.ResourceGroupName -Name $workspace.Name).CustomerId
+    return @((Invoke-AzOperationalInsightsQuery -WorkspaceId $customerId -Query $query).Results)
+}
+# Every tool call writes one JSON line to the MCP server's console log (the tool invocation log).
+$toolCalls = @"
 ContainerAppConsoleLogs
 | where TimeGenerated > ago(24h)
 | where ContainerAppName == 'ca-mcp-$DeploymentID'
 | extend j = parse_json(Log)
-| where tostring(j.event) == 'tool_call' and tostring(j.outcome) == 'ok' and tostring(j.caller) == 'agent'
-| where tostring(j.arguments.ticket_number) == 'TCK-10511'
-| where tostring(j.tool) in ('triage_ticket', 'assign_ticket', 'set_ticket_priority')
-| project TimeGenerated, tool = tostring(j.tool), category = tostring(j.arguments.category),
-          priority = toint(j.arguments.priority), technician = tostring(j.arguments.technician)
-| order by TimeGenerated desc
+| where tostring(j.event) == 'tool_call'
+| extend tool = tostring(j.tool), outcome = tostring(j.outcome), code = tostring(j.error_code), caller = tostring(j.caller),
+         user = tostring(j.user.name), correlation = tostring(j.correlation_id)
 "@
 
 for ($attempt = 1; $attempt -le 3; $attempt++) {
     try {
-        $workspace = Get-AzResource -ResourceType 'Microsoft.OperationalInsights/workspaces' -Name "log-msp-$DeploymentID" | Select-Object -First 1
-        if (-not $workspace) { throw "Log Analytics workspace log-msp-$DeploymentID was not found." }
-        $customerId = (Get-AzOperationalInsightsWorkspace -ResourceGroupName $workspace.ResourceGroupName -Name $workspace.Name).CustomerId
-        $rows = @((Invoke-AzOperationalInsightsQuery -WorkspaceId $customerId -Query $query).Results)
-        $triage = $rows | Where-Object { $_.tool -eq 'triage_ticket' } | Select-Object -First 1
-        $assign = $rows | Where-Object { $_.tool -eq 'assign_ticket' } | Select-Object -First 1
-
-        if (-not $triage) {
-            $message = 'TCK-10511 has not been triaged by the agent yet (no successful triage_ticket call logged).'
-        }
-        elseif ($triage.category -ne 'Network and VPN' -or [int]$triage.priority -ne 2) {
-            $message = "TCK-10511 was triaged as $($triage.category), P$($triage.priority). Review the priority rules and KB0058, then triage it again."
-        }
-        elseif (-not $assign) {
-            $message = 'TCK-10511 is triaged, but the agent has not assigned it yet.'
-        }
-        elseif ($assign.technician -notmatch '(?i)moreau|tech-08') {
-            $message = "TCK-10511 was assigned to $($assign.technician). It should go to the available Network technician Lucas Moreau (TECH-08)."
-        }
-        else {
+        $rows = Invoke-LogQuery ($toolCalls + "| where caller == 'agent' and tostring(j.arguments.ticket_number) == 'TCK-10514' | project TimeGenerated, tool, outcome, code, user, correlation | order by TimeGenerated asc")
+        $read = $rows | Where-Object { $_.tool -eq 'get_ticket' -and $_.outcome -eq 'ok' } | Select-Object -First 1
+        $write = $rows | Where-Object { $_.tool -in 'triage_ticket', 'set_ticket_priority', 'assign_ticket' -and $_.outcome -eq 'ok' } | Select-Object -Last 1
+        if ($read -and $write) {
             $status = 'Succeeded'
-            $message = "TCK-10511 was triaged as Network and VPN, P2, and assigned to $($assign.technician)."
+            $message = "The agent read TCK-10514 and then ran $($write.tool) at $($write.TimeGenerated) UTC (correlation ID $($write.correlation))."
             break
         }
+        elseif ($write) { $message = 'TCK-10514 was changed, but the agent did not read the ticket first. Ask it to retrieve the context before it acts.' }
+        elseif ($rows) { $message = "The agent worked on TCK-10514 but no approved change succeeded yet (last: $($rows[-1].tool) $($rows[-1].outcome) $($rows[-1].code))." }
+        else { $message = 'No tool call for TCK-10514 has been logged yet. Logs can take a few minutes to arrive; validate again shortly.' }
     }
     catch { $message = "Validation could not complete: $($_.Exception.Message)" }
     if ($attempt -lt 3) { Start-Sleep -Seconds 60 }

@@ -10,6 +10,10 @@
     lab users (PPAC > Tenant settings > Developer environment assignments) and the team user
     must hold the Power Apps Developer Plan licence (POWERAPPS_DEV). See setup/README.md.
 
+    -AdditionalUserObjectIds adds other lab users to the environment (the Tier 1 Technician):
+    users are not added to a developer environment automatically. Each needs the Power Apps
+    Developer Plan licence; their security roles are set by Set-DataverseSecurity.ps1.
+
     The team user's password is read from the MSPLAB_SIGNIN_SECRET environment variable of the
     calling process, never from the command line. Writes a JSON result file for the caller.
 #>
@@ -18,6 +22,7 @@ param(
     [Parameter(Mandatory = $true)][string]$AzureUserName,
     [Parameter(Mandatory = $true)][string]$DomainName,
     [string]$Location = 'europe',
+    [string[]]$AdditionalUserObjectIds = @(),
     [Parameter(Mandatory = $true)][string]$OutFile
 )
 
@@ -70,10 +75,22 @@ do {
 } until ($instanceUrl -or (Get-Date) -gt $deadline)
 if (-not $instanceUrl) { throw "Dataverse database for '$displayName' did not finish provisioning in 45 minutes." }
 
+$added = @()
+foreach ($objectId in @($AdditionalUserObjectIds | Where-Object { $_ })) {
+    # Forces the user into the environment's Dataverse database now, instead of at first sign-in.
+    $result = Add-AdminPowerAppsSyncUser -EnvironmentName $environment.EnvironmentName -PrincipalObjectId $objectId
+    if ($result.Code -and $result.Code -ge 400) {
+        throw "Adding user $objectId to the environment failed: $($result.Code) $($result.Description)"
+    }
+    $added += $objectId
+    Write-Host "Added user $objectId to the environment."
+}
+
 @{
     environmentId = $environment.EnvironmentName
     displayName   = $displayName
     instanceUrl   = $instanceUrl.TrimEnd('/')
     sku           = $environment.Internal.properties.environmentSku
+    addedUsers    = $added
 } | ConvertTo-Json | Set-Content -Path $OutFile -Encoding UTF8
 Write-Host "Developer environment ready: $instanceUrl"

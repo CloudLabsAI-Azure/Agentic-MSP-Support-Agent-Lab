@@ -1,6 +1,6 @@
 # Dataverse research: Service Desk MCP lab (CloudLabs)
 
-Research date: 2026-10-01. Sources: current Microsoft Learn pages only, retrieved with the Microsoft Learn MCP tools (search, then full fetch of the key pages). Every bullet ends with its source URL. JSON snippets keep the property names and shapes shown in the docs; table and column names are adapted to the lab (prefix `msp_`). Anything the docs did not confirm is listed under "Unverified or contradictory".
+Research date: 2026-10-01. Sources: current Microsoft Learn pages only, retrieved with the Microsoft Learn MCP tools (search, then full fetch of the key pages). Every bullet ends with its source URL. JSON snippets keep the property names and shapes shown in the docs; table and column names are adapted to the lab (prefix `spk_`). Anything the docs did not confirm is listed under "Unverified or contradictory".
 
 Partial reads (stated for transparency): of `web-api-metadata-operations-sample` only Sections 0, 8, 9 and 10 were read; of the developer page `column-level-security` the discover, secure, provide-access, field-sharing and masking sections were read, not every code sample.
 
@@ -104,13 +104,13 @@ POST https://api.powerplatform.com/environmentmanagement/provisioning/environmen
 ```http
 POST [org]/api/data/v9.2/publishers
 { "friendlyname": "MSP Lab Publisher", "uniquename": "msplab", "description": "Lab publisher",
-  "customizationprefix": "msp", "customizationoptionvalueprefix": 72700 }
+  "customizationprefix": "spk", "customizationoptionvalueprefix": 76540 }
 
 POST [org]/api/data/v9.2/solutions
 { "friendlyname": "Service Desk", "uniquename": "ServiceDesk", "version": "1.0.0.0",
   "publisherid@odata.bind": "publishers(<publisherid>)" }
 ```
-Both return 204 with an `OData-EntityId` header. Dataverse applies the publisher's `customizationoptionvalueprefix` to choice option values automatically (for example 72700xxxx). https://learn.microsoft.com/power-apps/developer/data-platform/webapi/web-api-metadata-operations-sample
+Both return 204 with an `OData-EntityId` header. Dataverse applies the publisher's `customizationoptionvalueprefix` to choice option values automatically (for example 76540xxxx). https://learn.microsoft.com/power-apps/developer/data-platform/webapi/web-api-metadata-operations-sample
 
 ### Create a custom table, including the primary name column
 - Required properties: SchemaName, DisplayName, DisplayCollectionName, OwnershipType (`UserOwned` or `OrganizationOwned`), IsActivity, HasActivities and HasNotes. `Attributes` must contain exactly one StringAttributeMetadata with `IsPrimaryName: true` and `FormatName: Text`. A successful create returns 204 with `OData-EntityId`. https://learn.microsoft.com/power-apps/developer/data-platform/webapi/create-update-entity-definitions-using-web-api
@@ -119,7 +119,7 @@ POST [org]/api/data/v9.2/EntityDefinitions
 MSCRM.SolutionUniqueName: ServiceDesk
 {
  "@odata.type": "Microsoft.Dynamics.CRM.EntityMetadata",
- "SchemaName": "msp_Ticket",
+ "SchemaName": "spk_Ticket",
  "DisplayName": { "@odata.type": "Microsoft.Dynamics.CRM.Label", "LocalizedLabels": [
    { "@odata.type": "Microsoft.Dynamics.CRM.LocalizedLabel", "Label": "Ticket", "LanguageCode": 1033 } ] },
  "DisplayCollectionName": { "@odata.type": "Microsoft.Dynamics.CRM.Label", "LocalizedLabels": [
@@ -130,14 +130,14 @@ MSCRM.SolutionUniqueName: ServiceDesk
  "Attributes": [ {
    "@odata.type": "Microsoft.Dynamics.CRM.StringAttributeMetadata",
    "AttributeType": "String", "AttributeTypeName": { "Value": "StringType" },
-   "SchemaName": "msp_Title", "IsPrimaryName": true, "MaxLength": 200, "FormatName": { "Value": "Text" },
+   "SchemaName": "spk_Title", "IsPrimaryName": true, "MaxLength": 200, "FormatName": { "Value": "Text" },
    "RequiredLevel": { "Value": "None", "CanBeChanged": true, "ManagedPropertyLogicalName": "canmodifyrequirementlevelsettings" },
    "DisplayName": { "@odata.type": "Microsoft.Dynamics.CRM.Label", "LocalizedLabels": [
      { "@odata.type": "Microsoft.Dynamics.CRM.LocalizedLabel", "Label": "Title", "LanguageCode": 1033 } ] }
  } ]
 }
 ```
-- When the table is created, Dataverse generates its privileges from the SchemaName. The doc example shows `prvCreatenew_BankAccount`, `prvReadnew_BankAccount`, `prvWritenew_BankAccount` and so on through Delete, Assign, Share, Append and AppendTo, each with an ID and its allowed depths (`CanBeBasic`, `CanBeLocal`, `CanBeDeep`, `CanBeGlobal`). For this lab that means names like `prvWritemsp_Ticket`. https://learn.microsoft.com/power-apps/developer/data-platform/webapi/create-update-entity-definitions-using-web-api
+- When the table is created, Dataverse generates its privileges from the SchemaName. The doc example shows `prvCreatenew_BankAccount`, `prvReadnew_BankAccount`, `prvWritenew_BankAccount` and so on through Delete, Assign, Share, Append and AppendTo, each with an ID and its allowed depths (`CanBeBasic`, `CanBeLocal`, `CanBeDeep`, `CanBeGlobal`). For this lab that means names like `prvWritespk_Ticket`. https://learn.microsoft.com/power-apps/developer/data-platform/webapi/create-update-entity-definitions-using-web-api
 
 ### Add columns (works the same for custom and standard tables)
 - `POST [org]/api/data/v9.2/EntityDefinitions(LogicalName='<table>')/Attributes` with one attribute definition returns 204 and `OData-EntityId`. For standard tables, use `LogicalName='account'` or `'contact'`, and the custom column's SchemaName still needs the publisher prefix. https://learn.microsoft.com/power-apps/developer/data-platform/webapi/create-update-column-definitions-using-web-api
@@ -161,7 +161,7 @@ Yes/No column, used here for the ticket note internal flag:
   "OptionSet": { "OptionSetType": "Boolean",
     "TrueOption":  { "Value": 1, "Label": { "@odata.type": "Microsoft.Dynamics.CRM.Label", "LocalizedLabels": [ { "@odata.type": "Microsoft.Dynamics.CRM.LocalizedLabel", "Label": "Internal", "LanguageCode": 1033 } ] } },
     "FalseOption": { "Value": 0, "Label": { "@odata.type": "Microsoft.Dynamics.CRM.Label", "LocalizedLabels": [ { "@odata.type": "Microsoft.Dynamics.CRM.LocalizedLabel", "Label": "Public", "LanguageCode": 1033 } ] } } },
-  "SchemaName": "msp_IsInternal",
+  "SchemaName": "spk_IsInternal",
   "RequiredLevel": { "Value": "None", "CanBeChanged": true, "ManagedPropertyLogicalName": "canmodifyrequirementlevelsettings" },
   "DisplayName": { "@odata.type": "Microsoft.Dynamics.CRM.Label", "LocalizedLabels": [ { "@odata.type": "Microsoft.Dynamics.CRM.LocalizedLabel", "Label": "Internal", "LanguageCode": 1033 } ] } }
 ```
@@ -173,7 +173,7 @@ Local choice column (only the Options shape is shown; the remaining properties a
     "Options": [
       { "Value": 727000000, "Label": { "@odata.type": "Microsoft.Dynamics.CRM.Label", "LocalizedLabels": [ { "@odata.type": "Microsoft.Dynamics.CRM.LocalizedLabel", "Label": "Low", "LanguageCode": 1033 } ] } },
       { "Value": 727000001, "Label": { "@odata.type": "Microsoft.Dynamics.CRM.Label", "LocalizedLabels": [ { "@odata.type": "Microsoft.Dynamics.CRM.LocalizedLabel", "Label": "High", "LanguageCode": 1033 } ] } } ] },
-  "SchemaName": "msp_Priority" }
+  "SchemaName": "spk_Priority" }
 ```
 Integer and decimal columns also need `"MinValue"` and `"MaxValue"`; decimal adds `"Precision": 1`; datetime adds `"Format": "DateOnly"`; memo adds `"Format": "TextArea", "MaxLength": 500`. https://learn.microsoft.com/power-apps/developer/data-platform/webapi/create-update-column-definitions-using-web-api
 
@@ -184,14 +184,14 @@ POST [org]/api/data/v9.2/RelationshipDefinitions
 MSCRM.SolutionUniqueName: ServiceDesk
 {
  "@odata.type": "Microsoft.Dynamics.CRM.OneToManyRelationshipMetadata",
- "SchemaName": "msp_ticket_msp_ticketnote",
- "ReferencedEntity": "msp_ticket", "ReferencedAttribute": "msp_ticketid", "ReferencingEntity": "msp_ticketnote",
- "ReferencingEntityNavigationPropertyName": "msp_TicketId",
+ "SchemaName": "spk_ticket_spk_ticketnote",
+ "ReferencedEntity": "spk_ticket", "ReferencedAttribute": "spk_ticketid", "ReferencingEntity": "spk_ticketnote",
+ "ReferencingEntityNavigationPropertyName": "spk_TicketId",
  "AssociatedMenuConfiguration": { "Behavior": "UseCollectionName", "Group": "Details", "Order": 10000,
    "Label": { "@odata.type": "Microsoft.Dynamics.CRM.Label", "LocalizedLabels": [ { "@odata.type": "Microsoft.Dynamics.CRM.LocalizedLabel", "Label": "Notes", "LanguageCode": 1033 } ] } },
  "CascadeConfiguration": { "Assign": "Cascade", "Delete": "Cascade", "Merge": "Cascade", "Reparent": "Cascade", "Share": "Cascade", "Unshare": "Cascade" },
  "Lookup": { "@odata.type": "Microsoft.Dynamics.CRM.LookupAttributeMetadata", "AttributeType": "Lookup",
-   "AttributeTypeName": { "Value": "LookupType" }, "SchemaName": "msp_TicketId",
+   "AttributeTypeName": { "Value": "LookupType" }, "SchemaName": "spk_TicketId",
    "RequiredLevel": { "Value": "ApplicationRequired", "CanBeChanged": true, "ManagedPropertyLogicalName": "canmodifyrequirementlevelsettings" },
    "DisplayName": { "@odata.type": "Microsoft.Dynamics.CRM.Label", "LocalizedLabels": [ { "@odata.type": "Microsoft.Dynamics.CRM.LocalizedLabel", "Label": "Ticket", "LanguageCode": 1033 } ] } }
 }
@@ -207,7 +207,7 @@ MSCRM.SolutionUniqueName: ServiceDesk
 - Customizations are published automatically when items are created or deleted. Updates to schema or UI components have to be published, and only published customizations are exported. https://learn.microsoft.com/power-apps/developer/model-driven-apps/publish-customizations
 ```http
 POST [org]/api/data/v9.2/PublishXml
-{ "ParameterXml": "<importexportxml><entities><entity>msp_ticket</entity><entity>contact</entity></entities></importexportxml>" }
+{ "ParameterXml": "<importexportxml><entities><entity>spk_ticket</entity><entity>contact</entity></entities></importexportxml>" }
 ```
 Returns 204. https://learn.microsoft.com/power-apps/developer/data-platform/auditing/configure
 - `POST [org]/api/data/v9.2/PublishAllXml` publishes all changes to solution components; it has no parameters. https://learn.microsoft.com/power-apps/developer/data-platform/webapi/reference/publishallxml
@@ -313,12 +313,12 @@ The doc example keys the user by `azureactivedirectoryobjectid`; keying by syste
 POST [org]/api/data/v9.2/roles
 { "businessunitid@odata.bind": "businessunits(<root bu id>)", "name": "MCP Least Privilege" }
 
-GET  [org]/api/data/v9.2/privileges?$select=name&$filter=name eq 'prvReadmsp_Ticket' or name eq 'prvWritemsp_Ticket'
+GET  [org]/api/data/v9.2/privileges?$select=name&$filter=name eq 'prvReadspk_Ticket' or name eq 'prvWritespk_Ticket'
 
 POST [org]/api/data/v9.2/roles(<roleid>)/Microsoft.Dynamics.CRM.AddPrivilegesRole
 { "Privileges": [
-   { "Depth": "Global", "PrivilegeId": "<id of prvReadmsp_Ticket>", "BusinessUnitId": "<bu id>", "PrivilegeName": "prvReadmsp_Ticket" },
-   { "Depth": "Basic",  "PrivilegeId": "<id of prvCreatemsp_TicketNote>", "BusinessUnitId": "<bu id>", "PrivilegeName": "prvCreatemsp_TicketNote" } ] }
+   { "Depth": "Global", "PrivilegeId": "<id of prvReadspk_Ticket>", "BusinessUnitId": "<bu id>", "PrivilegeName": "prvReadspk_Ticket" },
+   { "Depth": "Basic",  "PrivilegeId": "<id of prvCreatespk_TicketNote>", "BusinessUnitId": "<bu id>", "PrivilegeName": "prvCreatespk_TicketNote" } ] }
 ```
 - Create returns 204 and AddPrivilegesRole returns 204. A new role starts with 9 default privileges (Read SharePoint data, Read SdkMessage, and so on). Verify the result with `roles(<id>)?$expand=roleprivileges_association($select=name)`. https://learn.microsoft.com/power-apps/developer/data-platform/webapi/web-api-functions-actions-sample
 - PrivilegeDepth values: Basic = 0 (owned by or shared with the user), Local = 1 (the user's business unit), Deep = 2 (business unit and its children), Global = 3 (whole organization); RecordFilter = 4 has no description. The Web API takes these names as strings. https://learn.microsoft.com/dotnet/api/microsoft.crm.sdk.messages.privilegedepth?view=dataverse-sdk-latest
@@ -412,10 +412,10 @@ If-Match: *
 - Columns: `action` (event choice, for example 1 Create, 2 Update, 3 Delete, 13 Assign, 55 Assign Role To User); `operation` (1 Create, 2 Update, 3 Delete, 4 Access); `_objectid_value` plus `objecttypecode` (the table logical name); `_userid_value` (Changed By); `_callinguserid_value` (the calling user when impersonation is used, otherwise null); `createdon` (millisecond precision since July 2025); `transactionid`; and `attributemask`, which the docs say not to use. https://learn.microsoft.com/power-apps/developer/data-platform/auditing/retrieve-audit-data
 - Audit records have only two relationships, both to systemuser (`lk_audit_userid`, `lk_audit_callinguserid`). You can include only one link entity per query and can't join to other tables. https://learn.microsoft.com/power-apps/developer/data-platform/auditing/retrieve-audit-data
 ```http
-GET [org]/api/data/v9.2/audits?$select=_objectid_value,objecttypecode,createdon,_userid_value,action,operation&$filter=objecttypecode eq 'msp_ticket' and _objectid_value eq <ticketid>&$orderby=createdon desc
+GET [org]/api/data/v9.2/audits?$select=_objectid_value,objecttypecode,createdon,_userid_value,action,operation&$filter=objecttypecode eq 'spk_ticket' and _objectid_value eq <ticketid>&$orderby=createdon desc
 Prefer: odata.include-annotations="*"
 GET [org]/api/data/v9.2/audits(<auditid>)/Microsoft.Dynamics.CRM.RetrieveAuditDetails
-GET [org]/api/data/v9.2/RetrieveRecordChangeHistory(Target=@target,PagingInfo=@paginginfo)?@target={'@odata.id':'msp_tickets(<id>)'}&@paginginfo={"PageNumber":1,"Count":20,"ReturnTotalRecordCount":true}
+GET [org]/api/data/v9.2/RetrieveRecordChangeHistory(Target=@target,PagingInfo=@paginginfo)?@target={'@odata.id':'spk_tickets(<id>)'}&@paginginfo={"PageNumber":1,"Count":20,"ReturnTotalRecordCount":true}
 ```
 - RetrieveAuditDetails returns AttributeAuditDetail with OldValue and NewValue. RetrieveRecordChangeHistory and RetrieveAttributeChangeHistory need `prvReadRecordAuditHistory` plus `prvReadAuditSummary`. **In the Web API, the AuditDetail types don't return the AuditRecord, so who and when aren't included.** Take those from the `audits` query. Values larger than about 5 KB are truncated. https://learn.microsoft.com/power-apps/developer/data-platform/auditing/retrieve-audit-data
 - In the UI, Audit History needs the View Audit History privilege and Audit Summary needs View Audit Summary. https://learn.microsoft.com/power-platform/admin/manage-dataverse-auditing
@@ -474,9 +474,9 @@ GET [org]/api/data/v9.2/RetrieveRecordChangeHistory(Target=@target,PagingInfo=@p
 4. Build the Service Desk solution once (tables, columns, relationships, forms, views, sitemap, app module, and optionally the least-privilege role as a template). Export it and import it per team with `ImportSolutionAsync` or `pac solution import --async --publish-changes`, then poll asyncoperation. Use the Web API per team only for things solutions can't carry: the application user, role assignment, organization audit settings, field security assignments and seed data.
 5. Give environment domains a unique suffix; a deleted environment's URL can't be reused for 24 hours.
 6. Use one user-assigned managed identity per team. That keeps audit attribution clean and gives each team its own service protection bucket, though the tenant-pooled daily entitlement is still shared. Create the application user with the UAMI client ID via `pac admin assign-user --application-user --role "System Administrator"`. The MCP server calls `ManagedIdentityCredential(client_id=...)` with scope `https://<org>.crm.dynamics.com/.default`, or uses `DataverseClient`.
-7. Make the denial deterministic: have the least-privilege role leave out `prvWritemsp_Ticket` entirely, which produces HTTP 403 with code `0x80040220` (PrivilegeDenied). If the role grants Write at Basic depth instead, participants get the access-check error -2147187962 on records they don't own. Have the MCP server pass `error.code` and `error.message` through verbatim, and send `Consistency: Strong` (or wait about 30 seconds) after role changes.
+7. Make the denial deterministic: have the least-privilege role leave out `prvWritespk_Ticket` entirely, which produces HTTP 403 with code `0x80040220` (PrivilegeDenied). If the role grants Write at Basic depth instead, participants get the access-check error -2147187962 on records they don't own. Have the MCP server pass `error.code` and `error.message` through verbatim, and send `Consistency: Strong` (or wait about 30 seconds) after role changes.
 8. Order the column-security steps: demote the MCP application user from System Administrator first, because the bypass hides column security. Secure `emailaddress1`, `telephone1` and `mobilephone`, publish, then add the field security profile. Expect reads to return the columns empty, not an error, and updates to fail with `0x8004F507` (403). Don't use contact email as an alternate key, because secured columns can't be key columns.
-9. Turn on auditing during provisioning: organization `isauditenabled`, IsAuditEnabled on `msp_ticket`, `msp_ticketnote`, `contact` and the key columns, then publish. For the readback exercise, query `audits` by `_objectid_value` and `objecttypecode` and expand `userid`; the application user's First Name is "#", so expect that in the display name. Allow for delay. Don't rely on Web API RetrieveRecordChangeHistory for who and when. If the MCP server itself exposes audit tools, its role needs `prvReadAuditSummary` and `prvReadRecordAuditHistory`.
+9. Turn on auditing during provisioning: organization `isauditenabled`, IsAuditEnabled on `spk_ticket`, `spk_ticketnote`, `contact` and the key columns, then publish. For the readback exercise, query `audits` by `_objectid_value` and `objecttypecode` and expand `userid`; the application user's First Name is "#", so expect that in the display name. Allow for delay. Don't rely on Web API RetrieveRecordChangeHistory for who and when. If the MCP server itself exposes audit tools, its role needs `prvReadAuditSummary` and `prvReadRecordAuditHistory`.
 10. Keep ticket notes in the custom table: Annotation can't be audited, and the custom table supports the bulk messages.
 11. Seed loader: create alternate keys and wait until they're Active. Use UpsertMultiple for custom tables and small `$batch` change sets for account and contact, honor `Retry-After`, and budget the shared daily pool across all teams (25,000 per 24 hours if the tenant has only Power Apps licenses).
 12. Inactivity: environments are disabled after 30 days without activity and deleted 15 days later. For longer-lived labs, include re-enable or "Trigger environment activity" steps, or tear down and reprovision. Flow runs are capped at 750 a month.

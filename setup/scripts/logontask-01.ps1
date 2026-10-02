@@ -23,7 +23,7 @@ try {
 
     $settings = Get-Content 'C:\LabFiles\team-settings.json' -Raw | ConvertFrom-Json
 
-    <# ---- VS Code extensions for this user. #>
+    <# ==== VS Code extensions for this user. #>
     $codeCli = 'C:\Program Files\Microsoft VS Code\bin\code.cmd'
     if (-not (Test-Path $codeCli)) { $codeCli = "$env:LOCALAPPDATA\Programs\Microsoft VS Code\bin\code.cmd" }
     foreach ($ext in @('ms-python.python', 'ms-vscode.powershell')) {
@@ -31,7 +31,7 @@ try {
         if ($LASTEXITCODE) { Start-Sleep 10; & $codeCli --install-extension $ext --force }
     }
 
-    <# ---- VS Code terminals open in PowerShell 7, which the lab scripts need. #>
+    <# ==== VS Code terminals open in PowerShell 7, which the lab scripts need. #>
     $codeUser = Join-Path $env:APPDATA 'Code\User'
     New-Item -ItemType Directory -Path $codeUser -Force | Out-Null
     $codeSettings = Join-Path $codeUser 'settings.json'
@@ -42,84 +42,113 @@ try {
         } | ConvertTo-Json -Depth 5 | Set-Content -Path $codeSettings -Encoding UTF8
     }
 
-    <# ---- Desktop shortcuts for the portals the lab uses. #>
+    <# ==== Desktop shortcuts for the portals the lab uses, and the readiness check. #>
     $desktop = [Environment]::GetFolderPath('Desktop')
     $shortcuts = [ordered]@{
         'Service Desk'                  = $settings.ServiceDeskAppUrl
         'Microsoft Foundry'             = 'https://ai.azure.com'
         'Azure Portal'                  = 'https://portal.azure.com'
+        'Microsoft Purview'             = 'https://purview.microsoft.com'
         'Power Platform admin center'   = 'https://admin.powerplatform.microsoft.com'
         'Microsoft Entra admin center'  = 'https://entra.microsoft.com'
     }
     foreach ($name in $shortcuts.Keys) {
         "[InternetShortcut]`r`nURL=$($shortcuts[$name])" | Set-Content -Path (Join-Path $desktop "$name.url") -Encoding ASCII
     }
+    $shell = New-Object -ComObject WScript.Shell
+    $readiness = $shell.CreateShortcut((Join-Path $desktop 'Lab readiness check.lnk'))
+    $readiness.TargetPath = 'C:\Program Files\PowerShell\7\pwsh.exe'
+    $readiness.Arguments = '-NoProfile -ExecutionPolicy Bypass -NoExit -File C:\LabFiles\tools\Test-LabReadiness.ps1'
+    $readiness.WorkingDirectory = 'C:\LabFiles'
+    $readiness.Description = 'Checks every component of your lab environment'
+    $readiness.Save()
 
-    <# ---- Plain-text summary of this team's names, on the desktop. #>
+    <# ==== Plain-text summary of this team's names, on the desktop. #>
     $summary = @(
         'Agentic MSP Support Agent lab: your team environment'
         ''
-        "Resource group           $($settings.ResourceGroup)"
-        "Service Desk app         $($settings.ServiceDeskAppUrl)"
-        "Dataverse environment    $($settings.DataverseUrl)"
-        "Foundry project endpoint $($settings.FoundryProjectEndpoint)"
-        "Agent name               $($settings.AgentName)"
-        "AI Search endpoint       $($settings.SearchEndpoint)"
-        "MCP server (direct)      $($settings.McpServerUrl)"
-        "MCP gateway (agent)      $($settings.McpGatewayUrl)"
-        "MCP gateway (operator)   $($settings.McpDiagnosticsUrl)"
-        "MCP gateway audience     $($settings.McpGatewayAudience)"
-        "Container registry       $($settings.ContainerRegistryLoginServer)"
-        "Container app            $($settings.ContainerApp)"
+        "Resource group            $($settings.ResourceGroup)"
+        "Senior Technician         $($settings.TeamUser)"
+        "Tier 1 Technician         $($settings.Tier1User)"
+        "Service Desk app          $($settings.ServiceDeskAppUrl)"
+        "Dataverse environment     $($settings.DataverseUrl)"
+        "Foundry project endpoint  $($settings.FoundryProjectEndpoint)"
+        "Agent name                $($settings.AgentName)"
+        "MCP connection            $($settings.McpConnectionName)"
+        "AI Search endpoint        $($settings.SearchEndpoint)"
+        "MCP gateway (agent)       $($settings.McpGatewayUrl)"
+        "MCP gateway (diagnostics) $($settings.McpDiagnosticsUrl)"
+        "MCP server (direct)       $($settings.McpServerUrl)"
+        "Key Vault                 $($settings.KeyVaultUrl)"
+        "Container registry        $($settings.ContainerRegistryLoginServer)"
+        "Container app             $($settings.ContainerApp)"
+        "MCP server source         $($settings.McpServerSource)"
         ''
         'Full settings: C:\LabFiles\team-settings.json'
     )
     $summary | Set-Content -Path (Join-Path $desktop 'Team environment.txt') -Encoding UTF8
 
-    <# ---- Notes file the lab guide asks the team to fill in as they go. #>
+    <# ==== Notes file the lab guide asks the team to fill in as they go. #>
     $notesPath = Join-Path $desktop 'Lab notes.txt'
     if (-not (Test-Path $notesPath)) {
         @(
             'Agentic MSP Support Agent lab: team notes'
             'Keep this file open. The lab guide tells you what to record here.'
             ''
-            '== Exercise 1 =='
-            'Environment check (pass or fail, with what you saw):'
-            '  Resource group:'
-            '  Service Desk app and seeded data:'
-            '  Foundry agent (no knowledge, no tools):'
-            '  Agent identity:'
-            '  MCP health and reference tool call:'
-            'Agent identity object ID:'
-            'Agent identity client ID:'
-            'Thin explanations to revisit in Exercise 5:'
+            '== Exercise 1: Environment Readiness and Grounding the Agent =='
+            'Readiness check (every component Ready? anything else you saw):'
+            'Index document count, and the count the loader expected:'
+            'Ambiguous case: the two articles, your recommendation, and the deciding attribute:'
+            'Thin explanations to revisit in Exercise 6:'
             ''
-            '== Exercise 2 =='
-            'Triage recommendation for TCK-10512 (agree or not, and why):'
+            '== Exercise 2: Ticket and Incident Intelligence =='
+            'TCK-10514: closest historical tickets, and why they are similar:'
+            'Customer history summary: customer, open tickets the agent counted, open tickets in the app:'
+            'TCK-10514: recommended priority, category and technician or team:'
+            'Ticket closest to an SLA breach, and the working:'
             ''
-            '== Exercise 3 =='
-            'get_ticket call through API Management: SessionId / CorrelationId:'
-            'Redeploy cycle time (build / full cycle):'
+            '== Exercise 3: Using the MCP Read Tools =='
+            'Tool you traced to its Dataverse query:'
+            'Permission each read tool needs (for Exercise 5):'
+            'Correlation ID of your first read tool call:'
+            'Redeploy: your change, the new revision, how long the cycle took, how to roll back:'
             ''
-            '== Exercise 4 =='
-            'Time of the assign_ticket write on TCK-10507 (UTC):'
-            'Boundary test on TCK-10501, before and after the fix:'
+            '== Exercise 4: Using the MCP Action Tools =='
+            'Approved write: ticket, change, correlation ID:'
+            'Declined write: ticket, confirmed unchanged:'
+            'Customer-visible reply and internal note: ticket and note codes:'
+            'Grounded action on TCK-10514: recommendation, sources, correlation ID:'
+            'get_open_tickets limit before and after, and the rejected call:'
+            'Your scoped tool: name, description, permission, approval:'
             ''
-            '== Exercise 5 =='
-            'Agent identity permissions:'
-            'MCP application user permissions:'
-            'One sentence on inherited permissions:'
-            'Least-privilege boundary (one sentence):'
-            'Platform error captured (code and message):'
-            'Trace join: which join was manual, and why:'
+            '== Exercise 5: Identity, Secrets and Authorization =='
+            'Identities on one write: user, Entra Agent ID, gateway, MCP managed identity, Dataverse application user:'
+            'Backend credential: Key Vault secret name, and the access log entry at startup:'
+            'Boundary you narrowed, and the Dataverse error:'
+            'Tier 1 attempt (denied) and Senior attempt (allowed), with correlation IDs:'
             ''
-            '== Findings (agent behavior to fix, any exercise) =='
+            '== Exercise 6: Data Protection and Auditability =='
+            'What the agent could not return, and what it said:'
+            'Microsoft Purview: policy, sensitive information type, DLP event time:'
+            'End-to-end trail: correlation ID and each hop you found:'
+            ''
+            '== Exercise 7: End-to-End Scenario and Business Case =='
+            'TCK-10515: customer, recommendation, action taken, correlation ID:'
+            ''
+            '== Business case =='
+            'Problem today:'
+            'What the agent does (grounding and tools):'
+            'Controls (identity, least privilege, approval, data protection, audit):'
+            'Evidence from this lab:'
+            'Operational value for the MSP (time, consistency, SLA):'
+            'Risks and next steps:'
         ) | Set-Content -Path $notesPath -Encoding UTF8
     }
 
-    <# ---- VALIDATION TABLE drives the final status. #>
+    <# ==== VALIDATION TABLE drives the final status. #>
     $provision = Get-Content 'C:\LabFiles\provision-status.json' -Raw | ConvertFrom-Json
-    $requiredSteps = 'signin', 'settings', 'environment', 'schema', 'security', 'seed', 'mcp', 'agent', 'gateway', 'files', 'smoketest'
+    $requiredSteps = 'signin', 'settings', 'environment', 'schema', 'security', 'seed', 'export', 'incidents', 'mcp', 'agent', 'files',
+                     'readiness'
     $health = $null
     try { $health = Invoke-RestMethod -Uri "$($settings.McpServerUrl)/health" -TimeoutSec 15 } catch { $health = $null }
     # The team's local Git copy of the MCP server, readable by this user's Git (safe.directory).
@@ -132,20 +161,22 @@ try {
         $checks += @{ Name = "provisioning step $step"; Ok = ($state -eq 'Succeeded') }
     }
     $checks += @(
-        @{ Name = 'MCP server health';        Ok = ($health -and $health.status -eq 'ok') },
-        @{ Name = 'agent identity recorded';   Ok = [bool]$settings.AgentIdentityClientId },
+        @{ Name = 'MCP server health';        Ok = ($health -and $health.status -eq 'ok' -and $health.gateway_key_source -eq 'key vault') },
+        @{ Name = 'Entra Agent ID recorded';   Ok = [bool]$settings.AgentIdentityClientId },
         @{ Name = 'search index definition';   Ok = (Test-Path 'C:\LabFiles\search\index-definition.json') },
-        @{ Name = 'search loader';             Ok = (Test-Path 'C:\LabFiles\search\Load-SearchIndex.ps1') },
-        @{ Name = 'tool invoker';              Ok = (Test-Path 'C:\LabFiles\tools\Invoke-McpTool.ps1') },
+        @{ Name = 'search loader and export';  Ok = ((Test-Path 'C:\LabFiles\search\Load-SearchIndex.ps1') -and
+                                                     (Test-Path 'C:\LabFiles\search\export\documents.json')) },
         @{ Name = 'MCP server source';         Ok = $mcpSourceOk },
-        @{ Name = 'agent helper scripts';      Ok = ((Test-Path 'C:\LabFiles\tools\Get-AgentIdentity.ps1') -and
-                                                     (Test-Path 'C:\LabFiles\tools\Update-AgentDefinition.ps1')) },
-        @{ Name = 'agent instructions';        Ok = ((Test-Path 'C:\LabFiles\agent\instructions-ex1.md') -and
-                                                     (Test-Path 'C:\LabFiles\agent\instructions-ex3.md')) },
+        @{ Name = 'lab tools';                 Ok = (@('Test-LabReadiness.ps1', 'Invoke-McpTool.ps1', 'Show-McpServerLog.ps1', 'Get-ActionTrail.ps1',
+                                                       'Get-AgentIdentity.ps1', 'Update-AgentDefinition.ps1', 'Get-DocumentLabel.ps1') |
+                                                     Where-Object { -not (Test-Path "C:\LabFiles\tools\$_") }).Count -eq 0 },
+        @{ Name = 'agent instructions';        Ok = ((Test-Path 'C:\LabFiles\agent\instructions-baseline.md') -and
+                                                     (Test-Path 'C:\LabFiles\agent\instructions-grounded.md')) },
         @{ Name = 'git';                       Ok = [bool](Get-Command git -ErrorAction SilentlyContinue) },
         @{ Name = 'azure cli';                 Ok = [bool](Get-Command az -ErrorAction SilentlyContinue) },
         @{ Name = 'powershell 7';              Ok = (Test-Path 'C:\Program Files\PowerShell\7\pwsh.exe') },
         @{ Name = 'vs code';                   Ok = (Test-Path $codeCli) },
+        @{ Name = 'readiness shortcut';        Ok = (Test-Path (Join-Path $desktop 'Lab readiness check.lnk')) },
         @{ Name = 'service desk shortcut';     Ok = (Test-Path (Join-Path $desktop 'Service Desk.url')) }
     )
     $failed = $checks | Where-Object { -not $_.Ok }

@@ -1,40 +1,40 @@
 {
  "lab_name": "Agentic MSP Support Agent Guided Lab",
  "prepared_by": "Amit Kumar (prepared with the CloudLabs Lab Builder)",
- "prepared_on": "2026-10-01",
+ "prepared_on": "2026-10-02",
  "currency": "USD",
  "phases": [
   {
-   "phase": "Research and solution design (Foundry agents, Entra Agent ID, API Management MCP, Container Apps, Dataverse, pricing)",
-   "low": 16,
-   "high": 24,
+   "phase": "Research and solution design (Foundry agents, Entra Agent ID, OAuth identity passthrough, API Management, Container Apps, Dataverse impersonation and security, Purview, Key Vault, pricing)",
+   "low": 20,
+   "high": 30,
    "confidence": "High",
    "status": "Done",
-   "assumptions": "Microsoft Learn research notes with sources for every exercise area; region, model and tier decisions recorded in BUILD-NOTES.md."
+   "assumptions": "Microsoft Learn research notes with sources for every exercise area; region, model, tier and security decisions recorded in BUILD-NOTES.md."
   },
   {
-   "phase": "MCP server (12 tools, policy, telemetry, tests, Dockerfile, client and deploy scripts)",
-   "low": 24,
-   "high": 36,
+   "phase": "MCP server v2.0.0 (14 tools: 9 read, 5 approval-gated write; user context, Dataverse impersonation, input validation, Purview checks, Key Vault secret, correlation logging, tests, Dockerfile, client, deploy, rollback and log scripts)",
+   "low": 36,
+   "high": 52,
    "confidence": "High",
    "status": "Done",
-   "assumptions": "21 automated tests pass against the fixture backend; Dataverse calls verified against a mock. Not yet run against a live Dataverse environment."
+   "assumptions": "57 automated tests pass against the fixture backend; Dataverse calls verified against a mock. Not yet run against a live Dataverse environment."
   },
   {
-   "phase": "Seed data generator and loader (customers, contacts, articles, technicians, tickets, notes, business-hours SLA)",
-   "low": 16,
-   "high": 24,
+   "phase": "Seed data generator and loader (customers, procedures, contacts, articles, runbooks, technicians, tickets, notes, new incidents, labelled document, business-hours SLA)",
+   "low": 20,
+   "high": 28,
    "confidence": "High",
    "status": "Done",
-   "assumptions": "Deterministic seed; loader verified against a mock Dataverse Web API (all counts match)."
+   "assumptions": "Deterministic seed; loader verified against a mock Dataverse Web API (all counts match). Volumes and exercise records in setup/DATA-SPEC.md."
   },
   {
-   "phase": "Provisioning automation (ARM template, userData bootstrap, logon task, Dataverse schema and app, developer environment, agent, gateway)",
-   "low": 32,
-   "high": 48,
-   "confidence": "Medium-High",
+   "phase": "Provisioning automation (ARM template, userData bootstrap, logon task, Dataverse schema, app and least-privileged roles, two identities, OAuth connection, agent, Key Vault, readiness check)",
+   "low": 40,
+   "high": 60,
+   "confidence": "Medium",
    "status": "Done",
-   "assumptions": "Static checks pass; first live deployment still to run. Developer environment creation as the team user and application user creation are the riskiest steps."
+   "assumptions": "Static checks pass; first live deployment still to run. The OAuth connection metadata, developer environment creation as the team user and the Tier 1 user's environment access are the riskiest steps."
   },
   {
    "phase": "Governance quartet (ARM policy, custom RBAC, usage policy) and masterdoc",
@@ -45,20 +45,20 @@
    "assumptions": "Allow-list mirrors deploy-01.json resource types and SKUs."
   },
   {
-   "phase": "Lab guide content (getting started, five exercises, README, facilitator guide with answer keys)",
-   "low": 20,
-   "high": 28,
+   "phase": "Lab guide content (getting started, seven exercises with 27 tasks and 104 steps, README, reference solution, data specification)",
+   "low": 28,
+   "high": 40,
    "confidence": "High",
    "status": "Done",
-   "assumptions": "Written to the cloudlabs-step-by-step profile; portal labels taken from Microsoft Learn and flagged where the docs are thin."
+   "assumptions": "Written to the cloudlabs-step-by-step profile and the TOC v2 schedule; portal labels taken from Microsoft Learn and flagged where the docs are thin."
   },
   {
-   "phase": "Validation scripts (9 PowerShellV2 checks) and registration checklist",
-   "low": 6,
-   "high": 10,
+   "phase": "Validation scripts (14 PowerShellV2 checks) and registration checklist",
+   "low": 8,
+   "high": 12,
    "confidence": "Medium-High",
    "status": "Done",
-   "assumptions": "Checks read ARM, AI Search and Log Analytics with the CloudLabs service principal; GUIDs are minted at registration."
+   "assumptions": "Checks read ARM, AI Search, Log Analytics and Dataverse with the CloudLabs service principal; GUIDs are minted at registration."
   },
   {
    "phase": "Cost estimate workbook",
@@ -66,26 +66,26 @@
    "high": 3,
    "confidence": "High",
    "status": "Done",
-   "assumptions": "Sweden Central retail prices retrieved 2026-10-01."
+   "assumptions": "Sweden Central retail prices retrieved 2026-10-01; Purview meters and the Microsoft 365 E5 list price checked 2026-10-02."
   },
   {
-   "phase": "Screenshot production (67 captures with balloons)",
-   "low": 12,
-   "high": 18,
+   "phase": "Screenshot production (58 captures with balloons)",
+   "low": 10,
+   "high": 16,
    "confidence": "Medium",
    "status": "Not started",
-   "assumptions": "Captured during the pilot walk-through; 6 getting-started shots reused from the standard CloudLabs set."
+   "assumptions": "Captured during the pilot walk-through; getting-started sign-in shots reused from the standard CloudLabs set."
   },
   {
    "phase": "Pilot deployment, end-to-end test and fixes",
-   "low": 16,
-   "high": 32,
+   "low": 20,
+   "high": 36,
    "confidence": "Medium",
    "status": "Not started",
-   "assumptions": "One full walk-through plus fixes for the pilot checklist items in setup/README.md (portal label drift, identity behavior, log fields)."
+   "assumptions": "One full walk-through with both identities, plus fixes for the pilot checklist items in setup/README.md (OAuth connection, impersonation errors, Purview latency, portal label drift, log fields)."
   },
   {
-   "phase": "Platform onboarding (template library, blob uploads, template configuration, validation registration, licence assignment)",
+   "phase": "Platform onboarding (template library, blob uploads, template configuration, second lab user, validation registration, licence assignment)",
    "low": 6,
    "high": 10,
    "confidence": "Medium-High",
@@ -94,11 +94,11 @@
   },
   {
    "phase": "Tenant preparation and licensing confirmation",
-   "low": 2,
-   "high": 6,
+   "low": 4,
+   "high": 8,
    "confidence": "Medium",
    "status": "Not started",
-   "assumptions": "Gateway app registration, Power Platform settings, quota check, a Microsoft licensing answer on shared team accounts, and confirming Temporary Access Pass sign-in for attendees plus password sign-in to Power Platform for provisioning in the TAP tenant."
+   "assumptions": "Gateway app registration with the ServiceDesk.Access scope, Purview app, sensitivity label and DLP policy, Purview pay-as-you-go, Power Platform settings, quota check, a Microsoft licensing answer on shared team accounts, and confirming Temporary Access Pass sign-in for attendees plus password sign-in to Power Platform for provisioning in the TAP tenant."
   }
  ],
  "risks": [
@@ -113,19 +113,29 @@
    "mitigation": "Pilot first; fallback is an admin-created environment per team with the team account as System Administrator"
   },
   {
-   "risk": "Shared team accounts on the Developer Plan are judged multiplexing",
+   "risk": "The Foundry OAuth2 project connection that deploy-01.json creates uses metadata keys that Microsoft doesn't document",
+   "impact": "The agent can't obtain the technician's token, so every MCP tool call fails",
+   "mitigation": "Pilot item: compare with a reference connection created by azd ai connection create and align deploy-01.json; confirm whether the redirect URL is per connection or regional"
+  },
+  {
+   "risk": "One account per role per team, shared by its members, is judged multiplexing",
    "impact": "Licensing non-compliance",
-   "mitigation": "Get written confirmation from Microsoft licensing, or give every attendee an account"
+   "mitigation": "Get written confirmation from Microsoft licensing, or give every attendee their own accounts"
   },
   {
-   "risk": "Foundry portal labels for adding MCP tools change before delivery",
-   "impact": "Learners can't follow Exercise 3 Task 2 as written",
-   "mitigation": "Fallback script Update-AgentDefinition.ps1 -Tools; re-check labels in the pilot"
+   "risk": "The Tier 1 Technician can't sign in to the agent or the Service Desk app with the roles provisioning grants",
+   "impact": "The Exercise 5 Task 4 comparison between the two identities can't run",
+   "mitigation": "Pilot item; the readiness check reports the Tier 1 identity as Ready, Not ready or Not configured before the session"
   },
   {
-   "risk": "API Management MCP log SessionId is empty and CorrelationId differs from the server's correlation ID",
-   "impact": "Exercise 3 and 5 trace steps read differently",
-   "mitigation": "Guide already covers an empty SessionId; verify the CorrelationId join in the pilot"
+   "risk": "Foundry portal labels for adding a knowledge source change before delivery",
+   "impact": "Participants can't follow Exercise 1 Task 2 as written",
+   "mitigation": "Fallback script Update-AgentDefinition.ps1 -Knowledge; re-check labels in the pilot"
+  },
+  {
+   "risk": "Purview DLP events and Foundry agent traces take several minutes to appear",
+   "impact": "Exercise 6 evidence arrives after the step that looks for it",
+   "mitigation": "The guide checks the MCP server's result first and the portals last; Get-ActionTrail.ps1 shows the gateway, server and Dataverse hops first; measure the latency in the pilot"
   },
   {
    "risk": "Model quota below 30K TPM per team in Sweden Central",
