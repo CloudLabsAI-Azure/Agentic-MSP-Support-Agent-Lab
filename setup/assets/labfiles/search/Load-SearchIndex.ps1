@@ -1,0 +1,240 @@
+#Requires -Version 7.0
+<#
+.SYNOPSIS
+    Loads the Service Desk knowledge articles, tickets and customer profiles from Dataverse
+    into your Azure AI Search index, then checks the document count against Dataverse.
+
+.DESCRIPTION
+    What is indexed, and what is deliberately left out:
+      Knowledge articles  title, symptom, cause, resolution, applicability, status
+      Tickets             title, description, customer context, resolution, SLA snapshot
+      Customers           profile, SLA tier, contract type, deployed product versions, and a
+                          list of the customer's open tickets
+      SLA snapshot        one document ranking every open ticket by remaining business hours,
+                          with the SLA resolution targets and the Relecloud priority rules
+      NOT indexed         ticket notes (internal notes must never reach an answer) and
+                          contact details (personal data the agent does not need for grounding)
+    The customer open-ticket lists and the SLA snapshot exist because a search index returns
+    the few most relevant documents for a question, not a sorted or complete list. Questions
+    such as "all open tickets for a customer" or "closest to breach" need a document that
+    already holds the whole list.
+    Each document gets an embedding from your text-embedding-3-small deployment, so the
+    agent can use vector and hybrid search. The url field links every result back to its
+    record in the Service Desk app, which is what makes a citation checkable.
+
+    Uses your own Azure CLI sign-in for Dataverse, Foundry and AI Search. Run 'az login' first.
+
+.EXAMPLE
+    C:\LabFiles\search\Load-SearchIndex.ps1
+#>
+[CmdletBinding()]
+param(
+    [string]$SettingsPath = 'C:\LabFiles\team-settings.json',
+    [string]$IndexName = 'servicedesk-knowledge',
+    [int]$EmbeddingBatch = 16,
+    [string]$OpenAIEndpoint
+)
+
+$ErrorActionPreference = 'Stop'
+$settings = Get-Content $SettingsPath -Raw | ConvertFrom-Json
+$dv = $settings.DataverseUrl.TrimEnd('/')
+$search = $settings.SearchEndpoint.TrimEnd('/')
+if (-not $OpenAIEndpoint) { $OpenAIEndpoint = "https://$($settings.FoundryResource).openai.azure.com" }
+$embeddingUri = "$($OpenAIEndpoint.TrimEnd('/'))/openai/deployments/$($settings.EmbeddingDeployment)/embeddings?api-version=2024-10-21"
+$tokens = @{}
+function Token([string]$resource) {
+    if (-not $tokens[$resource]) {
+        $tokens[$resource] = az account get-access-token --resource $resource --query accessToken --output tsv
+        if (-not $tokens[$resource]) { throw "No token for $resource. Run 'az login' first." }
+    }
+    return $tokens[$resource]
+}
+function Get-All([string]$path) {
+    $rows = @()
+    $uri = "$dv/api/data/v9.2/$path"
+    $headers = @{ Authorization = "Bearer $(Token $dv)"; Accept = 'application/json'
+                  Prefer = 'odata.include-annotations="OData.Community.Display.V1.FormattedValue",odata.maxpagesize=500' }
+    while ($uri) {
+        $page = Invoke-RestMethod -Uri $uri -Headers $headers
+        $rows += $page.value
+        $uri = $page.'@odata.nextLink'
+    }
+    return $rows
+}
+function Label($row, [string]$column) { return $row."$column@OData.Community.Display.V1.FormattedValue" }
+function When($value) {
+    # Dates in the indexed text are written as unambiguous UTC, for example 2026-10-07 14:00 UTC.
+    if ($null -eq $value -or "$value" -eq '') { return 'not set' }
+    $format = "yyyy-MM-dd HH:mm 'UTC'"
+    $culture = [Globalization.CultureInfo]::InvariantCulture
+    if ($value -is [datetimeoffset]) { return $value.UtcDateTime.ToString($format, $culture) }
+    if ($value -is [datetime]) {
+        $utc = if ($value.Kind -eq [DateTimeKind]::Local) { $value.ToUniversalTime() } else { $value }
+        return $utc.ToString($format, $culture)
+    }
+    return [string]$value
+}
+function RecordUrl([string]$table, [string]$id) {
+    return "$dv/main.aspx?appname=msp_ServiceDesk&pagetype=entityrecord&etn=$table&id=$id"
+}
+
+Write-Host 'Reading Dataverse...' -ForegroundColor Cyan
+$articles = Get-All 'msp_knowledgearticles?$select=msp_knowledgearticleid,msp_articlenumber,msp_name,msp_category,msp_product,msp_symptom,msp_cause,msp_resolution,msp_appliesto,msp_appliestoversions,msp_appliestotiers,msp_appliestocontracts,msp_kbstatus,msp_lastreviewedon,msp_keywords'
+$customers = Get-All 'accounts?$select=accountid,name,msp_customercode,msp_industry,address1_city,msp_slatier,msp_contracttype,msp_seatcount,msp_sitecount,msp_backupagentversion,msp_remoteaccessversion,msp_gatewayfirmware,msp_endpointagentversion,msp_accountmanager,description&$filter=msp_customercode ne null'
+$tickets = Get-All ('msp_tickets?$select=msp_ticketid,msp_ticketnumber,msp_name,msp_description,msp_category,msp_priority,msp_status,msp_product,msp_productversion,msp_affectedusers,msp_openedon,msp_resolvedon,msp_resolutionsummary,msp_slatargethours,msp_slaelapsedhours,msp_slaremaininghours,msp_sladueon,msp_slastatus,msp_slacalculatedon' +
+    '&$expand=msp_CustomerId($select=name,msp_customercode,msp_slatier,msp_contracttype),msp_AssignedTechnicianId($select=msp_name),msp_RelatedArticleId($select=msp_articlenumber)')
+$policies = Get-All 'msp_slapolicies?$select=msp_slatier,msp_priority,msp_responsehours,msp_resolutionhours,msp_description'
+Write-Host ("  {0} knowledge articles, {1} tickets, {2} customers, {3} SLA policies" -f $articles.Count, $tickets.Count, $customers.Count, $policies.Count)
+
+$openStatuses = 'New', 'In Progress', 'Waiting on Customer'
+$openTickets = @($tickets | Where-Object { (Label $_ 'msp_status') -in $openStatuses })
+$snapshotTime = ($openTickets | Where-Object { $_.msp_slacalculatedon } | Select-Object -First 1).msp_slacalculatedon
+function OpenTicketLine($t) {
+    $priority = (Label $t 'msp_priority') ?? 'priority not set'
+    $category = (Label $t 'msp_category') ?? 'category not set'
+    $sla = if ($null -ne $t.msp_slatargethours) {
+        "SLA remaining $($t.msp_slaremaininghours) of $($t.msp_slatargethours) business hours ($(Label $t 'msp_slastatus'))"
+    } else { 'SLA not set (not yet triaged)' }
+    return "$($t.msp_ticketnumber) '$($t.msp_name)': $(Label $t 'msp_status'), $priority, $category, opened $(When $t.msp_openedon), $sla."
+}
+$viewId = (Get-All "savedqueries?`$select=savedqueryid&`$filter=name eq 'Open Tickets by SLA Remaining' and returnedtypecode eq 'msp_ticket'" |
+    Select-Object -First 1).savedqueryid
+$slaViewUrl = if ($viewId) { "$dv/main.aspx?appname=msp_ServiceDesk&pagetype=entitylist&etn=msp_ticket&viewid=$viewId&viewType=1039" }
+              else { "$dv/main.aspx?appname=msp_ServiceDesk&pagetype=entitylist&etn=msp_ticket" }
+
+$docs = [System.Collections.Generic.List[hashtable]]::new()
+foreach ($a in $articles) {
+    $content = "Knowledge article $($a.msp_articlenumber): $($a.msp_name). Status: $(Label $a 'msp_kbstatus'). " +
+        "Last reviewed: $(When $a.msp_lastreviewedon). Product: $(Label $a 'msp_product'). Applies to: $($a.msp_appliesto) " +
+        "Symptom: $($a.msp_symptom) Cause: $($a.msp_cause) Resolution: $($a.msp_resolution) Keywords: $($a.msp_keywords)"
+    $docs.Add(@{ id = "kb-$($a.msp_articlenumber)"; docType = 'Knowledge article'; title = "$($a.msp_articlenumber): $($a.msp_name)"
+        url = (RecordUrl 'msp_knowledgearticle' $a.msp_knowledgearticleid); sourceId = $a.msp_articlenumber; content = $content
+        product = (Label $a 'msp_product'); productVersion = $a.msp_appliestoversions; category = (Label $a 'msp_category')
+        slaTier = $a.msp_appliestotiers; contractType = $a.msp_appliestocontracts; articleStatus = (Label $a 'msp_kbstatus') })
+}
+foreach ($c in $customers) {
+    $mine = @($openTickets | Where-Object { $_.msp_CustomerId.msp_customercode -eq $c.msp_customercode } |
+        Sort-Object msp_openedon)
+    $openText = if ($mine.Count) {
+        "Open tickets as of $(When $snapshotTime) ($($mine.Count)): " + (($mine | ForEach-Object { OpenTicketLine $_ }) -join ' ')
+    } else { "Open tickets as of $(When $snapshotTime): none." }
+    $content = "Customer $($c.name) ($($c.msp_customercode)). Industry: $($c.msp_industry). City: $($c.address1_city). " +
+        "SLA tier: $(Label $c 'msp_slatier'). Contract type: $(Label $c 'msp_contracttype'). Managed seats: $($c.msp_seatcount). Sites: $($c.msp_sitecount). " +
+        "Deployed versions: Relecloud Backup Agent $($c.msp_backupagentversion); Remote Access client $($c.msp_remoteaccessversion); " +
+        "Secure Gateway firmware $($c.msp_gatewayfirmware); Endpoint Agent $($c.msp_endpointagentversion). " +
+        "Account manager: $($c.msp_accountmanager). Profile: $($c.description) $openText"
+    $docs.Add(@{ id = "customer-$($c.msp_customercode)"; docType = 'Customer'; title = "Customer profile: $($c.name)"
+        url = (RecordUrl 'account' $c.accountid); sourceId = $c.msp_customercode; content = $content; customer = $c.name
+        customerCode = $c.msp_customercode; slaTier = (Label $c 'msp_slatier'); contractType = (Label $c 'msp_contracttype') })
+}
+foreach ($t in $tickets) {
+    $cust = $t.msp_CustomerId
+    $sla = if ($null -ne $t.msp_slatargethours) {
+        "SLA: target $($t.msp_slatargethours) business hours, elapsed $($t.msp_slaelapsedhours), remaining $($t.msp_slaremaininghours), " +
+        "due $(When $t.msp_sladueon), status $(Label $t 'msp_slastatus'), as of $(When $t.msp_slacalculatedon)."
+    } else { 'SLA: not set (ticket not yet triaged).' }
+    $content = "Ticket $($t.msp_ticketnumber): $($t.msp_name). Customer: $($cust.name) ($($cust.msp_customercode)), SLA tier $(Label $cust 'msp_slatier'), " +
+        "contract $(Label $cust 'msp_contracttype'). Status: $(Label $t 'msp_status'). Priority: $((Label $t 'msp_priority') ?? 'not set'). " +
+        "Category: $((Label $t 'msp_category') ?? 'not set'). Product: $(Label $t 'msp_product') $($t.msp_productversion). " +
+        "Affected users: $($t.msp_affectedusers). Opened on: $(When $t.msp_openedon). Resolved on: $(When $t.msp_resolvedon). " +
+        "Assigned technician: $($t.msp_AssignedTechnicianId.msp_name). Related article: $($t.msp_RelatedArticleId.msp_articlenumber). " +
+        "Description: $($t.msp_description) Resolution: $($t.msp_resolutionsummary) $sla"
+    $doc = @{ id = "ticket-$($t.msp_ticketnumber)"; docType = 'Ticket'; title = "$($t.msp_ticketnumber): $($t.msp_name)"
+        url = (RecordUrl 'msp_ticket' $t.msp_ticketid); sourceId = $t.msp_ticketnumber; content = $content
+        customer = $cust.name; customerCode = $cust.msp_customercode; slaTier = (Label $cust 'msp_slatier')
+        contractType = (Label $cust 'msp_contracttype'); product = (Label $t 'msp_product'); productVersion = $t.msp_productversion
+        category = (Label $t 'msp_category'); priority = (Label $t 'msp_priority'); status = (Label $t 'msp_status')
+        relatedArticle = $t.msp_RelatedArticleId.msp_articlenumber; openedOn = $t.msp_openedon; resolvedOn = $t.msp_resolvedon
+        slaTargetHours = $t.msp_slatargethours; slaElapsedHours = $t.msp_slaelapsedhours; slaRemainingHours = $t.msp_slaremaininghours
+        slaDueOn = $t.msp_sladueon; slaStatus = (Label $t 'msp_slastatus'); slaCalculatedOn = $t.msp_slacalculatedon }
+    $docs.Add($doc)
+}
+
+$ranked = @($openTickets | Where-Object { $null -ne $_.msp_slaremaininghours } | Sort-Object { [double]$_.msp_slaremaininghours })
+$untriaged = @($openTickets | Where-Object { $null -eq $_.msp_slaremaininghours })
+$rank = 0
+$lines = foreach ($t in $ranked) {
+    $rank++
+    "$rank. $($t.msp_ticketnumber) ($($t.msp_CustomerId.name), $($t.msp_CustomerId.msp_customercode), SLA tier $(Label $t.msp_CustomerId 'msp_slatier')): " +
+    "$(Label $t 'msp_priority'), target $($t.msp_slatargethours), elapsed $($t.msp_slaelapsedhours), remaining $($t.msp_slaremaininghours) business hours, " +
+    "due $(When $t.msp_sladueon), SLA status $(Label $t 'msp_slastatus'). '$($t.msp_name)'."
+}
+$untriagedText = if ($untriaged.Count) {
+    ($untriaged | ForEach-Object { "$($_.msp_ticketnumber) ($($_.msp_CustomerId.name)) '$($_.msp_name)'" }) -join '; '
+} else { 'none' }
+$targets = ($policies | Group-Object msp_slatier | Sort-Object { [long]$_.Name } | ForEach-Object {
+    "$(Label $_.Group[0] 'msp_slatier'): " + (($_.Group | Sort-Object msp_priority |
+        ForEach-Object { "$(Label $_ 'msp_priority') $($_.msp_resolutionhours)" }) -join ', ')
+}) -join '; '
+$rules = $policies | ForEach-Object { "$($_.msp_description)" } | Where-Object { $_ -match 'Relecloud priority rules:' } | Select-Object -First 1
+$rules = if ($rules) { $rules.Substring($rules.IndexOf('Relecloud priority rules:')) } else { '' }
+$snapshotContent = "SLA risk snapshot of every open ticket, as of $(When $snapshotTime). SLA figures are business hours " +
+    "(Monday to Friday, 08:00 to 18:00 UTC, no holidays); elapsed plus remaining equals the target. " +
+    "Negative remaining hours mean the SLA is already breached. Ordered by remaining business hours, lowest first: " +
+    ($lines -join ' ') + " Open tickets not yet triaged, so they have no priority and no SLA: $untriagedText. " +
+    "SLA resolution targets in business hours by SLA tier and priority: $targets. $rules"
+$docs.Add(@{ id = 'sla-snapshot'; docType = 'SLA snapshot'; title = 'SLA risk snapshot: open tickets by remaining business hours, SLA targets and priority rules'
+    url = $slaViewUrl; sourceId = 'SLA-SNAPSHOT'; content = $snapshotContent; slaCalculatedOn = $snapshotTime })
+
+function Invoke-Embedding([string[]]$inputs) {
+    # The team's embedding deployment allows about 30,000 tokens a minute, so a full load is
+    # rate limited for a while. Honor Retry-After instead of failing.
+    $body = @{ input = @($inputs) } | ConvertTo-Json -Depth 5
+    for ($attempt = 1; $attempt -le 15; $attempt++) {
+        try {
+            return Invoke-RestMethod -Method Post -Uri $embeddingUri -Body $body -ContentType 'application/json' `
+                -Headers @{ Authorization = "Bearer $(Token 'https://cognitiveservices.azure.com')" }
+        }
+        catch {
+            $status = [int]($_.Exception.Response.StatusCode)
+            if ($status -ne 429 -and $status -lt 500) { throw }
+            $wait = 10
+            $retryAfter = $_.Exception.Response.Headers.RetryAfter
+            if ($retryAfter -and $retryAfter.Delta) { $wait = [int][Math]::Ceiling($retryAfter.Delta.TotalSeconds) }
+            $wait = [Math]::Min([Math]::Max($wait, 2), 60)
+            Write-Host "  The embedding deployment is rate limiting; waiting $wait seconds (attempt $attempt)." -ForegroundColor DarkYellow
+            Start-Sleep -Seconds $wait
+        }
+    }
+    throw 'The embedding deployment kept refusing requests. Wait a minute and run the script again.'
+}
+
+Write-Host "Embedding $($docs.Count) documents with $($settings.EmbeddingDeployment)..." -ForegroundColor Cyan
+for ($i = 0; $i -lt $docs.Count; $i += $EmbeddingBatch) {
+    $batch = $docs[$i..([Math]::Min($i + $EmbeddingBatch - 1, $docs.Count - 1))]
+    $result = Invoke-Embedding @($batch | ForEach-Object { $_.content })
+    for ($j = 0; $j -lt $batch.Count; $j++) { $batch[$j].contentVector = $result.data[$j].embedding }
+    Write-Progress -Activity 'Embedding' -PercentComplete ([int](100 * ($i + $batch.Count) / $docs.Count))
+}
+Write-Progress -Activity 'Embedding' -Completed
+
+Write-Host "Uploading to index '$IndexName'..." -ForegroundColor Cyan
+$searchHeaders = @{ Authorization = "Bearer $(Token 'https://search.azure.com')" }
+try { Invoke-RestMethod -Uri "$search/indexes/$($IndexName)?api-version=2024-07-01" -Headers $searchHeaders | Out-Null }
+catch { throw "Index '$IndexName' was not found on $search. Create it first (Exercise 1, Task 2)." }
+for ($i = 0; $i -lt $docs.Count; $i += 100) {
+    $batch = $docs[$i..([Math]::Min($i + 99, $docs.Count - 1))]
+    $payload = @{ value = @($batch | ForEach-Object {
+        $d = @{ '@search.action' = 'mergeOrUpload' }
+        foreach ($k in $_.Keys) { if ($null -ne $_[$k] -and $_[$k] -ne '') { $d[$k] = $_[$k] } }
+        $d }) } | ConvertTo-Json -Depth 6 -Compress
+    Invoke-RestMethod -Method Post -Uri "$search/indexes/$IndexName/docs/index?api-version=2024-07-01" -Headers $searchHeaders `
+        -Body $payload -ContentType 'application/json' | Out-Null
+}
+
+$expected = $articles.Count + $tickets.Count + $customers.Count + 1
+$deadline = (Get-Date).AddMinutes(2)
+do {
+    Start-Sleep -Seconds 5
+    $raw = Invoke-RestMethod -Uri "$search/indexes/$IndexName/docs/`$count?api-version=2024-07-01" -Headers $searchHeaders
+    $count = [int]("$raw".Trim([char]0xFEFF).Trim())
+} until ($count -ge $expected -or (Get-Date) -gt $deadline)
+
+[pscustomobject]@{ Source = 'Dataverse knowledge articles'; Count = $articles.Count },
+[pscustomobject]@{ Source = 'Dataverse tickets'; Count = $tickets.Count },
+[pscustomobject]@{ Source = 'Dataverse customers'; Count = $customers.Count },
+[pscustomobject]@{ Source = 'SLA snapshot'; Count = 1 },
+[pscustomobject]@{ Source = 'Expected index documents'; Count = $expected },
+[pscustomobject]@{ Source = "Index '$IndexName' documents"; Count = $count } | Format-Table -AutoSize
+if ($count -eq $expected) { Write-Host 'Document count matches the Dataverse data.' -ForegroundColor Green }
+else { Write-Warning "Index holds $count documents; expected $expected. Re-run the script." }

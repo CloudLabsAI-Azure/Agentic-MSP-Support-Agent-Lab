@@ -1,0 +1,61 @@
+flowchart LR
+  engineer([Service desk engineer])
+
+  subgraph foundry[Microsoft Foundry project]
+    agent[Support agent<br/>gpt-5.4-mini]
+  end
+
+  subgraph entra[Microsoft Entra ID]
+    agentid[Agent identity<br/>Entra Agent ID]
+  end
+
+  subgraph azure[Team resource group]
+    apim[API Management<br/>MCP gateway]
+    search[(Azure AI Search<br/>knowledge index)]
+    aca[Container Apps<br/>MCP server]
+    mi[Managed identity<br/>id-mcp]
+    acr[(Container Registry)]
+    subgraph monitor[Azure Monitor]
+      appi[Application Insights]
+      law[(Log Analytics)]
+    end
+  end
+
+  subgraph build[Build path on the lab VM]
+    repo[(MCP server source<br/>local Git copy)]
+    tools[VS Code, Azure CLI, git]
+  end
+
+  subgraph power[Power Platform]
+    app[Service Desk app]
+    dv[(Dataverse)]
+  end
+
+  engineer --> agent
+  engineer --> app
+  agent -->|MCP tool call with agent token| apim
+  agent -->|knowledge| search
+  agent -.-|acts as| agentid
+  apim -->|gateway key| aca
+  aca -->|runs as| mi
+  mi -->|application user| dv
+  app --> dv
+  repo -->|edit| tools
+  tools -->|az acr build| acr
+  acr -->|image| aca
+  agent -.->|traces| appi
+  apim -.->|logs| law
+  aca -.->|logs| law
+
+  classDef person fill:#ffffff,stroke:#5c5c5c,color:#1b1b1b
+  classDef ai fill:#e8f1fb,stroke:#0f6cbd,color:#0b3a66
+  classDef gate fill:#fdf3e6,stroke:#c46a00,color:#5c3200
+  classDef data fill:#eef7ee,stroke:#2e7d32,color:#1b4d1f
+  classDef identity fill:#f3eefb,stroke:#6b3fa0,color:#3b2160
+  classDef ops fill:#f2f2f2,stroke:#6e6e6e,color:#2b2b2b
+  class engineer person
+  class agent,search ai
+  class apim,aca,acr gate
+  class app,dv data
+  class agentid,mi identity
+  class appi,law,tools,repo ops

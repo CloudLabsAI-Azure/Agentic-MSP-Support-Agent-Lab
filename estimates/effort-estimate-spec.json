@@ -1,0 +1,141 @@
+{
+ "lab_name": "Agentic MSP Support Agent Guided Lab",
+ "prepared_by": "Amit Kumar (prepared with the CloudLabs Lab Builder)",
+ "prepared_on": "2026-10-01",
+ "currency": "USD",
+ "phases": [
+  {
+   "phase": "Research and solution design (Foundry agents, Entra Agent ID, API Management MCP, Container Apps, Dataverse, pricing)",
+   "low": 16,
+   "high": 24,
+   "confidence": "High",
+   "status": "Done",
+   "assumptions": "Microsoft Learn research notes with sources for every exercise area; region, model and tier decisions recorded in BUILD-NOTES.md."
+  },
+  {
+   "phase": "MCP server (12 tools, policy, telemetry, tests, Dockerfile, client and deploy scripts)",
+   "low": 24,
+   "high": 36,
+   "confidence": "High",
+   "status": "Done",
+   "assumptions": "21 automated tests pass against the fixture backend; Dataverse calls verified against a mock. Not yet run against a live Dataverse environment."
+  },
+  {
+   "phase": "Seed data generator and loader (customers, contacts, articles, technicians, tickets, notes, business-hours SLA)",
+   "low": 16,
+   "high": 24,
+   "confidence": "High",
+   "status": "Done",
+   "assumptions": "Deterministic seed; loader verified against a mock Dataverse Web API (all counts match)."
+  },
+  {
+   "phase": "Provisioning automation (ARM template, userData bootstrap, logon task, Dataverse schema and app, developer environment, agent, gateway)",
+   "low": 32,
+   "high": 48,
+   "confidence": "Medium-High",
+   "status": "Done",
+   "assumptions": "Static checks pass; first live deployment still to run. Developer environment creation as the team user and application user creation are the riskiest steps."
+  },
+  {
+   "phase": "Governance quartet (ARM policy, custom RBAC, usage policy) and masterdoc",
+   "low": 3,
+   "high": 5,
+   "confidence": "High",
+   "status": "Done",
+   "assumptions": "Allow-list mirrors deploy-01.json resource types and SKUs."
+  },
+  {
+   "phase": "Lab guide content (getting started, five exercises, README, facilitator guide with answer keys)",
+   "low": 20,
+   "high": 28,
+   "confidence": "High",
+   "status": "Done",
+   "assumptions": "Written to the cloudlabs-step-by-step profile; portal labels taken from Microsoft Learn and flagged where the docs are thin."
+  },
+  {
+   "phase": "Validation scripts (9 PowerShellV2 checks) and registration checklist",
+   "low": 6,
+   "high": 10,
+   "confidence": "Medium-High",
+   "status": "Done",
+   "assumptions": "Checks read ARM, AI Search and Log Analytics with the CloudLabs service principal; GUIDs are minted at registration."
+  },
+  {
+   "phase": "Cost estimate workbook",
+   "low": 2,
+   "high": 3,
+   "confidence": "High",
+   "status": "Done",
+   "assumptions": "Sweden Central retail prices retrieved 2026-10-01."
+  },
+  {
+   "phase": "Screenshot production (67 captures with balloons)",
+   "low": 12,
+   "high": 18,
+   "confidence": "Medium",
+   "status": "Not started",
+   "assumptions": "Captured during the pilot walk-through; 6 getting-started shots reused from the standard CloudLabs set."
+  },
+  {
+   "phase": "Pilot deployment, end-to-end test and fixes",
+   "low": 16,
+   "high": 32,
+   "confidence": "Medium",
+   "status": "Not started",
+   "assumptions": "One full walk-through plus fixes for the pilot checklist items in setup/README.md (portal label drift, identity behavior, log fields)."
+  },
+  {
+   "phase": "Platform onboarding (template library, blob uploads, template configuration, validation registration, licence assignment)",
+   "low": 6,
+   "high": 10,
+   "confidence": "Medium-High",
+   "status": "Not started",
+   "assumptions": "Follows setup/README.md and validation-scripts/README.md."
+  },
+  {
+   "phase": "Tenant preparation and licensing confirmation",
+   "low": 2,
+   "high": 6,
+   "confidence": "Medium",
+   "status": "Not started",
+   "assumptions": "Gateway app registration, Power Platform settings, quota check, a Microsoft licensing answer on shared team accounts, and confirming Temporary Access Pass sign-in for attendees plus password sign-in to Power Platform for provisioning in the TAP tenant."
+  }
+ ],
+ "risks": [
+  {
+   "risk": "In the TAP tenant, AzureAdUserPassword holds a Temporary Access Pass, so provisioning can't sign the team account in to Power Platform and Dataverse without a browser",
+   "impact": "Developer environment, schema, security and seed steps fail; Azure Resource Manager steps are unaffected (they run as the provisioning managed identity)",
+   "mitigation": "Settle before the pilot: a password valid during provisioning, or a Power Platform service principal that creates the environment for the team account (setup/README.md section 1)"
+  },
+  {
+   "risk": "Creating a Power Platform developer environment as each team account fails or is restricted in the lab tenant",
+   "impact": "No Dataverse environment, so no Service Desk app or seed data",
+   "mitigation": "Pilot first; fallback is an admin-created environment per team with the team account as System Administrator"
+  },
+  {
+   "risk": "Shared team accounts on the Developer Plan are judged multiplexing",
+   "impact": "Licensing non-compliance",
+   "mitigation": "Get written confirmation from Microsoft licensing, or give every attendee an account"
+  },
+  {
+   "risk": "Foundry portal labels for adding MCP tools change before delivery",
+   "impact": "Learners can't follow Exercise 3 Task 2 as written",
+   "mitigation": "Fallback script Update-AgentDefinition.ps1 -Tools; re-check labels in the pilot"
+  },
+  {
+   "risk": "API Management MCP log SessionId is empty and CorrelationId differs from the server's correlation ID",
+   "impact": "Exercise 3 and 5 trace steps read differently",
+   "mitigation": "Guide already covers an empty SessionId; verify the CorrelationId join in the pilot"
+  },
+  {
+   "risk": "Model quota below 30K TPM per team in Sweden Central",
+   "impact": "Deployment failure or heavy throttling",
+   "mitigation": "Check the quota tier before the event; reduce capacity per team if needed"
+  },
+  {
+   "risk": "Subscription funded by free credits",
+   "impact": "ACR Tasks paused: provisioning and redeploy exercises fail",
+   "mitigation": "Use a paid subscription"
+  }
+ ]
+}

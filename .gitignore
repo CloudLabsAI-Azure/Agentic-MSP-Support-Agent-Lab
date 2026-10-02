@@ -1,0 +1,10 @@
+# Build output of setup/Build-LabFilesZip.ps1. It contains the private MCP server source, so it
+# goes to the CloudLabs template library only, never to this repository.
+setup/assets/msp-labfiles.zip
+
+# Local output of the seed generator, Python caches, and Office lock files.
+setup/assets/labfiles/seed/data/
+__pycache__/
+*.pyc
+.pytest_cache/
+~$*
