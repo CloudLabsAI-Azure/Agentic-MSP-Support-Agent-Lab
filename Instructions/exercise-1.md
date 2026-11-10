@@ -1,14 +1,18 @@
 # Exercise 1: Environment Readiness and Grounding the Agent
 
-### Estimated Duration: 50 minutes
+### Estimated Duration: 35 minutes
 
 ## Scenario
 
-Before Relecloud lets an agent near its queue, the automation team has to prove two things: that the team environment is complete, and that the agent answers from Relecloud's own Service Desk data rather than from general knowledge. Engineers lose a third of their handling time hunting through old tickets, runbooks and articles; an agent that guesses would make that worse, not better.
+"Can the agent answer from our own data, and show us where every answer came from?" Relecloud's service desk manager asks it first, because last quarter's review found that technicians spent about a third of their handling time searching 500 past tickets, 120 knowledge articles and 36 customer documents. An agent that answers from the model's general knowledge would be worse than no agent: it would sound right and be wrong about Relecloud's customers. In this exercise you confirm that your environment is ready, build the search index the agent grounds on, and prove that every answer cites a Relecloud record, including when two articles disagree.
 
 ## Overview
 
-In this exercise, you confirm that every component of your team environment responds before you build anything. You then build an Azure AI Search index over the Service Desk content (knowledge articles, runbooks, customer profiles and procedures, and the ticket history), load it, and connect it to the agent as its knowledge source. Finally, you test the grounded agent on simple questions, on an ambiguous case where two knowledge articles describe the same symptom, and on its ability to explain its own reasoning.
+In this exercise, you check every component of your environment with the readiness check, then build the `servicedesk-knowledge` index from the Service Desk content that provisioning exported to Blob Storage and add it to `msp-support-agent` as a knowledge source. You test retrieval on simple questions, resolve an ambiguous case where two articles conflict until you apply the customer's own product versions, and ask the agent to explain which sources it used.
+
+![Five steps from the exported Service Desk records to a cited answer: review the export, create the index with citation fields, load and count, add the index to the agent, and ask with citations, with an ambiguous case resolved by Woodgrove Bank's product versions](./media/exercise-1-grounding.png)
+
+How to read this diagram: the five numbered steps across the top are Task 2 of this exercise. The terminal types the script that creates and loads the index, and the lower lane shows the data moving from Dataverse through the Blob container `servicedesk-export` and the indexer into `servicedesk-knowledge`, and from there to `msp-support-agent`. The note at the bottom plays Task 4: two articles describe the same hourly Remote Access drop, and Woodgrove Bank's product versions select KB0058, not KB0031.
 
 ## Objectives
 
@@ -22,197 +26,162 @@ In this exercise, you will complete the following tasks:
 
 ## Task 1: Verify Readiness
 
-In this task, you will confirm every component responds before building anything. If any check fails, stop and contact support rather than working around it.
+In this task, you will confirm that every component responds before you build anything. If any check fails, stop and contact support rather than working around it.
 
-1. Sign in with your team's **Senior Technician** credentials and launch your assigned lab. You did this on the getting-started page: the VM is open, the Azure portal and the Azure CLI are signed in as <inject key="AzureAdUserEmail" enableCopy="false"/>. Use this account for the whole lab unless a step says otherwise.
+1. Sign in with your Senior Technician credentials and launch your assigned lab. You did this on the getting-started page: the VM is open, and the Azure portal and the Azure CLI are signed in as <inject key="AzureAdUserEmail" enableCopy="false"/>. Use this account for the whole lab unless a step says otherwise.
 
 1. Run the readiness check on your lab VM desktop and confirm every component reports ready. Double-click **Lab readiness check** on the desktop. It needs no sign-in: it checks the environment with the lab VM's own identity and prints one row per component.
 
    | Component | What it checked |
    |---|---|
-   | **Azure resources** | The resource group holds the Container App, API Management, Foundry, AI Search, Key Vault and Container Registry |
+   | **Golden Environment** | The environment was built from Golden Environment **v1.0** |
+   | **Azure resources** | The resource group holds the Container App, API Management, Foundry, AI Search, the storage account, Key Vault and the container registry |
    | **Service Desk app and data** | The app exists and every seeded table holds the expected rows, plus the two new incidents |
    | **Tier 1 Technician** | The second identity is a user of the Service Desk environment with the read-only **Service Desk Tier 1 Technician** role |
-   | **Foundry agent** | `msp-support-agent` has its Microsoft Entra Agent ID and the Service Desk MCP tool, and no knowledge source |
-   | **MCP connection** | The project connection `servicedesk-mcp` uses OAuth identity passthrough to your API Management gateway |
+   | **Foundry agent** | `msp-support-agent` has its Microsoft Entra Agent ID, the two Service Desk MCP tools, and no knowledge source |
+   | **MCP connections** | The connections `servicedesk-read` and `servicedesk-write` use OAuth identity passthrough to your API Management gateway |
    | **MCP server** | `/health` is ok, the server read its gateway key from Key Vault, and it acts on behalf of the signed-in user |
-   | **Baseline read tool** | `get_ticket` for TCK-10489 returned real ticket data through API Management |
-   | **Search content** | The export you load into the index in Task 2 holds the expected 561 documents |
+   | **Baseline read tool** | `get_ticket` for TCK-10524 returned real ticket data through API Management |
+   | **Search export** | The export you index in Task 2 holds the expected 753 documents |
+   | **Microsoft Purview** | The sensitivity label and the data loss prevention policy are in place |
 
-   Every row shows **Ready**, and the last line reads *Every component is ready. You can start Exercise 1.* In **Lab notes.txt**, next to **Readiness check**, record the result.
+   Every row shows **Ready**, and the last line reads *Every component is ready. You can start Exercise 1.* In **Lab notes.txt**, next to **Readiness check and Golden Environment version**, record the result and **v1.0**.
 
    > **[SCREENSHOT PENDING: E1T1S2 | Lab readiness check window with every component Ready | source: capture]**
 
    > **Important:** If any row shows **Not ready**, stop here and contact support with a screenshot of the table and your Deployment ID: <inject key="DeploymentID" enableCopy="true"/>. Don't work around a failed component.
 
-1. Open the Service Desk app and confirm the seeded data is present: customer profiles and procedures, knowledge articles, technicians, SLA definitions and historical tickets. On the VM desktop, double-click the **Service Desk** shortcut and sign in as the Senior Technician if you are asked. Open each table below, select the view, and compare the row count at the bottom of the list. Use the area switcher at the bottom of the left navigation to move between the **Service Desk**, **Knowledge** and **Configuration** areas.
+1. Open the Service Desk app and confirm the seeded data is present: customer profiles and procedures, knowledge articles, technicians, SLA definitions and historical tickets. On the VM desktop, double-click the **Service Desk** shortcut, and sign in as the Senior Technician if you are asked. Open each table below, select the view, and compare the row count at the bottom of the list. Use the area switcher at the bottom of the left navigation to move between the **Service Desk**, **Knowledge** and **Configuration** areas.
 
    | Navigation | View | Expected rows |
    |---|---|---|
    | **Customers** > **Accounts** | **Managed Customers** | 24 customer profiles |
-   | **Customers** > **Customer Procedures** | **Customer Procedures** | 63 agreed procedures (escalation contacts, change windows, billing and data handling rules) |
+   | **Customers** > **Customer Procedures** | **Customer Procedures** | 63 agreed procedures |
+   | **Customers** > **Customer Documents** | **All Customer Documents** | 36 (24 support policies, 6 escalation procedures, 6 configuration notes) |
    | **Customers** > **Contacts** | **Customer Contacts** | 72 |
-   | **Knowledge** area > **Knowledge Articles** | **All Articles** | 50 (49 Published, 1 Retired) |
+   | **Knowledge** area > **Knowledge Articles** | **All Articles** | 120 (117 Published, 2 Draft, 1 Retired) |
    | **Knowledge** area > **Runbooks** | **All Runbooks** | 12 |
-   | **Configuration** area > **Technicians** | **Active Technicians** | 12 (Marcus Webb is not available) |
-   | **Configuration** area > **SLA Policies** | the default view | 16 SLA definitions (4 tiers by 4 priorities) |
-   | **Work** > **Tickets** | **All Tickets** | 476 historical and open tickets |
-   | **Work** > **Tickets** | **Open Tickets** | 45 |
-   | **Work** > **Tickets** | **Untriaged Tickets** | 5, including the two new incidents **TCK-10514** and **TCK-10515** |
-   | **Work** > **Ticket Notes** | **All Ticket Notes** | 1,203 |
+   | **Configuration** area > **Technicians** | **Active Technicians** | 15 in four teams (Marcus Webb is on leave) |
+   | **Configuration** area > **SLA Policies** | the default view | 16 SLA definitions (four tiers by four priorities) |
+   | **Work** > **Tickets** | **All Tickets** | 562: 500 historical, 60 open and 2 new incidents |
+   | **Work** > **Tickets** | **Open Tickets** | 62 |
+   | **Work** > **Tickets** | **Untriaged Tickets** | 5, including the two new incidents **TCK-10561** and **TCK-10562** |
+   | **Work** > **Ticket Notes** | **All Ticket Notes** | 1,436 |
 
-   Then open ticket **TCK-10489** from the **Open Tickets** view and look at its **SLA** section. **SLA Target**, **SLA Elapsed** and **SLA Remaining** are in business hours, and **SLA Calculated On** is the moment the figures were taken.
+   Then open ticket **TCK-10540** from the **Open Tickets** view and look at its **SLA** section. **SLA Target (business hours)**, **SLA Elapsed (business hours)** and **SLA Remaining (business hours)** count business hours only (Monday to Friday, 08:00 to 18:00 UTC), and **SLA Calculated On (UTC)** is the moment the figures were taken.
 
    > **Note:** The app's address is <inject key="Service Desk App URL" enableCopy="false"/>. If the desktop shortcut opens a different address, use the shortcut: it points to the environment that was actually created.
 
-   > **[SCREENSHOT PENDING: E1T1S3 | Service Desk app Tickets list with the Open Tickets view and the row count | source: capture]**
+   > **[SCREENSHOT PENDING: E1T1S3 | Service Desk app Tickets list with the Open Tickets view and its row count | source: capture]**
 
-1. Open your Foundry project and confirm the agent exists with its Microsoft Entra Agent ID, no knowledge source and only the baseline MCP tools.
+1. Open your Foundry project and confirm the agent exists with its Microsoft Entra Agent ID, no knowledge source and only the baseline MCP tools. On the desktop, double-click **Microsoft Foundry**, select your project **<inject key="Foundry Project Name" enableCopy="false"/>**, select **Build**, and then select **msp-support-agent**. On the **Playground** tab, expand **Tools**: it lists **servicedesk-read** and **servicedesk-write** and no knowledge tool. Then, in PowerShell 7, run the following command, which reads the agent's Entra Agent ID from the Foundry API:
 
-   - On the VM desktop, double-click the **Microsoft Foundry** shortcut and sign in as the Senior Technician if you are asked. In the project selector in the top banner, select **proj-msp-<inject key="DeploymentID" enableCopy="false"/>**. Select **Build (1)** in the top navigation, then **Agents (2)**, and select the agent **msp-support-agent (3)**.
-   - On the **Playground** tab, look at the agent's configuration: a model, short baseline instructions, no **Knowledge**, and one tool, the Service Desk MCP server **servicedesk**, reached through the connection **<inject key="MCP Connection Name" enableCopy="false"/>**.
-   - In PowerShell 7 on the VM, show the agent's identity:
-
-     ```powershell
-     C:\LabFiles\tools\Get-AgentIdentity.ps1
-     ```
-
-     **Entra Agent ID object ID** is the agent's identity in Microsoft Entra ID; you look it up in Exercise 5.
-
-   > **Note:** These steps use the current Foundry portal. If the portal opens in the classic experience, turn on the **New Foundry** toggle in the top banner. Portal labels change often; if a label in this guide differs slightly, look for the closest match.
-
-   > **Note:** The playground runs evaluators on every answer by default, and those evaluations are billed and use your team's model capacity. Select the metrics control in the upper right of the playground and clear all evaluators. Do this once; the setting applies to the rest of the lab.
-
-   > **[SCREENSHOT PENDING: E1T1S4 | Agent playground showing the servicedesk MCP tool and no knowledge source | source: capture]**
-
-1. Invoke one baseline read tool through Azure API Management and confirm it returns real ticket data. In the playground, start a new chat and send:
-
-   ```
-   Use the Service Desk tools to get ticket TCK-10489 and tell me its status, priority, assigned technician and SLA remaining.
+   ```powershell
+   C:\LabFiles\tools\Get-AgentIdentity.ps1
    ```
 
-   The first time you use the tool, the playground shows a consent request for the Service Desk connection. Select **Open consent**, sign in as the Senior Technician, accept, close the confirmation window, and send the message again if the playground asks you to. You consent once; the agent then calls the gateway with your own token.
+   The output shows the agent identity's client ID and object ID. In a new tab, open the Microsoft Entra admin center at `https://entra.microsoft.com`, select **Entra ID** > **Agents** > **Agent identities**, and search for the object ID: the agent is listed with its own identity, separate from yours. In **Lab notes.txt**, next to **Agent ID (client ID)**, record the client ID.
 
-   The agent calls **get_ticket** without asking for approval, because read tools never need it. Expect **TCK-10489** *Claims team cannot open policy documents* for **Humongous Insurance**: **In Progress**, **P2 High**, **Daniel Cho**, **1.0** of 8 business hours remaining. Compare it with the record you opened in the Service Desk app.
+   > **[SCREENSHOT PENDING: E1T1S4 | Agent playground Tools section listing servicedesk-read and servicedesk-write with no knowledge source | source: capture]**
 
-   > **[SCREENSHOT PENDING: E1T1S5 | Agent answer for TCK-10489 from the get_ticket tool | source: capture]**
+   > **Note:** Viewing agent identities needs no administrator role. The Foundry portal does not show the agent identity itself, which is why the script reads it from the agent's definition.
 
-   > **Note:** The provided screenshot is for your reference; the output you receive may vary.
+1. Invoke one baseline read tool through Azure API Management and confirm it returns real ticket data. Run the following command, which calls `get_ticket` through the gateway's diagnostics API:
+
+   ```powershell
+   C:\LabFiles\tools\Invoke-McpTool.ps1 get_ticket @{ ticket_number = 'TCK-10524' }
+   ```
+
+   The result is **TCK-10524** from **Humongous Insurance**, *Claims team cannot open policy documents*, with its status, priority, SLA figures and a `correlation_id`. In **Lab notes.txt**, next to **Baseline read tool: ticket and correlation ID**, record both.
+
+   > **[SCREENSHOT PENDING: E1T1S5 | PowerShell 7 window with the get_ticket result for TCK-10524 and its correlation_id | source: capture]**
 
 ### Expected results
 
-- [ ] The readiness check reports every component **Ready**
-- [ ] The Service Desk app row counts match the table above
-- [ ] The agent has its Entra Agent ID, the **servicedesk** MCP tool and no knowledge source
-- [ ] get_ticket returned the live TCK-10489 record, and its details match the app
+- [ ] Every readiness row shows **Ready**, and you recorded the result and Golden Environment **v1.0**
+- [ ] The Service Desk app views show the row counts in the table above
+- [ ] `msp-support-agent` lists **servicedesk-read** and **servicedesk-write** and no knowledge tool, and you recorded its Agent ID
+- [ ] `get_ticket` returned **TCK-10524** from **Humongous Insurance** with a `correlation_id`
+
+### Troubleshooting
+
+| Symptom | Likely cause | What to do |
+|---|---|---|
+| A readiness row shows **Not ready** | A component failed during provisioning | Stop and contact support with the table and your Deployment ID |
+| The Service Desk app asks you to sign in again or shows an access error | The app opened with another account | Sign out of the app, sign in as the Senior Technician, and open the shortcut again |
+| `Invoke-McpTool.ps1` reports that it can't read the subscription key | The Azure CLI sign-in expired | Run `az login` again as the Senior Technician and repeat the command |
 
 ## Task 2: Connect the Agent to the Knowledge Base
 
-In this task, you will build the agent's knowledge source. Azure AI Search is provisioned but holds no index; nothing is grounded until you build one.
+In this task, you will build the index the agent grounds on. Azure AI Search is provisioned but holds no index: nothing is grounded until you build one.
 
-1. Review the customer documentation, knowledge articles and ticket history, and identify which fields carry text worth retrieving.
-
-   - In Microsoft Edge on the VM, open Power Apps and, in the environment selector at the top right, select **Relecloud Service Desk <inject key="DeploymentID" enableCopy="false"/>**:
-
-     ```
-     https://make.powerapps.com
-     ```
-
-   - Select **Tables** and review the columns of these tables (open the table, then **Schema** > **Columns**):
-
-     | Table | Text worth retrieving | Attributes that tell similar records apart |
-     |---|---|---|
-     | **Knowledge Article** | **Title**, **Symptom**, **Cause**, **Resolution** | **Applies to Versions**, **Applies to SLA Tiers**, **Applies to Contract Types**, **Article Status** |
-     | **Runbook** | **Name**, **Trigger**, **Steps**, **Escalation Path** | **Category**, **Product**, **Related Articles** |
-     | **Account** and **Customer Procedure** | **Description** (profile), procedure **Details** | **SLA Tier**, **Contract Type**, product versions |
-     | **Ticket** | **Title**, **Description**, **Resolution Summary** | **Category**, **Priority**, **Product Version**, **Related Article**, escalation and SLA columns |
-
-   - Open the content the index is loaded from, which provisioning exported from your Dataverse environment:
-
-     ```powershell
-     code C:\LabFiles\search\export\documents.json
-     ```
-
-     Each document has a `content` text and the attributes from the table. Three things are deliberately left out:
-
-     | Left out | Why |
-     |---|---|
-     | **Ticket notes** | Internal notes hold billing disputes, blame and even card details that must never reach an answer. The agent reads notes only through a tool that withholds internal notes by default. |
-     | **Contact email and phone numbers** | Personal data that answering a support question doesn't need. |
-     | **Customer documents** | Configuration documents carry sensitivity labels. You see what happens when the agent asks for one in Exercise 6. |
-
-     The two new incidents are not in the export either: provisioning exported the content before it loaded them, so your agent has never seen them. You use them in Exercises 2 and 7.
-
-   > **[SCREENSHOT PENDING: E1T2S1 | Knowledge Article table columns in Power Apps | source: capture]**
-
-1. Create an Azure AI Search index with the fields your agent needs to cite a source, not just answer from it.
-
-   - Open the index definition in Visual Studio Code:
-
-     ```powershell
-     code C:\LabFiles\search\index-definition.json
-     ```
-
-     | Field | Purpose |
-     |---|---|
-     | `title` | The citation title, for example *KB0058: Remote Access tunnel resets hourly after Secure Gateway firmware 10.1* |
-     | `url` | A link to the record in the Service Desk app, so a citation opens the source |
-     | `sourceId` | The article number, runbook code, ticket number or customer code |
-     | `content` | The text the agent reads |
-     | `docType`, `customerCode`, `slaTier`, `contractType`, `productVersion`, `articleStatus` | Filterable attributes that tell two similar documents apart |
-     | `contentVector` | The embedding of `content`. The loader computes it with `text-embedding-3-small`; the index's vectorizer embeds each question the same way at query time, so vector and hybrid search work. |
-
-   - In PowerShell 7, create the index:
-
-     ```powershell
-     C:\LabFiles\search\New-SearchIndex.ps1
-     ```
-
-     The output reports the index **servicedesk-knowledge** with **26** fields and lists them.
-
-   > **Note:** The Foundry Azure AI Search tool needs a retrievable `url` field, and optionally `title`, to produce citations. Without them the agent can answer but can't link to its source.
-
-1. Load the content into the index and confirm the document count matches the seeded data. In PowerShell 7, run:
+1. Review the customer documentation, knowledge articles and ticket history, and identify which fields carry text worth retrieving. Provisioning exported the Service Desk content to the Blob container **<inject key="Export Container" enableCopy="false"/>** in the storage account **<inject key="Storage Account Name" enableCopy="false"/>**, one JSON file per document. In File Explorer, open `C:\LabFiles\search\sample-documents` and open `kb-KB0058.json` in Visual Studio Code. Then run the following command, which shows the field list the index will use and what each field is for, without creating anything:
 
    ```powershell
-   C:\LabFiles\search\Load-SearchIndex.ps1
+   C:\LabFiles\tools\New-KnowledgeIndex.ps1 -ReviewOnly
    ```
 
-   The script embeds every document, uploads it, and compares the counts. It takes around **3 to 6 minutes**; while it runs, start the next step. When it finishes, its last line reads **Document count matches the seeded data.** and the index holds **561** documents: 50 knowledge articles, 12 runbooks, 474 tickets, 24 customer profiles and one SLA snapshot. In the Azure portal, open **srch-msp-<inject key="DeploymentID" enableCopy="false"/>** > **Search management** > **Indexes** and confirm that **servicedesk-knowledge** shows 561 documents.
+   Notice the split. `content` carries the text worth retrieving: an article's symptom, cause and resolution, a document's body, a ticket's description and resolution. `title`, `url` and `sourceId` carry no searchable text, but they are what the agent cites. Fields such as `customerCode`, `slaTier` and `articleStatus` let a query filter.
 
-   > **Note:** Your embedding deployment accepts about 30,000 tokens a minute, so the script pauses when it is rate limited and prints *The embedding deployment is rate limiting; waiting ...*. That is expected; let it finish.
+   > **[SCREENSHOT PENDING: E1T2S1 | New-KnowledgeIndex.ps1 -ReviewOnly output listing the fields and their purpose | source: capture]**
 
-   > **Note:** Each customer profile also lists the customer's procedures and open tickets, and the SLA snapshot ranks every open ticket by remaining business hours and holds the SLA targets and priority rules. A search returns the few most relevant documents, not a sorted or complete list, so questions about "all open tickets for a customer" or "closest to breach" need a document that already holds the list.
-
-   > **[SCREENSHOT PENDING: E1T2S3 | Load-SearchIndex.ps1 output with the count table and the match message | source: capture]**
-
-1. Add the search index as a knowledge source on your Foundry agent.
-
-   - In the Foundry portal, select **Manage** in the top navigation, then **Project details**, and select the **Connected resources** tab. Select **Add connection (1)**, select **Azure AI Search (2)**, browse for your search service **srch-msp-<inject key="DeploymentID" enableCopy="false"/> (3)**, and for **Authentication** choose the keyless **Microsoft Entra ID** option **(4)**. Select **Add connection (5)**.
-   - Go back to **Build** > **Agents** > **msp-support-agent**. On the **Playground** tab, under **Knowledge**, select **Add**, choose **Azure AI Search**, select the connection you created and the index **servicedesk-knowledge**, and choose the hybrid search type (vector and semantic) if it is offered.
-   - Replace the agent's **Instructions** with the grounded instructions: in Visual Studio Code, open `C:\LabFiles\agent\instructions-grounded.md`, copy all of it, paste it over the current instructions, and select **Save**. Read the rules about citing sources, saying *I can't find that in the Service Desk data*, choosing between articles, and never quoting internal notes.
-
-   > **Note:** If your portal doesn't offer these options, run the fallback in PowerShell 7 instead. It creates the same knowledge tool on `servicedesk-knowledge` (hybrid search, 10 results), keeps the Service Desk MCP tool, and applies the grounded instructions:
+1. Create an Azure AI Search index with the fields your agent needs to cite a source, not just answer from it. In Visual Studio Code, open `C:\LabFiles\search\index-definition.json` and find the fields `title`, `url` and `sourceId`: each is **retrievable**, so the index returns them with every result. Then run the following command, which checks the definition and creates the index, a data source for the export container, an embedding skillset and an indexer:
 
    ```powershell
-   C:\LabFiles\tools\Update-AgentDefinition.ps1 -Knowledge
+   C:\LabFiles\tools\New-KnowledgeIndex.ps1
    ```
 
-   > **Note:** With keyless authentication, Foundry queries the index with a managed identity that already holds the search roles the tool requires, so no key is stored in the connection.
+   > **Note:** The search service reads the export with its own managed identity, and the embedding skill calls `text-embedding-3-small` on your Foundry resource the same way. No key is stored anywhere.
 
-   > **[SCREENSHOT PENDING: E1T2S4 | Agent playground showing the Azure AI Search knowledge source and the grounded instructions | source: capture]**
+1. Load the content into the index and confirm the document count matches the seeded data. The script runs the indexer `servicedesk-export-indexer` and shows its progress, which takes about three to five minutes. When it finishes, it compares the index with the export manifest and reports **753** documents: 120 knowledge articles, 36 customer documents, 12 runbooks, 560 tickets, 24 customer profiles and 1 SLA snapshot. The two new incidents are not in the index. In the Azure portal, open your search service **<inject key="AI Search Service Name" enableCopy="false"/>**, select **Search management** > **Indexes**, and confirm that **servicedesk-knowledge** shows **753** documents. In **Lab notes.txt**, next to **Index document count**, record **753**.
 
-1. Run a first query and confirm the answer draws on indexed content rather than on the model's own training. Start a new chat and ask a question that only your index can answer:
+   > **[SCREENSHOT PENDING: E1T2S3 | Azure AI Search Indexes page with servicedesk-knowledge and 753 documents | source: capture]**
+
+   > **Note:** The portal can take a minute to update its document count. If it shows fewer than 753, select **Refresh**. The script's own count, which queries the index directly, is the one that matters.
+
+1. Add the search index as a knowledge source on your Foundry agent. Run the following command, which saves a new version of `msp-support-agent` with the Azure AI Search tool on `servicedesk-knowledge` and the grounded instructions that tell the agent to cite every source, and keeps both MCP tools exactly as they are:
+
+   ```powershell
+   C:\LabFiles\tools\Update-AgentDefinition.ps1 -Instructions
+   ```
+
+   In the Foundry portal, refresh the **Playground** tab of **msp-support-agent** and expand **Tools**: it now lists the Azure AI Search tool with **servicedesk-knowledge**, as well as **servicedesk-read** and **servicedesk-write**.
+
+   > **[SCREENSHOT PENDING: E1T2S4 | Agent playground Tools section with the Azure AI Search tool and both MCP tools | source: capture]**
+
+   > **Note:** The script uses the search connection that provisioning created, because creating connections needs a role you don't hold. Agent versions can't be edited, so every change creates a new version, and the agent serves the latest one.
+
+1. Run a first query and confirm the answer draws on indexed content rather than on the model's own training. In the **Playground** chat, select **New chat**, enter the following prompt, and press **Enter**.
+
+   **Prompt:**
 
    ```
-   Which Remote Access client version and Secure Gateway firmware does Woodgrove Bank run, and which procedures has Relecloud agreed with them?
+   A backup job fails with error RBA-1043. What causes it, and what is Relecloud's fix?
    ```
 
-   Confirm the answer: Woodgrove Bank (CUST-007) runs **Remote Access client 4.2.0** and **Secure Gateway firmware 10.1.4**, and its procedures are **escalation contacts** (the IT manager first, then the executive sponsor), the **change and maintenance window** (Tuesday and Thursday, 20:00 to 23:00), and **branch and mortgage team connectivity** (Remote Access problems for those teams are P2). The answer carries a citation to the customer profile; select it and check that it opens the Woodgrove Bank record in the Service Desk app.
+   **Expected Output:** the cause is a pending restart after patching that leaves the Volume Shadow Copy writers in a failed or waiting state, so the snapshot does not finish within the default 600-second timeout. The fix starts with `vssadmin list writers`, then a restart in the next approved maintenance window, or a temporary snapshot timeout of 1,200 seconds if the backup can't wait. The answer cites **KB0007**, *Backup job fails with RBA-1043: snapshot provider timed out*, with a link to the article in the Service Desk app.
 
-   > **[SCREENSHOT PENDING: E1T2S5 | Grounded answer about Woodgrove Bank with a citation to the customer profile | source: capture]**
+   **What this validates:** the agent answers from Relecloud's own article, not from general knowledge, and the citation fields you kept retrievable reach the answer.
+
+   > **[SCREENSHOT PENDING: E1T2S5 | Playground answer about RBA-1043 citing KB0007 | source: capture]**
 
    > **Note:** The provided screenshot is for your reference; the output you receive may vary.
+
+   Select the citation link: it opens KB0007 in the Service Desk app. In **Lab notes.txt**, next to **First grounded answer: article cited**, record **KB0007**.
+
+### Expected results
+
+- [ ] The index **servicedesk-knowledge** holds **753** documents, and the two new incidents are not among them
+- [ ] `msp-support-agent` lists the Azure AI Search tool and both MCP tools
+- [ ] The RBA-1043 answer cites **KB0007**, and its link opens the article
+
+### Troubleshooting
+
+| Symptom | Likely cause | What to do |
+|---|---|---|
+| `New-KnowledgeIndex.ps1` reports a permission error | Your Azure CLI sign-in is not the Senior Technician, or it expired | Run `az login` as the Senior Technician and run the script again; it resumes safely |
+| The indexer is still running when the script stops waiting | Embedding 753 documents takes longer at busy times | Run the script again; it waits for the run in progress instead of starting another |
+| The answer has no citation | The agent still serves a version without the grounded instructions | Select **New chat**; if it persists, run `Update-AgentDefinition.ps1 -Instructions` again |
 
 > **Congratulations** on completing the task! Now, it's time to validate it. Here are the steps:
 > - Hit the Validate button for the corresponding task. If you receive a success message, you can proceed to the next task.
@@ -221,113 +190,216 @@ In this task, you will build the agent's knowledge source. Azure AI Search is pr
 
 <validation step="REPLACE-WITH-VALIDATION-GUID" />
 
-<!-- TODO: replace with the GUID minted when "Knowledge index loaded and connected" is registered (validation-scripts/README.md). -->
-
 ## Task 3: Test Retrieval on Simple Questions
 
-In this task, you will prove the grounding works before you trust it with anything harder.
+In this task, you will prove that the grounding works before you trust it with anything harder.
 
-1. Ask about a named customer and confirm the answer references that customer's own profile and procedures. Start a new chat and send:
+1. Ask about a named customer and confirm the answer references that customer's own profile and procedures. Select **New chat**, enter the following prompt, and press **Enter**.
 
-   ```
-   Summarize the profile of Humongous Insurance: SLA tier, contract type, managed seats, deployed product versions, account manager, and the procedures Relecloud has agreed with them.
-   ```
-
-   Expect Humongous Insurance (CUST-013): **Platinum**, **Fully Managed**, **510** seats, Backup Agent **5.2.1**, Remote Access **4.2.0**, Secure Gateway **10.1.4**, Endpoint Agent **7.4.1**, account manager **Isabel Grant**, and three procedures: **escalation contacts** (Kofi Kim, then Alma Ivanova), the **change and maintenance window**, and **claims intake hours** (an outage of the document management application from 08:00 to 18:00 is P2 or higher, and service credits need the account manager's approval). The answer cites the customer profile.
-
-1. Ask about a known product issue and confirm a specific knowledge article is cited by title or identifier:
+   **Prompt:**
 
    ```
-   A file server backup failed overnight with RBA-1043, snapshot provider timed out. Which knowledge article applies, and what are the steps?
+   What does Relecloud manage for Woodgrove Bank, and which agreed procedures apply to it?
    ```
 
-   Expect **KB0007** *Backup job fails with RBA-1043: snapshot provider timed out*, with its steps, and possibly the runbook **RB-001** *Backup failure triage*. The agent must not recommend **KB0019**, which is **Retired**; if it mentions KB0019 at all, it should say that it is retired.
+   **Expected Output:** Woodgrove Bank (CUST-007) is a **Platinum**, **Fully Managed** customer with 380 seats at a head office and five branches, and its account manager is Isabel Grant. It runs Backup Agent 5.2.1, Remote Access client 4.2.0, Secure Gateway firmware 10.1.4 and Endpoint Agent 7.4.0. Its procedures are **CUST-007-PR1** *Escalation contacts* (Elif Evans first, then Tomas Eriksen, for P1 and P2), **CUST-007-PR2** *Change and maintenance window* (Tuesday and Thursday, 20:00 to 23:00 local time) and **CUST-007-PR3** *Branch and mortgage team connectivity* (Remote Access problems for the mortgage team or branch managers are P2). The answer cites the customer profile and documents such as **CDOC-007** *Support policy: Woodgrove Bank* and **CDOC-025** *Escalation procedure: Woodgrove Bank*.
 
-   > **[SCREENSHOT PENDING: E1T3S2 | Agent answer citing KB0007 with its resolution steps | source: capture]**
+   **What this validates:** the answer comes from Woodgrove Bank's own profile, procedures and documents, not from a generic description of a bank.
+
+   > **[SCREENSHOT PENDING: E1T3S1 | Answer about Woodgrove Bank citing its profile and documents | source: capture]**
 
    > **Note:** The provided screenshot is for your reference; the output you receive may vary.
 
-1. Ask a question the seeded data cannot answer and confirm the agent says so rather than inventing a response:
+1. Ask about a known product issue and confirm a specific knowledge article is cited by title or identifier. Enter the following prompt, and press **Enter**.
+
+   **Prompt:**
 
    ```
-   What is Woodgrove Bank's monthly contract value?
+   Remote Access users at a customer on client 3.9 are disconnected about every hour. Which knowledge article covers this?
    ```
 
-   Expect *I can't find that in the Service Desk data*, with a short note of what it looked for. Contract values are not in the data. If an answer in this task has no citation, or states a fact you can't find in the Service Desk app, record the question in **Lab notes.txt** under **Thin explanations to revisit in Exercise 6**.
+   **Expected Output:** **KB0031**, *Remote Access client disconnects every 60 minutes (client 3.x)*, cited by its number and title, which applies to Remote Access client 3.8.x and 3.9.x.
+
+   **What this validates:** the agent names the specific article and the version range it applies to.
+
+   > **[SCREENSHOT PENDING: E1T3S2 | Answer citing KB0031 with the client 3.8.x and 3.9.x range | source: capture]**
+
+   > **Note:** The provided screenshot is for your reference; the output you receive may vary.
+
+1. Ask a question the seeded data cannot answer and confirm the agent says so rather than inventing a response. Enter the following prompt, and press **Enter**.
+
+   **Prompt:**
+
+   ```
+   What is Woodgrove Bank's annual IT budget?
+   ```
+
+   **Expected Output:** the agent says that Relecloud's Service Desk data does not contain Woodgrove Bank's IT budget, and suggests where the answer might come from, for example the account manager. It does not give a number.
+
+   **What this validates:** the agent tells you when the data runs out instead of making something up, the behavior you need before you let it act.
+
+   > **[SCREENSHOT PENDING: E1T3S3 | Answer saying the data does not contain Woodgrove Bank's IT budget | source: capture]**
+
+   > **Note:** The provided screenshot is for your reference; the output you receive may vary.
 
 ### Expected results
 
-- [ ] The customer answer matches the Humongous Insurance record, includes its procedures, and cites the profile
-- [ ] The RBA-1043 answer cites KB0007 by number and title and doesn't recommend KB0019
-- [ ] The contract value question is answered with *I can't find that in the Service Desk data*, not a number
+- [ ] The Woodgrove Bank answer names its tier, contract, versions and the three procedures, and cites Woodgrove's own records
+- [ ] The Remote Access answer cites **KB0031**
+- [ ] The budget question gets an answer that says the data does not contain it, with no invented number
+
+### Troubleshooting
+
+| Symptom | Likely cause | What to do |
+|---|---|---|
+| The Woodgrove Bank answer is generic and cites nothing | The chat still uses the agent version without the knowledge tool, or the index is not loaded | Select **New chat**. Check that **Tools** lists the Azure AI Search tool and that **servicedesk-knowledge** shows **753** documents (Task 2) |
+| The client 3.9 question returns KB0058 | The answer matched the symptom but not the version | Ask a follow-up: *Which of those articles applies to Remote Access client 3.9?* |
+| The agent gives a budget figure | The model answered from its own knowledge instead of the index | Select **New chat** and ask again. If it persists, run `C:\LabFiles\tools\Update-AgentDefinition.ps1 -Instructions` again: the grounded instructions tell the agent to say when the data does not contain an answer |
 
 ## Task 4: Resolve an Ambiguous Case
 
-In this task, you will make the agent choose between knowledge articles that conflict unless customer context is applied. The dataset contains them deliberately.
+In this task, you will see why grounding needs customer context: the dataset deliberately contains articles that conflict unless the customer's attributes are applied.
 
-1. Find two knowledge articles that address the same symptom with different resolutions. Start a new chat and send:
+1. Find two knowledge articles that address the same symptom with different resolutions. In the playground, select **New chat**, enter the following prompt, and press **Enter**.
 
-   ```
-   Find the knowledge articles about Remote Access users being disconnected roughly every hour. For each article, give the number, title, the versions it applies to, and the resolution.
-   ```
-
-   Expect **KB0031** *Remote Access client disconnects every 60 minutes (client 3.x)*, which says to upgrade the client to 4.2.0 and not to change IKE settings, and **KB0058** *Remote Access tunnel resets hourly after Secure Gateway firmware 10.1*, which says to set the IKE phase 1 lifetime on the gateway to 28800 seconds and not to reinstall the client. Both describe the same symptom and the same log line, `RRA-4012 tunnel reset by peer`.
-
-1. Ask the agent to recommend one of them for a specific named customer:
+   **Prompt:**
 
    ```
-   Woodgrove Bank users are being disconnected from Remote Access every hour. Which knowledge article should we follow for Woodgrove Bank, and why? Then answer the same question for A. Datum Corporation.
+   Which knowledge articles cover Remote Access users being disconnected about every hour with error RRA-4012? List each one with what it applies to and its fix.
    ```
 
-   > **[SCREENSHOT PENDING: E1T4S2 | Agent recommendation for Woodgrove Bank naming client 4.2.0 and firmware 10.1.4 | source: capture]**
+   **Expected Output:** two articles. **KB0031**, *Remote Access client disconnects every 60 minutes (client 3.x)*, applies to Remote Access client 3.8.x and 3.9.x, and its fix is to upgrade the client to 4.2.0 with no gateway change. **KB0058**, *Remote Access tunnel resets hourly after Secure Gateway firmware 10.1*, applies to Secure Gateway firmware 10.1.x with client 4.x, and its fix is a change to the gateway's IKE phase 1 lifetime in the customer's change window.
+
+   **What this validates:** the same symptom has two different, mutually exclusive fixes, so the agent can't answer correctly without knowing the customer.
+
+   In the Service Desk app, switch to the **Knowledge** area, open **Knowledge Articles**, open **KB0031** and **KB0058**, and compare their **Applies to** fields.
+
+   > **[SCREENSHOT PENDING: E1T4S1 | KB0031 and KB0058 in the Service Desk app with their Applies to fields | source: capture]**
 
    > **Note:** The provided screenshot is for your reference; the output you receive may vary.
 
-1. Confirm the justification names the customer attribute that decides it, such as SLA tier, product version or contract type. Here it is the **product version**:
+1. Ask the agent to recommend one of them for a specific named customer. In the playground, select **New chat** so the earlier answer doesn't steer this one, enter the following prompt, and press **Enter**.
 
-   | Customer | Remote Access client | Secure Gateway firmware | Article |
-   |---|---|---|---|
-   | Woodgrove Bank (CUST-007) | 4.2.0 | 10.1.4 | KB0058 |
-   | A. Datum Corporation (CUST-019) | 3.9.2 | 9.6.2 | KB0031 |
+   **Prompt:**
 
-   Verify the attributes in the Service Desk app: open **Customers** > **Accounts**, select the **Managed Customers** view, and compare the **Remote Access Client Version** and **Secure Gateway Firmware** columns. Then open **KB0058** in **Knowledge Articles** and read its **Applicability** section.
+   ```
+   Woodgrove Bank's branch managers lose Remote Access about every hour. Which article should the technician follow, KB0031 or KB0058?
+   ```
 
-   > **Note:** The data holds more pairs like this. KB0012 and KB0013 split on **SLA tier**, and KB0044 and KB0045 split on **contract type**. If you have time, ask the agent how to handle a firewall rule request for Margie's Travel (Break-Fix) and for Woodgrove Bank (Fully Managed).
+   **Expected Output:** **KB0058**, *Remote Access tunnel resets hourly after Secure Gateway firmware 10.1*, because Woodgrove Bank runs Secure Gateway firmware **10.1.4** and Remote Access client **4.2.0**. KB0031 applies only to clients 3.8.x and 3.9.x, such as A. Datum Corporation's 3.9.2.
+
+   **What this validates:** the agent resolves the conflict with the customer's own product versions instead of picking the first match.
+
+   > **[SCREENSHOT PENDING: E1T4S2 | Answer recommending KB0058 for Woodgrove Bank with the firmware and client versions | source: capture]**
+
+   > **Note:** The provided screenshot is for your reference; the output you receive may vary.
+
+1. Confirm the justification names the customer attribute that decides it, such as SLA tier, product version or contract type. Here the deciding attributes are the **Secure Gateway firmware** and **Remote Access client** versions on Woodgrove Bank's profile. In **Lab notes.txt**, next to **Ambiguous case: articles, recommendation and deciding attribute**, record **KB0031 and KB0058, KB0058, Secure Gateway firmware 10.1.4 with client 4.2.0**.
 
 ### Expected results
 
-- [ ] The agent lists both KB0031 and KB0058 with their applicability
-- [ ] The Woodgrove Bank recommendation is KB0058 and names client 4.2.0 and firmware 10.1.4 as the reason
-- [ ] The A. Datum Corporation recommendation is KB0031 and names client 3.9.2 as the reason
+- [ ] The agent found **KB0031** and **KB0058**, and you compared their **Applies to** fields in the Service Desk app
+- [ ] The agent recommends **KB0058** for Woodgrove Bank and names the firmware and client versions as the reason
+
+### Troubleshooting
+
+| Symptom | Likely cause | What to do |
+|---|---|---|
+| The agent lists only one article | The search returned the closest match for one wording of the symptom | Ask a follow-up: *Is there another article for the same RRA-4012 symptom?* |
+| The agent recommends KB0031 for Woodgrove Bank | It did not check the customer's product versions | Ask it to read Woodgrove Bank's profile (CUST-007) for the Remote Access client and Secure Gateway firmware versions, and to recommend again |
 
 ## Task 5: Explain the Reasoning
 
 In this task, you will ask the agent to show its sources. Whatever the agent cannot explain here is what you will struggle to audit later.
 
-1. Ask the agent to list every source it used for the previous answer and why it preferred them. In the same chat, send:
+1. Ask the agent to list every source it used for the previous answer and why it preferred them. In the same chat, enter the following prompt, and press **Enter**.
+
+   **Prompt:**
 
    ```
-   List every source you used for your Woodgrove Bank recommendation, with the article, ticket or customer number for each, and explain why you preferred KB0058 over KB0031. Quote the applicability you compared and the customer values you compared it with.
+   List every source you used for that recommendation, with its identifier, and say why you preferred each one over the others.
    ```
 
-   > **[SCREENSHOT PENDING: E1T5S1 | Agent explanation comparing the KB0058 and KB0031 applicability with Woodgrove Bank's versions | source: capture]**
+   **Expected Output:** a list that includes **KB0058**, **KB0031** and Woodgrove Bank's customer profile (and possibly **CDOC-031**, the Secure Gateway configuration notes, or an open Woodgrove ticket such as **TCK-10548**), each with its identifier and a reason: KB0058 matches Woodgrove's firmware and client versions, KB0031 was rejected because of the client version, and the profile supplied the versions.
+
+   **What this validates:** every claim in the recommendation traces to a record you can open.
+
+   > **[SCREENSHOT PENDING: E1T5S1 | List of sources with identifiers and reasons | source: capture]**
 
    > **Note:** The provided screenshot is for your reference; the output you receive may vary.
 
-1. Note where the explanation is thin or unverifiable, and keep that note for Exercise 6. An explanation is thin if it names no source, names a source but not the deciding attribute, or states a value you can't find on the record. In **Lab notes.txt**, under **Thin explanations to revisit in Exercise 6**, record each one with its question and the time in UTC, which you can get in PowerShell 7 with `(Get-Date).ToUniversalTime()`. In Exercise 6 you follow one request through every log.
+1. Note where the explanation is thin or unverifiable, and keep that note for Exercise 6. For example, a reason with no identifier behind it, or a source you can't open. In **Lab notes.txt**, next to **Thin or unverifiable reasoning to revisit in Exercise 6**, record what you found, or **none**.
 
-## Troubleshooting
+### Expected results
+
+- [ ] The agent listed its sources with identifiers and a reason for each
+- [ ] You recorded any thin or unverifiable reasoning in **Lab notes.txt**
+
+## Success Criteria
+
+You have completed this exercise when:
+
+- [ ] Every readiness row was **Ready**, and the Service Desk app showed the seeded counts
+- [ ] **servicedesk-knowledge** holds **753** documents and is a knowledge source of `msp-support-agent`, alongside both MCP tools
+- [ ] Grounded answers cite the right records: **KB0007**, Woodgrove Bank's own profile and documents, **KB0031**, and **KB0058** for Woodgrove Bank
+- [ ] **Lab notes.txt** holds the readiness result, the Agent ID, the baseline correlation ID, the index count, the ambiguous case and your notes on thin reasoning
+- [ ] Negative check: asked for Woodgrove Bank's IT budget, the agent said the data does not contain it instead of inventing a figure
+
+## Apply It in Production
+
+**What you built:**
+
+- A grounding index over an MSP's own articles, customer documents and ticket history, with citation fields that link every answer to its source record.
+- An agent that resolves conflicting guidance with the customer's own attributes, and says when the data runs out.
+
+**Decisions to make before production:**
+
+1. **What to index.** Ticket notes, contact details and confidential documents stay out of this index. Decide per data type, and keep anything that needs per-user access behind a tool that enforces it instead of in a shared index.
+1. **Freshness.** This lab indexes a snapshot. In production, choose between a scheduled indexer, change tracking on the source, or push updates, and decide how stale an answer may be.
+1. **Chunking.** One record per document keeps citations exact here. Long manuals need chunking, which trades citation precision for recall.
+1. **Grounding rules.** Instructions that require citations and an "I don't know" answer are part of the product. Test them with unanswerable questions before every release.
+
+**Production checklist:**
+
+- [ ] The search service and storage use managed identities and role-based access only, with no keys
+- [ ] Indexers run on a schedule or on change, with failures alerted
+- [ ] The agent's instructions require a citation for every claim and a refusal when the data is silent
+- [ ] Conflicting or retired articles are marked so the agent can filter them
+- [ ] Retrieval quality is tested with a fixed question set, such as the five scripted questions in this lab's acceptance tests
+
+**Common pitfalls:**
+
+| Pitfall | How to avoid it |
+|---|---|
+| The agent answers from general knowledge when retrieval returns nothing | Require citations in the instructions and test with questions the data cannot answer |
+| Citations point nowhere because the index dropped the URL field | Keep `title`, `url` and an identifier retrievable, and check one citation link before every release |
+
+## Knowledge Check
+
+**Question 1:** The index stores `title`, `url` and `sourceId`, but the agent never searches those fields. Why are they in the index at all?
 
 <details>
-<summary>Select to show fixes for common problems in this exercise</summary>
+<summary>Show the answer</summary>
 
-- **The readiness check reports a component Not ready:** contact support with the table and your Deployment ID. Don't continue until it is fixed.
-- **A script says to run `az login` first:** sign in to the Azure CLI again as described on the getting-started page, then rerun the script.
-- **The consent window fails with a redirect error:** contact support; the Service Desk connection's redirect address is registered once for the tenant.
-- **Creating the index returns 403:** your role on the search service may still be propagating. Check that `az account show` shows the Senior Technician, wait two minutes and run the script again.
-- **The loader stops with an error:** run `C:\LabFiles\search\Load-SearchIndex.ps1` again. It uploads with merge-or-upload, so a rerun is safe.
-- **The agent answers without citations:** start a new chat. If the **Azure AI Search** knowledge isn't listed on the agent, run `C:\LabFiles\tools\Update-AgentDefinition.ps1 -Knowledge`.
-- **A Foundry portal label differs from this guide:** look for the closest match; the steps follow the current portal, which changes often.
+Because the agent can only cite what a search result returns. Retrievable `title`, `url` and `sourceId` fields travel with every result into the answer, so each claim links to the record it came from.
+
+</details>
+
+**Question 2:** Why are the two new incidents, TCK-10561 and TCK-10562, missing from the index?
+
+<details>
+<summary>Show the answer</summary>
+
+Provisioning loaded them after the export, on purpose. In Exercises 2 and 7 the agent must reach them through the MCP tools, as it would a ticket that arrived after the last indexing run.
+
+</details>
+
+**Question 3:** KB0031 and KB0058 describe the same symptom. What decides which one the agent should recommend?
+
+<details>
+<summary>Show the answer</summary>
+
+The customer's own attributes, here the Remote Access client version and the Secure Gateway firmware on the customer profile. Woodgrove Bank runs client 4.2.0 and firmware 10.1.4, so KB0058 applies.
 
 </details>
 
@@ -335,11 +407,10 @@ In this task, you will ask the agent to show its sources. Whatever the agent can
 
 In this exercise, you have completed the following:
 
-- Confirmed with the readiness check that every component of the environment is ready, and checked the seeded data, the agent and a baseline read tool yourself
-- Reviewed which Service Desk fields carry retrievable text and which content is deliberately left out
-- Created the `servicedesk-knowledge` index with the fields needed to cite a source, and loaded 561 documents
-- Connected the index to the agent as its knowledge source with keyless authentication and grounded instructions
-- Tested simple retrieval, an unanswerable question, and an ambiguous case decided by product version
-- Asked the agent to explain its sources and recorded thin explanations for Exercise 6
+- Verified every component of your environment with the readiness check and the Service Desk app's seeded counts.
+- Built the **servicedesk-knowledge** index from the Blob export with citation fields, and confirmed all 753 documents.
+- Added the index to **msp-support-agent** as a knowledge source, keeping both MCP tools.
+- Tested grounded retrieval on a customer, a product issue and an unanswerable question.
+- Resolved an ambiguous case with the customer's product versions and asked the agent to explain its sources.
 
 #### You have successfully completed this exercise. Click **Next >>** from the lower right corner to proceed to the next exercise.

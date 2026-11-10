@@ -1,17 +1,47 @@
 # Agentic MSP Support Agent Guided Lab
 
 - **Lab Type:** Step-by-step guided lab
-- **Audience:** Cloud solution architects, AI and agent developers, service desk and MSP platform engineers, and security engineers who govern agent access
+- **Audience:** MSP service desk engineers, automation engineers and solution architects
 - **Audience Level:** Advanced (L300)
-- **Total Duration:** 305 minutes of exercises, in a 6-hour session
+- **Total Duration:** 220 minutes of hands-on labs, delivered in a 4-hour lab window with no scheduled breaks (see [AGENDA.md](AGENDA.md))
 
 ## Lab Overview
 
-Teams build an AI agent that acts as a workplace intelligence layer over a live ticketing and support environment for Relecloud Managed Services, a fictional managed service provider. Each team has an identical, pre-validated environment: a dedicated Azure resource group, a Microsoft Foundry agent registered under its own Microsoft Entra Agent ID, a Service Desk app on Microsoft Dataverse with seeded customer documentation, procedures, knowledge articles, runbooks and ticket history, a working MCP server with a baseline catalogue of read tools and approval-gated write tools, and the identity, secret storage, gateway, data protection and logging services around them.
+Relecloud Managed Services, a fictional managed service provider, runs IT for 24 customers with 15 technicians. Last quarter's service review found that technicians spent about a third of their handling time searching 500 past tickets, 120 knowledge articles and 36 customer documents, and that 11 Platinum and Gold SLA breaches cost USD 18,400 in service credits. In this lab you build an AI support agent in Microsoft Foundry that answers from Relecloud's own Service Desk data with citations, triages new incidents, and acts on tickets through governed MCP tools on behalf of the technician who asks, with your approval on every change. You then prove its controls: the identity and token flow, least privilege enforced by Microsoft Dataverse, data protection with column security and Microsoft Purview, and one correlation ID that traces every action from the answer to the database record.
 
-The Service Desk is a custom Power Apps model-driven app that Spektra builds over Dataverse tables with the `spk_` prefix. Dataverse is the only ticketing backend, and its security roles enforce every permission. The environment is safe by default: least-privileged identities with read and write separated, the MCP server's backend credential in Azure Key Vault, approval on sensitive write tools, input validation on every tool, and a correlation identifier on every request. Each team signs in with two identities, a Senior Technician and a Tier 1 Technician who is read-only on tickets, and every tool call runs on behalf of the technician who asks. The MCP server source is already cloned on each lab VM; teams change it and redeploy it to their own Container App, with no GitHub account.
+Each participant works alone in a dedicated Microsoft Entra tenant and Azure subscription, built from the same versioned template (Golden Environment v1.0) and safe by default from the first minute: least-privileged identities with read and write separated, the backend credential in Azure Key Vault, approval on every write tool, input validation on every tool, and correlation logging on every request. Participants extend and test controls that already work; no exercise asks them to fix a security exposure.
 
-The six-hour session is wall-clock, including 15 minutes of sign-in and readiness, three 10-minute breaks and 10 minutes of close and float; hands-on exercises total 305 minutes. The lab is self-paced: participants check their work against the expected results in the guide and contact support for environment failures.
+![The 4-hour lab window as a timeline: 10 minutes to sign in and check readiness, the seven exercises from grounding to the business case, and 10 minutes to close, followed by the 24-hour review of submitted work](Instructions/media/session-journey.svg)
+
+---
+
+## Delivery Path
+
+**Delivery team: start here.** This README is the front door for everyone who builds, prepares, runs or maintains this lab. Work through the eight phases in order. Every document below opens with the phase it belongs to and ends with a link to the next one.
+
+| Phase | When | What you do | Document | Who |
+|---|---|---|---|---|
+| **1. Plan the delivery** | On request | Confirm workshop dates, the lab start time and the participant count (up to 25 plus 2 spares per workshop); check licenses and budget; share the agenda | This README ([licenses](#required-licenses-and-entitlements)), [AGENDA.md](AGENDA.md), [estimates/](estimates/) | Delivery lead |
+| **2. Build and publish the template** | Once per lab version | Build the lab files zip with the MCP server release, compile and upload the template files, create the Dedicated Tenant template with its user-creation JSON, run one test deployment | [setup/README.md](setup/README.md) | CloudLabs engineer |
+| **3. Prepare the environments** | At least 24 hours before each workshop | Deploy every participant environment and the spares, enable Purview pay-as-you-go in each tenant, confirm that provisioning succeeded and every readiness check passes, share the consistency report | [setup/tenant/RUNBOOK.md](setup/tenant/RUNBOOK.md) and [setup/tenant/PURVIEW-RUNBOOK.md](setup/tenant/PURVIEW-RUNBOOK.md) | CloudLabs engineer |
+| **4. Register the validation steps** | After phase 2 | Grant the validation service principal its read-only roles, register the 14 graded steps and put their GUIDs into the guide | [validation-scripts/README.md](validation-scripts/README.md) | CloudLabs engineer |
+| **5. Run the pilot** | Before the first workshop | Deploy one environment from the template, walk every exercise as a participant, capture screenshots and one GIF per task, settle the open questions, run the acceptance tests | [SUPPORT-GUIDE.md](SUPPORT-GUIDE.md#phase-5-run-the-pilot), [SCREENSHOT-TODO.md](SCREENSHOT-TODO.md), [BUILD-NOTES.md](BUILD-NOTES.md#open-questions-to-settle-in-the-pilot) | Lab author and CloudLabs engineer |
+| **6. Support the workshop** | Event day | Final readiness sweep, live support by chat and email, spare swaps within 15 minutes, resets within 60 minutes | [SUPPORT-GUIDE.md](SUPPORT-GUIDE.md#phase-6-support-the-workshop), plus the event-day checks in the runbook | CloudLabs support |
+| **7. Close the event** | After the 24-hour review window | Confirm the reviewers are done, let the environments be deleted, verify teardown, reconcile costs | [setup/tenant/RUNBOOK.md](setup/tenant/RUNBOOK.md) | CloudLabs engineer and delivery lead |
+| **8. Maintain the lab** | When a product changes | Update steps, diagrams, the MCP server, lab files and estimates | [BUILD-NOTES.md](BUILD-NOTES.md) | Lab author |
+
+### What is automated and what is manual
+
+| Part of the environment | How it is done |
+|---|---|
+| Each participant's Microsoft Entra tenant, Azure subscription and two accounts | The CloudLabs Dedicated Tenant lab with an Azure subscription: the Senior Technician is the lab user, and the Tier 1 Technician and both accounts' licenses come from `setup/scripts/user-creation.json` |
+| Azure resources and the lab VM | Fully automated by the CloudLabs template: `setup/deploy-01.json` (compiled from `setup/bicep/`) and the VM bootstrap `setup/scripts/psscript-01.ps1` |
+| Tenant configuration: gateway app, Purview label and DLP policy, Dataverse environment, schema, security roles, seed data, search export, MCP image, agent and its two MCP connections | Scripted provisioning on the lab VM (`C:\LabFiles\provision`), which reports **Succeeded** or **Failed** for every step and finally removes the lab user's Global Administrator role |
+| Microsoft Purview pay-as-you-go | Manual portal step in each tenant (no API), in [setup/tenant/PURVIEW-RUNBOOK.md](setup/tenant/PURVIEW-RUNBOOK.md) |
+| Lab files on the VM (`C:\LabFiles`) | Built once per lab version by `setup/Build-LabFilesZip.ps1`, which packs the MCP server release `v3.0.0`, then uploaded with the template files |
+| Readiness | `Test-LabReadiness.ps1` checks every component against Golden Environment v1.0 and writes the consistency report |
+| Grading | 14 validation scripts registered on the template; every other task has an **Expected results** checklist |
+| Cleanup | Nothing for participants to delete: the platform deletes each environment when the 24-hour review window ends, and the runbook verifies the teardown |
 
 ---
 
@@ -24,211 +54,221 @@ The six-hour session is wall-clock, including 15 minutes of sign-in and readines
 - A general understanding of REST APIs and OAuth access tokens
 - Familiarity with service desk concepts (tickets, priorities, SLAs); Power Apps or Dataverse experience helps but isn't required
 
-### Required licences and entitlements
+### Required licenses and entitlements
 
-| Licence or entitlement | Entitles | Scope | Provisioned by |
+| License or entitlement | Entitles in this lab | Scope | Provisioned by |
 |---|---|---|---|
-| **Microsoft Power Apps for Developer** (Power Apps Developer Plan, SKU `POWERAPPS_DEV`) | A Power Platform developer environment with Dataverse, and the right to use the Service Desk app in it (development and test use only) | Per identity: the Senior Technician and the Tier 1 Technician of each team | CloudLabs assigns it to both team accounts before provisioning |
-| **Microsoft 365 E5** or **Microsoft 365 E5 Compliance** | Microsoft Purview data loss prevention and sensitivity labels for the agent's interactions | Per identity: both team accounts | CloudLabs assigns it to both team accounts |
-| **Microsoft Purview pay-as-you-go** | Purview data security for AI apps through the `processContent` API | Per tenant | Enabled once in the lab tenant (`setup/README.md`) |
-| **Microsoft Entra ID Free** (included with the tenant's Microsoft cloud subscription) | Team accounts, the gateway and Purview app registrations, and the Microsoft Entra Agent ID of each agent | Per tenant | The CloudLabs lab tenant |
-| **Azure subscription, consumption billing** | Microsoft Foundry models (`gpt-5.4-mini`, `text-embedding-3-small`, billed per token), Azure AI Search Basic, API Management Basic v2, Azure Container Apps, Azure Container Registry Basic, Key Vault, Log Analytics, Application Insights and the lab VM | Per team resource group | CloudLabs (see the cost estimate) |
-| **Foundry Models quota (Global Standard, Sweden Central)** | `gpt-5.4-mini`: 30,000 tokens per minute (TPM) per team deployment, which also sets about 30 requests per minute; `text-embedding-3-small`: 30,000 TPM per team deployment | Capacity, shared by every team in the subscription and region | CloudLabs confirms Tier 1 or higher before the event (25 teams use 750,000 of the 1,000,000 TPM Tier 1 quota for each model) |
+| **Microsoft 365 E5** (or Microsoft 365 E3 with Microsoft Purview Suite) | Microsoft Purview DLP and sensitivity labels for the agent's interactions | Per identity: the Senior Technician and the Tier 1 Technician | CloudLabs assigns it from the user-creation JSON (offer ID confirmed with CloudLabs) |
+| **Power Apps Premium** (`POWERAPPS_PER_USER`) | Running the Service Desk model-driven app in a managed developer environment | Per identity: both technicians | CloudLabs assigns it from the user-creation JSON (offer ID confirmed with CloudLabs) |
+| **Microsoft Purview pay-as-you-go** | Purview data security for the MCP server's Entra-registered app through the `processContent` API, which a DLP block needs | Per tenant, billed to the tenant's Azure subscription | Enabled once in each tenant by the supplier ([PURVIEW-RUNBOOK.md](setup/tenant/PURVIEW-RUNBOOK.md)) |
+| **Microsoft Entra ID Free** (included with the tenant) | The two accounts, the gateway and setup app registrations, and the agent's Microsoft Entra Agent ID | Per tenant | The CloudLabs Dedicated Tenant |
+| **Azure subscription, consumption billing** | Foundry models (`gpt-5.1` and `text-embedding-3-small`, billed per token, up to 4 million input and 0.4 million output tokens per environment per workshop), Azure AI Search Basic, API Management Developer, Container Apps Consumption, Container Registry Basic, Storage, Key Vault, Log Analytics, Application Insights and the lab VM | One subscription per participant tenant | CloudLabs (see [estimates/](estimates/)) |
+| **Foundry Models quota (Global Standard, Canada Central)** | `gpt-5.1`: a 100,000 tokens-per-minute deployment; `text-embedding-3-small`: 150,000 | Per subscription. A Free Tier subscription has no `gpt-5.1` quota; Tier 1 allows 250,000 TPM | CloudLabs checks each subscription's quota tier before provisioning |
 
-Not required: Microsoft Agent 365, Microsoft Entra ID P1 or P2, Dynamics 365 licences, Managed Environments, and GitHub accounts (the MCP server source is on the lab VM).
+Not required: Microsoft Agent 365, Dynamics 365 licenses, and GitHub accounts (the MCP server source is already on the lab VM).
+
+### Environment configuration (pre-provisioned)
+
+- Two accounts in your tenant: the **Senior Technician** (the lab user, which holds no Microsoft Entra directory role when the lab starts) and the **Tier 1 Technician**, which is read-only on tickets
+- A **managed developer environment** in Microsoft Dataverse with the **Service Desk** model-driven app and its seeded data: 24 customers, 72 contacts, 63 customer procedures, 36 customer documents, 120 knowledge articles, 12 runbooks, 15 technicians in 4 teams, 16 SLA policies, 500 historical tickets, 60 open tickets plus 2 new incidents that are not in the search export, and 1,436 ticket notes
+- Least-privileged Dataverse security roles with read and write separated, the **Relecloud Regulated Accounts** business unit, the column security profile **Contact Phone Protection** on the contact phone columns, and auditing on
+- The prompt agent **msp-support-agent** with its own Microsoft Entra Agent ID and two MCP tools, **servicedesk-read** (no approval) and **servicedesk-write** (approval on every call), and no knowledge source until Exercise 1
+- A Microsoft Purview sensitivity label on one customer document and a DLP policy that blocks credit card numbers in the MCP server's interactions
+- The Service Desk export in Blob storage (753 documents, one JSON file each), ready for you to index
 
 ### Azure resources and configuration
 
-The following are pre-provisioned in the CloudLabs environment before the session:
+The following are deployed in your subscription in **Canada Central** before you start:
 
-- A team resource group in **Sweden Central** with a lab VM (Windows Server, Visual Studio Code, PowerShell 7, Python 3.12, Azure CLI and Git) and a **Lab readiness check** on its desktop
-- A **Microsoft Foundry** resource and project with `gpt-5.4-mini` and `text-embedding-3-small` deployments, an Application Insights connection, the OAuth identity passthrough connection `servicedesk-mcp`, and the prompt agent `msp-support-agent` with its own **Microsoft Entra Agent ID**, the baseline Service Desk MCP tools and no knowledge source
-- **Azure AI Search** Basic, with no index (teams create and load it from a provisioned export)
-- **Azure API Management** Basic v2 with two MCP APIs: one accepting only a signed-in technician's token for the `ServiceDesk.Access` scope, and one diagnostics API behind a subscription key that carries no user
-- **Azure Container Apps** running the MCP server (release `v2.0.0`), which reads its gateway key from **Azure Key Vault** through its managed identity, with **Azure Container Registry** and the vault's audit log in Log Analytics
-- A **Power Platform developer environment** with the Service Desk app and its seeded data (24 customers with 63 agreed procedures, 72 contacts, 50 knowledge articles, 12 runbooks, 12 technicians, 16 SLA definitions, 476 tickets including 45 open and two new, unindexed incidents, 1,203 ticket notes, and one labelled customer configuration document), Dataverse auditing on, least-privileged security roles with read and write separated, both technician identities, and a regulated-accounts business unit
-- **Log Analytics** and workspace-based **Application Insights** receiving API Management, Container Apps, Key Vault and Foundry telemetry
-- A **Temporary Access Pass** for each team account, shown on the **Environment** tab, because Azure requires multifactor authentication for Azure portal sign-in and for every Azure Resource Manager change the exercises make (see `setup/README.md`)
+- A lab VM (Standard_D2s_v5, Windows) with Microsoft Edge, Visual Studio Code, PowerShell 7, Python 3.12, Azure CLI, Git, the lab tools in `C:\LabFiles`, a **Lab readiness check** shortcut and **Lab notes.txt** on the desktop
+- A **Microsoft Foundry** resource and project with the `gpt-5.1` and `text-embedding-3-small` deployments, tracing to Application Insights, and the project connections the agent uses
+- **Azure AI Search** Basic, with no index (you build it in Exercise 1)
+- **Azure API Management** Developer tier with the `servicedesk-read` and `servicedesk-write` MCP APIs and a diagnostics API for the lab tools
+- **Azure Container Apps** running the MCP server release `v3.0.0`, with **Azure Container Registry** for your builds
+- **Azure Key Vault** holding the MCP server's backend credential, with its audit log in Log Analytics
+- A **storage account** with the Service Desk export
+- **Log Analytics** and workspace-based **Application Insights** receiving the agent, gateway, MCP server and Key Vault telemetry
 
-## Schedule
-
-| Time | Activity | Duration |
-|---|---|---|
-| 00:00 | Sign in, launch your assigned lab and verify readiness | 15 min |
-| 00:15 | Exercise 1: Environment Readiness and Grounding the Agent | 50 min |
-| 01:05 | Break | 10 min |
-| 01:15 | Exercise 2: Ticket and Incident Intelligence | 35 min |
-| 01:50 | Exercise 3: Using the MCP Read Tools | 45 min |
-| 02:35 | Break | 10 min |
-| 02:45 | Exercise 4: Using the MCP Action Tools | 60 min |
-| 03:45 | Break | 10 min |
-| 03:55 | Exercise 5: Identity, Secrets and Authorization | 45 min |
-| 04:40 | Exercise 6: Data Protection and Auditability | 45 min |
-| 05:25 | Exercise 7: End-to-End Scenario and Business Case | 25 min |
-| 05:50 | Close, with schedule float retained | 10 min |
+---
 
 ## Lab Exercises
 
 ### [Exercise 1: Environment Readiness and Grounding the Agent](Instructions/exercise-1.md)
 
-**Estimated Duration: 50 minutes**
+**Estimated Duration: 35 minutes**
 
-Confirm with the readiness check that every component responds, build and load an Azure AI Search index over the Service Desk content with the fields a citation needs, and connect it to the agent as its knowledge source. Test simple retrieval, an ambiguous case where two articles share a symptom but split on product version, and the agent's ability to explain its sources.
+Confirm with the readiness check that every component of your environment responds, build an Azure AI Search index over the Service Desk export with the fields a citation needs, and connect it to the agent as its knowledge source. Test simple retrieval, resolve an ambiguous case where two knowledge articles share a symptom but split on the customer's versions, and have the agent explain where each answer came from.
 
 | Task | Topic | Duration |
 |------|-------|----------|
-| Task 1 | Verify Readiness | 8 min |
-| Task 2 | Connect the Agent to the Knowledge Base | 20 min |
-| Task 3 | Test Retrieval on Simple Questions | 8 min |
-| Task 4 | Resolve an Ambiguous Case | 8 min |
-| Task 5 | Explain the Reasoning | 6 min |
+| Task 1 | Verify Readiness | 6 min |
+| Task 2 | Connect the Agent to the Knowledge Base | 15 min |
+| Task 3 | Test Retrieval on Simple Questions | 6 min |
+| Task 4 | Resolve an Ambiguous Case | 5 min |
+| Task 5 | Explain the Reasoning | 3 min |
 
 ### [Exercise 2: Ticket and Incident Intelligence](Instructions/exercise-2.md)
 
-**Estimated Duration: 35 minutes**
+**Estimated Duration: 25 minutes**
 
-Match a new incident that the agent has never seen to its historical tickets and tell the decoys apart, summarise a customer's support history and escalations, recommend priority, category and assignment, see the agent ask for missing details, and find the tickets closest to breaching their SLA in business hours.
+Match a new incident that the agent has never seen to its closest historical tickets, summarize a customer's support history and escalations, recommend priority, category and assignment, see the agent ask for the details an incomplete ticket is missing, and find the tickets closest to breaching their SLA in business hours.
 
 | Task | Topic | Duration |
 |------|-------|----------|
-| Task 1 | Identify Similar Historical Incidents | 10 min |
-| Task 2 | Summarise a Customer's Support History | 8 min |
-| Task 3 | Recommend Priority, Category and Assignment | 8 min |
-| Task 4 | Detect an SLA Risk | 9 min |
+| Task 1 | Identify Similar Historical Incidents | 7 min |
+| Task 2 | Summarize a Customer's Support History | 6 min |
+| Task 3 | Recommend Priority, Category and Assignment | 6 min |
+| Task 4 | Detect an SLA Risk | 6 min |
 
 ### [Exercise 3: Using the MCP Read Tools](Instructions/exercise-3.md)
 
-**Estimated Duration: 45 minutes**
+**Estimated Duration: 35 minutes**
 
-Review the MCP server already cloned on the lab VM, read its tool catalogue with input and output schemas, and trace a tool to its Dataverse Web API query. Call a read tool from the agent and find it in the tool invocation log by its correlation identifier, test structured error handling, and redeploy a change with a rollback path.
+Review the MCP server source already cloned on your lab VM, read its tool catalog with input and output schemas, and trace a tool to its Dataverse Web API query. Call a read tool through the agent and find the call in the tool invocation log by its correlation ID, test structured error handling, and change, build and redeploy your copy of the MCP server with a rollback path.
 
 | Task | Topic | Duration |
 |------|-------|----------|
-| Task 1 | Review the MCP Server on Your Lab VM | 10 min |
-| Task 2 | Call an Existing Read Tool | 8 min |
-| Task 3 | Test Tool Error Handling | 10 min |
-| Task 4 | Redeploy Your Copy of the MCP Server | 17 min |
+| Task 1 | Review the MCP Server on Your Lab VM | 7 min |
+| Task 2 | Call an Existing Read Tool | 6 min |
+| Task 3 | Test Tool Error Handling | 7 min |
+| Task 4 | Redeploy Your Copy of the MCP Server | 15 min |
 
 ### [Exercise 4: Using the MCP Action Tools](Instructions/exercise-4.md)
 
-**Estimated Duration: 60 minutes**
+**Estimated Duration: 50 minutes**
 
-Approve and decline write tool calls, keep internal notes out of a customer reply, chain grounding into an approved action on the new incident, tighten a tool boundary and redeploy, and design, build and deploy a new scoped tool.
+Approve and decline write tool calls in the agent chat, keep an internal note out of a customer-visible reply, chain grounding into an approved action on a new incident, tighten a tool boundary and redeploy, and design, build and add a new scoped write tool that needs approval like every other write.
 
 | Task | Topic | Duration |
 |------|-------|----------|
-| Task 1 | Call a Write Tool with Approval | 12 min |
-| Task 2 | Separate a Public Reply from an Internal Note | 12 min |
-| Task 3 | Chain Grounding into Action | 14 min |
-| Task 4 | Tighten a Tool Boundary | 10 min |
-| Task 5 | Design and Add a Scoped Tool | 12 min |
+| Task 1 | Call a Write Tool with Approval | 10 min |
+| Task 2 | Separate a Public Reply from an Internal Note | 9 min |
+| Task 3 | Chain Grounding into Action | 12 min |
+| Task 4 | Tighten a Tool Boundary | 8 min |
+| Task 5 | Design and Add a Scoped Tool | 11 min |
 
 ### [Exercise 5: Identity, Secrets and Authorization](Instructions/exercise-5.md)
 
-**Estimated Duration: 45 minutes**
+**Estimated Duration: 30 minutes**
 
-Map every identity and token in a request and separate delegated from application permissions, verify that the backend credential lives only in Key Vault, narrow a least-privilege boundary and capture Dataverse's refusal, and show that the same agent does less for the Tier 1 Technician than for the Senior Technician.
+Map every identity and token in one write request, verify that the backend credential lives only in Key Vault and is read through a managed identity, narrow a least-privilege boundary and capture Dataverse's refusal, and show that the same agent does less for the Tier 1 Technician than for the Senior Technician.
 
 | Task | Topic | Duration |
 |------|-------|----------|
-| Task 1 | Map the Identities and Token Flow | 10 min |
-| Task 2 | Verify Secure Secret Handling | 10 min |
-| Task 3 | Enforce a Least-Privilege Boundary | 12 min |
-| Task 4 | Apply User-Level Authorization | 13 min |
+| Task 1 | Map the Identities and Token Flow | 6 min |
+| Task 2 | Verify Secure Secret Handling | 6 min |
+| Task 3 | Enforce a Least-Privilege Boundary | 9 min |
+| Task 4 | Apply User-Level Authorization | 9 min |
 
 ### [Exercise 6: Data Protection and Auditability](Instructions/exercise-6.md)
 
-**Estimated Duration: 45 minutes**
+**Estimated Duration: 30 minutes**
 
-Restrict what the agent can return with Dataverse column security, apply Microsoft Purview DLP and a sensitivity label to the agent's interactions and find the DLP event, and follow one approved action through every log with a single correlation identifier.
+Restrict what the agent can return with Dataverse column security, see Microsoft Purview DLP and a sensitivity label withhold content from the agent and find the DLP event, and follow one approved action through every log with a single correlation ID.
 
 | Task | Topic | Duration |
 |------|-------|----------|
-| Task 1 | Restrict What the Agent Can Return | 12 min |
-| Task 2 | Apply Microsoft Purview Data Protection | 18 min |
-| Task 3 | Trace a Single Action End to End | 15 min |
+| Task 1 | Restrict What the Agent Can Return | 8 min |
+| Task 2 | Apply Microsoft Purview Data Protection | 12 min |
+| Task 3 | Trace a Single Action End to End | 10 min |
 
 ### [Exercise 7: End-to-End Scenario and Business Case](Instructions/exercise-7.md)
 
-**Estimated Duration: 25 minutes**
+**Estimated Duration: 15 minutes**
 
-Run the second new incident from intake to an authorized, audited action in one exchange, capture its audit trail, and present a business case for the agent backed by evidence from the environment.
+Take the second new incident from intake to approved, audited actions in one conversation, export its correlated audit trail as evidence for the reviewers, and present a business case for the agent backed by evidence from your environment.
 
 | Task | Topic | Duration |
 |------|-------|----------|
-| Task 1 | Run the End-to-End Scenario | 15 min |
-| Task 2 | Present the Business Case | 10 min |
+| Task 1 | Run the End-to-End Scenario | 10 min |
+| Task 2 | Present the Business Case | 5 min |
 
 ---
 
 ## Solution Architecture
 
-![Architecture of the lab: the technician signs in to the support agent in Microsoft Foundry, which is grounded in Azure AI Search and calls the MCP server in Azure Container Apps through API Management with the technician's token; the MCP server reads its key from Key Vault and acts in Dataverse on behalf of the technician, with Purview and Log Analytics alongside](Instructions/media/architecture.png)
+![Architecture of the lab: the technician signs in to the agent in Microsoft Foundry, which is grounded in Azure AI Search and calls the MCP server in Azure Container Apps through two API Management MCP APIs with the technician's token; the MCP server reads its backend credential from Key Vault and acts in Dataverse on behalf of the technician, with Microsoft Purview and Log Analytics alongside](Instructions/media/architecture.svg)
 
 | Component | Role in this lab |
 |-----------|------------------|
-| Microsoft Foundry Agent Service | Hosts the prompt agent `msp-support-agent` on `gpt-5.4-mini`, with the Service Desk MCP tool and the Azure AI Search knowledge source added in Exercise 1 |
+| Microsoft Foundry Agent Service | Hosts the prompt agent `msp-support-agent` on `gpt-5.1`, with the MCP tools `servicedesk-read` (no approval) and `servicedesk-write` (approval on every call), and the Azure AI Search knowledge tool you add in Exercise 1 |
 | Microsoft Entra Agent ID | The agent's own identity, recorded in every tool call |
-| Microsoft Entra ID | The Senior and Tier 1 Technician accounts, the agent identity, the gateway app registration with its `ServiceDesk.Access` scope, and the Purview app registration |
-| MCP server (Azure Container Apps) | Nine read tools and five approval-gated write tools over the Service Desk tables, in Python on the MCP Python SDK; it runs every Dataverse call on behalf of the signed-in technician |
-| Azure API Management | MCP gateway: validates the technician's token, forwards who the user is, adds the gateway key and a correlation identifier, and logs every MCP call |
-| Microsoft Dataverse | The Service Desk system of record in a Power Platform developer environment; its security roles, business units, column security and auditing are the permission model |
-| Power Apps model-driven app | The Service Desk console where teams verify every answer and change |
-| Azure AI Search | The `servicedesk-knowledge` index, with vector, semantic and keyword search and citation fields |
-| Azure Key Vault | Holds the gateway key that API Management and the MCP server read through their managed identities, with an audit log of every read |
-| Microsoft Purview | DLP and sensitivity labels applied to tool results before they reach the agent |
-| Azure Container Registry | Builds MCP server images from source with ACR Tasks |
-| Azure Monitor (Log Analytics, Application Insights) | Agent traces, gateway, Key Vault and MCP logs, and the MCP server's tool invocation log |
-| Git (on the lab VM) | The team's local copy of the MCP server source at release `v2.0.0` |
+| Microsoft Entra ID | The Senior and Tier 1 Technician accounts, the gateway app registration with its `ServiceDesk.Access` scope, and the OAuth identity passthrough that carries the signed-in technician's token to the gateway |
+| Azure API Management (Developer tier) | The MCP gateway: two MCP APIs that validate the technician's token, forward who the user is, add the backend credential from Key Vault and a correlation ID, and log every MCP call; a diagnostics API for the lab VM's tools |
+| MCP server (Azure Container Apps) | 16 read tools on `/read/mcp` and 7 approval-gated write tools on `/write/mcp`, in Python on the MCP Python SDK; every tool has a description, input and output schemas, a required permission, input validation and structured errors. It calls Dataverse on behalf of the signed-in technician and logs one JSON line per call |
+| Azure Container Registry | Builds MCP server images from source with ACR Tasks when you redeploy |
+| Microsoft Dataverse and the Service Desk app | The system of record in a managed developer environment; security roles, a business unit, column security and auditing are the permission model, and the model-driven app is where you verify every answer and change |
+| Azure Blob Storage | The Service Desk export, one JSON file per document, that the search indexer reads |
+| Azure AI Search | The `servicedesk-knowledge` index, with vector, semantic and keyword search and the fields a citation needs |
+| Azure Key Vault | Holds the MCP server's backend credential, read through managed identities, with an audit log of every read |
+| Microsoft Purview | A DLP policy and a sensitivity label applied to the content the MCP server returns, through the `processContent` API |
+| Azure Monitor (Log Analytics, Application Insights) | Agent traces, gateway logs, the MCP server's tool invocation log and Key Vault audit events, joined by one correlation ID |
+
+The guide embeds animated PNG renders of each diagram; the SVG sources sit beside them in `Instructions/media/` and animate on GitHub.
+
+---
+
+## Diagram Gallery
+
+### Exercise 1: Grounding the agent
+
+![Exercise 1: the Service Desk export in Blob storage is indexed into Azure AI Search with embeddings, and the agent retrieves cited answers from the index](Instructions/media/exercise-1-grounding.svg)
+
+### Exercise 2: Ticket and incident intelligence
+
+![Exercise 2: the agent reads a new incident through the MCP read tools, matches it to historical tickets in the index, and recommends priority, category, assignment and SLA risk](Instructions/media/exercise-2-ticket-intelligence.svg)
+
+### Exercise 3: The MCP read path
+
+![Exercise 3: a read tool call travels from the agent through the API Management read API to the MCP server and Dataverse, and back with a correlation ID](Instructions/media/exercise-3-mcp-read-path.svg)
+
+### Exercise 4: The approval flow
+
+![Exercise 4: a write tool call waits for the technician's approval in the agent chat before it reaches the MCP server and Dataverse; a declined call changes nothing](Instructions/media/exercise-4-approval-flow.svg)
+
+### Exercise 5: Identities and the token flow
+
+![Exercise 5: the identities and tokens on one write, from the signed-in technician through the agent, the gateway and the MCP server's managed identity to Dataverse acting on behalf of the user](Instructions/media/exercise-5-identity-token-flow.svg)
+
+### Exercise 6: Data protection and the audit trail
+
+![Exercise 6: column security and Microsoft Purview withhold protected content before it reaches the agent, and one correlation ID links every log for an action](Instructions/media/exercise-6-protection-and-trail.svg)
+
+### Exercise 7: The end-to-end scenario
+
+![Exercise 7: the second new incident goes from intake through grounding, recommendation and approved actions to an exported audit trail](Instructions/media/exercise-7-end-to-end.svg)
 
 ---
 
 ## Repository Structure
 
 ```text
-├── README.md
-├── .gitignore
-├── masterdoc.json
-├── BUILD-NOTES.md
-├── SCREENSHOT-TODO.md
+├── README.md                       # start here: the delivery path
+├── AGENDA.md                       # phase 1: agenda, timings and topic coverage
+├── SUPPORT-GUIDE.md                # phases 5 and 6: pilot and workshop support
+├── SCREENSHOT-TODO.md              # phase 5: screenshots and task GIFs to capture in the pilot
+├── BUILD-NOTES.md                  # phase 8: decisions, open questions, how to change the lab
+├── CHANGELOG.md                    # what changed in each lab version
+├── masterdoc.json                  # CloudLabs lab guide manifest
+├── estimates/                      # phase 1: cost and effort workbooks and their specs
 ├── Instructions/
 │   ├── getting-started.md
 │   ├── exercise-1.md ... exercise-7.md
-│   └── media/
-│       ├── architecture.mmd and architecture.png
-│       └── identity-token-flow.mmd and identity-token-flow.png
+│   └── media/                      # diagrams (SVG source and PNG render) and screenshots
 ├── solutions/
-│   └── exercise-4-task-5/      (reference escalate_ticket tool, shipped to C:\LabFiles\solutions)
-├── validation-scripts/
-│   ├── README.md
-│   └── ex*-task*-*.ps1
-├── estimates/                  (pre-sales cost and effort workbooks with their input specs)
-├── research/                   (Microsoft Learn notes with sources, and the pricing data behind the estimate)
-└── setup/
-    ├── README.md               (deployment package and support runbook)
-    ├── DATA-SPEC.md            (seeded data and minimum volumes)
-    ├── deploy-01.json
-    ├── deploy-01.parameters.json
-    ├── Build-LabFilesZip.ps1
-    ├── policy/
-    ├── scripts/
-    │   ├── psscript-01.ps1
-    │   └── logontask-01.ps1
-    ├── tenant/
-    │   └── Initialize-LabTenant.ps1
-    ├── tests/
-    │   └── test_seed_determinism.py
-    └── assets/
-        ├── msp-labfiles.zip      (build output, not committed)
-        └── labfiles/
-            ├── agent/
-            ├── provision/
-            ├── search/
-            ├── seed/
-            └── tools/
+│   └── exercise-4-task-5/          # reference scoped tool, shipped to C:\LabFiles\solutions
+├── setup/                          # phase 2: template, bootstrap scripts, policies, lab files
+│   ├── bicep/                      # Bicep source of deploy-01.json
+│   ├── apim/                       # API Management policies
+│   ├── assets/labfiles/            # provisioning, seed data, search, agent and lab tools
+│   └── tenant/                     # phases 3 and 7: runbooks
+├── validation-scripts/             # phase 4: graded steps
+├── tests/acceptance/               # acceptance tests for the pilot and every Golden Environment version
+├── tools/                          # diagram and QA tooling copied from the Lab Builder
+└── research/                       # source notes from official documentation
 ```
 
-The MCP server source is a separate private repository, `CloudLabsAI-Azure/agentic-msp-mcp-server`. `setup/Build-LabFilesZip.ps1` packs its tag `v2.0.0` into `setup/assets/msp-labfiles.zip`, so lab VMs never need GitHub access. That archive contains the private source, so it is uploaded to the CloudLabs template library and kept out of this repository by `.gitignore`.
+The MCP server source is a separate private repository, `CloudLabsAI-Azure/agentic-msp-mcp-server`. `setup/Build-LabFilesZip.ps1` packs its release `v3.0.0` into the lab files zip, so lab VMs never need GitHub access. That archive contains the private source, so it is uploaded to the CloudLabs template library and kept out of this repository by `.gitignore`.
 
 ---
 
@@ -238,13 +278,13 @@ The MCP server source is a separate private repository, `CloudLabsAI-Azure/agent
 |------------|-------------|
 | Microsoft Foundry Agent Service | Build, ground and test a prompt agent; connect knowledge and MCP tools with approval; read its traces |
 | OAuth identity passthrough | Carry the signed-in technician's identity from the agent through the MCP gateway to the system of record |
-| Model Context Protocol | Read and write tools with validated inputs, structured results and errors, served over streamable HTTP |
-| Azure API Management | Expose an MCP server, validate Entra tokens, forward user context and correlation identifiers, and log MCP traffic |
+| Model Context Protocol | Read and write tools with validated inputs, output schemas and structured errors, served over Streamable HTTP |
+| Azure API Management | Expose an MCP server, validate Microsoft Entra tokens, forward user context and correlation IDs, and log MCP traffic |
 | Azure Key Vault and managed identities | Keep the backend credential out of code and configuration, and audit every read |
 | Azure Container Apps and Container Registry | Build from source with ACR Tasks, roll out new revisions and roll back |
-| Microsoft Dataverse | Web API queries, impersonation, least-privileged security roles, business units, column security and auditing |
+| Microsoft Dataverse | Web API queries, acting on behalf of a user, least-privileged security roles, business units, column security and auditing |
 | Microsoft Purview | DLP and sensitivity labels on AI interactions through the `processContent` API |
-| Azure AI Search | Hybrid vector and semantic index designed for citations |
+| Azure AI Search | A vector, semantic and keyword index designed for citations, built from a Blob export |
 | Azure Monitor | KQL across Log Analytics and Application Insights to trace one action end to end |
 
 ---
@@ -256,11 +296,14 @@ The MCP server source is a separate private repository, `CloudLabsAI-Azure/agent
 - [Set up authentication for MCP tools, including OAuth identity passthrough](https://learn.microsoft.com/azure/foundry/agents/how-to/mcp-authentication)
 - [What is Microsoft Entra Agent ID?](https://learn.microsoft.com/entra/agent-id/what-is-microsoft-entra-agent-id)
 - [Expose and govern an existing MCP server in API Management](https://learn.microsoft.com/azure/api-management/expose-existing-mcp-server)
+- [Validate Microsoft Entra token policy](https://learn.microsoft.com/azure/api-management/validate-azure-ad-token-policy)
+- [Manage revisions in Azure Container Apps](https://learn.microsoft.com/azure/container-apps/revisions-manage)
 - [Impersonate another user in Dataverse](https://learn.microsoft.com/power-apps/developer/data-platform/impersonate-another-user)
 - [Security roles and privileges in Dataverse](https://learn.microsoft.com/power-platform/admin/security-roles-privileges)
 - [Column-level security to control access](https://learn.microsoft.com/power-platform/admin/field-level-security)
-- [Azure Key Vault logging](https://learn.microsoft.com/azure/key-vault/general/logging)
 - [Manage Dataverse auditing](https://learn.microsoft.com/power-platform/admin/manage-dataverse-auditing)
+- [Microsoft Purview for Entra-registered AI apps](https://learn.microsoft.com/purview/ai-entra-registered)
+- [Azure Key Vault logging](https://learn.microsoft.com/azure/key-vault/general/logging)
 - [Set up tracing for Foundry agents](https://learn.microsoft.com/azure/foundry/observability/how-to/trace-agent-setup)
 
 ---

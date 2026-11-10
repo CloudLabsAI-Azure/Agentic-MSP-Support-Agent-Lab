@@ -2,9 +2,36 @@
 # goes to the CloudLabs template library only, never to this repository.
 setup/assets/msp-labfiles.zip
 
-# Local output of the seed generator, Python caches, and Office lock files.
+# Microsoft icon packs downloaded by tools/diagrams/Get-ProductIcons.ps1. They are large, and the
+# diagrams embed the few icons they use, so the packs stay out of the repository.
+tools/diagrams/icons/
+
+# Local output of the seed generator and the search export, which provisioning rebuilds on every
+# lab VM from the generator and Dataverse.
 setup/assets/labfiles/seed/data/
+setup/assets/labfiles/search/export/
+
+# Python caches, virtual environments and Office lock files.
 __pycache__/
 *.pyc
 .pytest_cache/
+.venv/
+venv/
 ~$*
+
+# Tenant preparation files: rosters, Temporary Access Pass exports and consistency reports with
+# participant names. They hold personal data and sign-in secrets and may never be committed.
+setup/tenant/*.csv
+setup/tenant/reports/
+
+# CLI configuration files that hold secrets or tenant-specific IDs. A template the lab ships is
+# named .env.example, which this does not ignore.
+.env
+
+# Local editor, operating system and scratch files.
+.vscode/
+.idea/
+Thumbs.db
+.DS_Store
+*.log
+*.tmp

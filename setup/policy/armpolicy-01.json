@@ -9,13 +9,13 @@
             { "field": "type", "like": "Microsoft.OperationalInsights/workspaces/*" },
             { "field": "type", "like": "Microsoft.Insights/components/*" },
             { "field": "type", "like": "Microsoft.KeyVault/vaults/*" },
+            { "field": "type", "like": "Microsoft.Storage/storageAccounts/*" },
             { "field": "type", "like": "Microsoft.ContainerRegistry/registries/*" },
             { "field": "type", "like": "Microsoft.App/managedEnvironments/*" },
             { "field": "type", "like": "Microsoft.App/containerApps/*" },
             { "field": "type", "like": "Microsoft.Search/searchServices/*" },
             { "field": "type", "like": "Microsoft.CognitiveServices/accounts/*" },
             { "field": "type", "like": "Microsoft.ApiManagement/service/*" },
-            { "field": "type", "like": "Microsoft.AlertsManagement/*" },
             { "field": "type", "in": [
                 "Microsoft.Compute/virtualMachines",
                 "Microsoft.Compute/disks",
@@ -23,13 +23,12 @@
                 "Microsoft.Network/networkSecurityGroups",
                 "Microsoft.Network/publicIPAddresses",
                 "Microsoft.Network/virtualNetworks",
-                "Microsoft.DevTestLab/schedules",
                 "Microsoft.ManagedIdentity/userAssignedIdentities",
                 "Microsoft.OperationalInsights/workspaces",
                 "Microsoft.Insights/components",
                 "Microsoft.Insights/diagnosticSettings",
-                "Microsoft.Insights/actionGroups",
                 "Microsoft.KeyVault/vaults",
+                "Microsoft.Storage/storageAccounts",
                 "Microsoft.ContainerRegistry/registries",
                 "Microsoft.App/managedEnvironments",
                 "Microsoft.App/containerApps",
@@ -37,7 +36,9 @@
                 "Microsoft.CognitiveServices/accounts",
                 "Microsoft.ApiManagement/service",
                 "Microsoft.Authorization/roleAssignments",
-                "Microsoft.Resources/deployments"
+                "Microsoft.Resources/deployments",
+                "Microsoft.Resources/tags",
+                "Microsoft.Resources/subscriptions/resourceGroups"
             ] }
           ]
         }
@@ -46,7 +47,7 @@
         "allOf": [
           { "field": "type", "equals": "Microsoft.Compute/virtualMachines" },
           { "anyOf": [
-              { "not": { "field": "Microsoft.Compute/virtualMachines/sku.name", "in": [ "Standard_D4s_v5" ] } },
+              { "not": { "field": "Microsoft.Compute/virtualMachines/sku.name", "in": [ "Standard_D2s_v5" ] } },
               { "not": { "allOf": [
                   { "field": "Microsoft.Compute/virtualMachines/imagePublisher", "equals": "Spektra" },
                   { "field": "Microsoft.Compute/virtualMachines/imageOffer", "equals": "cloudlabs-windows-jumpvm" },
@@ -58,7 +59,14 @@
       {
         "allOf": [
           { "field": "type", "equals": "Microsoft.Compute/disks" },
-          { "not": { "field": "Microsoft.Compute/disks/sku.name", "in": [ "StandardSSD_LRS" ] } }
+          { "not": { "field": "Microsoft.Compute/disks/sku.name", "in": [ "Premium_LRS" ] } }
+        ]
+      },
+      {
+        "allOf": [
+          { "source": "action", "equals": "Microsoft.Storage/storageAccounts/write" },
+          { "field": "type", "equals": "Microsoft.Storage/storageAccounts" },
+          { "not": { "field": "Microsoft.Storage/storageAccounts/sku.name", "in": [ "Standard_LRS" ] } }
         ]
       },
       {
@@ -70,7 +78,7 @@
       {
         "allOf": [
           { "field": "type", "equals": "Microsoft.ApiManagement/service" },
-          { "not": { "field": "Microsoft.ApiManagement/service/sku.name", "in": [ "BasicV2" ] } }
+          { "not": { "field": "Microsoft.ApiManagement/service/sku.name", "in": [ "Developer" ] } }
         ]
       },
       {
@@ -90,7 +98,7 @@
           { "field": "type", "equals": "Microsoft.CognitiveServices/accounts/deployments" },
           { "anyOf": [
               { "not": { "field": "Microsoft.CognitiveServices/accounts/deployments/sku.name", "in": [ "GlobalStandard" ] } },
-              { "not": { "field": "Microsoft.CognitiveServices/accounts/deployments/model.name", "in": [ "gpt-5.4-mini", "text-embedding-3-small" ] } }
+              { "not": { "field": "Microsoft.CognitiveServices/accounts/deployments/model.name", "in": [ "gpt-5.1", "text-embedding-3-small" ] } }
           ] }
         ]
       }

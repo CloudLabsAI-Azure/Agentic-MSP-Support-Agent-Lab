@@ -10,6 +10,12 @@
     columns, lookups, alternate keys (waits until Active), views, main forms, sitemap and app,
     then publish.
 
+    A re-run also brings existing components in line with schema.json: global choices gain,
+    relabel and lose options (lab version 3 merged the seven technician teams into four),
+    existing views get the current columns and filters, and the sections listed under
+    "extendForms" are added to, or refreshed in, an existing main form without replacing the
+    rest of it (the account form keeps its timeline, where the labeled document lives).
+
     Two uses:
       1. Build once in a reference developer environment, check the app, then export the
          unmanaged solution 'RelecloudServiceDesk' to assets/solutions/ so team deployments can
@@ -78,6 +84,34 @@ foreach ($choice in $schema.globalChoices) {
             Options = @($choice.options | ForEach-Object { @{ Value = $_.value; Label = (New-DvLabel $_.label) } })
         } -InSolution | Out-Null
         $existing = DV GET "GlobalOptionSetDefinitions(Name='$($choice.name)')"
+    }
+    else {
+        # Bring an existing choice in line with schema.json: add missing options, fix labels and
+        # remove options schema.json no longer lists.
+        $metadataId = $existing.Body.MetadataId
+        $current = @{}
+        foreach ($o in @((DV GET "GlobalOptionSetDefinitions($metadataId)/Microsoft.Dynamics.CRM.OptionSetMetadata").Body.Options)) {
+            if ($o) { $current[[int]$o.Value] = "$($o.Label.UserLocalizedLabel.Label)" }
+        }
+        $wanted = @{}
+        $wantedOrder = @()
+        foreach ($o in $choice.options) { $wanted[[int]$o.value] = $o.label; $wantedOrder += [int]$o.value }
+        foreach ($value in $wantedOrder) {
+            if (-not $current.ContainsKey($value)) {
+                DV POST 'InsertOptionValue' @{ OptionSetName = $choice.name; Value = $value; Label = (New-DvLabel $wanted[$value])
+                    SolutionUniqueName = $solution } | Out-Null
+                Write-Step "  $($choice.name): added $value $($wanted[$value])"
+            }
+            elseif ($current[$value] -ne $wanted[$value]) {
+                DV POST 'UpdateOptionValue' @{ OptionSetName = $choice.name; Value = $value; Label = (New-DvLabel $wanted[$value])
+                    MergeLabels = $true; SolutionUniqueName = $solution } | Out-Null
+                Write-Step "  $($choice.name): relabeled $value as $($wanted[$value])"
+            }
+        }
+        foreach ($value in @($current.Keys | Where-Object { -not $wanted.ContainsKey($_) })) {
+            DV POST 'DeleteOptionValue' @{ OptionSetName = $choice.name; Value = $value; SolutionUniqueName = $solution } | Out-Null
+            Write-Step "  $($choice.name): removed $value $($current[$value])"
+        }
     }
     $choiceIds[$choice.name] = $existing.Body.MetadataId
     Write-Step "  $($choice.name)"
@@ -200,6 +234,7 @@ Write-Step 'Alternate keys'
 $allTables = @($schema.tables) + @($schema.extendTables)
 foreach ($t in $allTables) {
     foreach ($key in @($t.keys)) {
+        if (-not $key) { continue }   # a table without keys (spk_agentaction) gives @($null)
         $keys = (DV GET "EntityDefinitions(LogicalName='$($t.logicalName)')/Keys?`$select=SchemaName,EntityKeyIndexStatus").Body.value
         if (-not ($keys | Where-Object { $_.SchemaName -eq $key.schemaName })) {
             Invoke-WithRetry -What "key $($key.schemaName)" -DelaySeconds 15 -Action {
@@ -240,6 +275,18 @@ function Get-AttributeType([string]$table, [string]$column) {
     return $a.AttributeType
 }
 function Esc([string]$s) { return [System.Security.SecurityElement]::Escape($s) }
+function New-FormSection([string]$table, $section, [string]$name, [string[]]$skip = @()) {
+    # One form section with a labeled control per column.
+    $rows = foreach ($c in $section.columns) {
+        if ($skip -contains $c) { continue }
+        $type = Get-AttributeType $table $c
+        $classId = $classIds[$type]
+        if (-not $classId) { $classId = $classIds.String }
+        $label = Esc ($labels["$table.$c"] ?? $c)
+        "<row><cell id=`"{$([guid]::NewGuid())}`" showlabel=`"true`"><labels><label description=`"$label`" languagecode=`"1033`" /></labels><control id=`"$c`" classid=`"$classId`" datafieldname=`"$c`" disabled=`"false`" /></cell></row>"
+    }
+    return "<section name=`"$name`" showlabel=`"true`" showbar=`"false`" id=`"{$([guid]::NewGuid())}`" IsUserDefined=`"0`" columns=`"1`"><labels><label description=`"$(Esc $section.section)`" languagecode=`"1033`" /></labels><rows>$($rows -join '')</rows></section>"
+}
 
 # ================================================================== views
 Write-Step 'Views'
@@ -248,14 +295,20 @@ foreach ($entry in $schema.views.GetEnumerator()) {
     $table = $entry.Key
     $meta = (DV GET "EntityDefinitions(LogicalName='$table')?`$select=ObjectTypeCode,PrimaryIdAttribute,PrimaryNameAttribute").Body
     foreach ($v in $entry.Value) {
-        $existing = (DV GET "savedqueries?`$select=savedqueryid&`$filter=returnedtypecode eq '$table' and name eq '$($v.name)'").Body.value
-        if ($existing) { $viewIds += $existing[0].savedqueryid; continue }
         $attributes = ($v.columns | ForEach-Object { "<attribute name=`"$_`" />" }) -join ''
         $order = "<order attribute=`"$($v.order.attribute)`" descending=`"$($v.order.descending.ToString().ToLower())`" />"
         $filter = if ($v.filter) { "<filter type=`"and`">$($v.filter)</filter>" } else { '' }
         $fetch = "<fetch version=`"1.0`" mapping=`"logical`"><entity name=`"$table`"><attribute name=`"$($meta.PrimaryIdAttribute)`" />$attributes$order$filter</entity></fetch>"
         $cells = ($v.columns | ForEach-Object { "<cell name=`"$_`" width=`"150`" />" }) -join ''
         $layout = "<grid name=`"resultset`" object=`"$($meta.ObjectTypeCode)`" jump=`"$($meta.PrimaryNameAttribute)`" select=`"1`" icon=`"1`" preview=`"1`"><row name=`"result`" id=`"$($meta.PrimaryIdAttribute)`">$cells</row></grid>"
+        $existing = (DV GET "savedqueries?`$select=savedqueryid&`$filter=returnedtypecode eq '$table' and name eq '$($v.name)'").Body.value
+        if ($existing) {
+            # Refresh an existing view so a re-run applies new columns and filters.
+            $viewIds += $existing[0].savedqueryid
+            try { DV PATCH "savedqueries($($existing[0].savedqueryid))" @{ fetchxml = $fetch; layoutxml = $layout } | Out-Null }
+            catch { Write-Step "  could not refresh '$($v.name)': $($_.Exception.Message)" }
+            continue
+        }
         $r = DV POST 'savedqueries' @{ name = $v.name; returnedtypecode = $table; fetchxml = $fetch; layoutxml = $layout; querytype = 0
             description = "Relecloud Service Desk: $($v.name)" } -InSolution
         $id = Get-EntityIdFromHeader $r.Headers
@@ -275,21 +328,44 @@ foreach ($entry in $schema.forms.GetEnumerator()) {
     $form = (DV GET "systemforms?`$select=formid,name&`$filter=objecttypecode eq '$table' and type eq 2").Body.value | Select-Object -First 1
     if (-not $form) { throw "No main form was found for $table." }
     $formIds += $form.formid
-    $sections = foreach ($s in $entry.Value) {
-        $rows = foreach ($c in $s.columns) {
-            $type = Get-AttributeType $table $c
-            $classId = $classIds[$type]
-            if (-not $classId) { $classId = $classIds.String }
-            $label = Esc ($labels["$table.$c"] ?? $c)
-            "<row><cell id=`"{$([guid]::NewGuid())}`" showlabel=`"true`"><labels><label description=`"$label`" languagecode=`"1033`" /></labels><control id=`"$c`" classid=`"$classId`" datafieldname=`"$c`" disabled=`"false`" /></cell></row>"
-        }
-        "<section name=`"$(($s.section -replace '\W', '').ToLower())`" showlabel=`"true`" showbar=`"false`" id=`"{$([guid]::NewGuid())}`" IsUserDefined=`"0`" columns=`"1`"><labels><label description=`"$(Esc $s.section)`" languagecode=`"1033`" /></labels><rows>$($rows -join '')</rows></section>"
-    }
+    $sections = foreach ($s in $entry.Value) { New-FormSection $table $s (($s.section -replace '\W', '').ToLower()) }
     $formXml = "<form><tabs><tab name=`"general`" id=`"{$([guid]::NewGuid())}`" IsUserDefined=`"0`" showlabel=`"true`" expanded=`"true`"><labels><label description=`"General`" languagecode=`"1033`" /></labels><columns><column width=`"100%`"><sections>$($sections -join '')</sections></column></columns></tab></tabs></form>"
     # The exercises read these columns on the forms, so a form that cannot be updated stops the step.
     try { DV PATCH "systemforms($($form.formid))" @{ formxml = $formXml } | Out-Null }
     catch { throw "Could not update the $table main form: $($_.Exception.Message)" }
     Write-Step "  $table main form updated"
+}
+
+# ================================================================== sections added to existing main forms
+# Platform tables keep their own forms. Each section listed under extendForms is added to the
+# first tab of every main form of the table, or replaced there on a re-run. Columns that the
+# form already shows elsewhere are skipped, because a form can't hold the same column twice.
+Write-Step 'Extended main forms'
+if ($schema.extendForms) {
+    foreach ($entry in $schema.extendForms.GetEnumerator()) {
+        if ($entry.Key -like '$*') { continue }
+        $table = $entry.Key
+        $forms = @((DV GET "systemforms?`$select=formid,name,formxml&`$filter=objecttypecode eq '$table' and type eq 2").Body.value)
+        if (-not $forms) { throw "No main form was found for $table." }
+        foreach ($form in $forms) {
+            [xml]$xml = $form.formxml
+            foreach ($s in $entry.Value) {
+                $name = 'spk_' + (($s.section -replace '\W', '').ToLower())
+                foreach ($old in @($xml.SelectNodes("//section[@name='$name']"))) { [void]$old.ParentNode.RemoveChild($old) }
+                $present = @($s.columns | Where-Object { $xml.SelectSingleNode("//control[@id='$_']") })
+                $target = $xml.SelectSingleNode('/form/tabs/tab[1]/columns/column[1]/sections')
+                if (-not $target) { throw "The $table form '$($form.name)' has no section list to extend." }
+                $fragment = $xml.CreateDocumentFragment()
+                $fragment.InnerXml = New-FormSection $table $s $name $present
+                [void]$target.AppendChild($fragment)
+            }
+            try {
+                DV PATCH "systemforms($($form.formid))" @{ formxml = $xml.OuterXml } | Out-Null
+                Write-Step "  $table form '$($form.name)' extended"
+            }
+            catch { Write-Step "  could not extend the $table form '$($form.name)': $($_.Exception.Message)" }
+        }
+    }
 }
 
 # ================================================================== sitemap and app

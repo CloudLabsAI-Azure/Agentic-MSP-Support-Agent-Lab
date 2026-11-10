@@ -1,97 +1,98 @@
-# Deployment package: Agentic MSP Support Agent Guided Lab
+# Build and Publish the Template: Agentic MSP Support Agent Guided Lab
 
-This folder holds everything CloudLabs needs to provision one team environment. One CloudLabs deployment is one team environment. The learner guide ships from the repository root `masterdoc.json`; there is no second masterdoc in this folder. The lab is self-paced: participants check their own progress against the expected results in the guide and contact support when something is wrong, so this file is also the support runbook.
+> **Delivery path: Phase 2 of 8, build and publish the template.** This phase turns this folder into a CloudLabs template that builds one complete participant environment per deployment, and proves it with one test deployment. Do it once per lab version. Before you start, phase 1 must be complete: the delivery dates, the participant count and the licenses are agreed ([AGENDA.md](../AGENDA.md)), and CloudLabs has answered the [Questions for CloudLabs](#questions-for-cloudlabs). Start of the path: [README.md](../README.md#delivery-path).
 
-## What is here
+**Who:** a CloudLabs engineer, with the setup author for the questions. **Time:** about half a day, plus one test deployment (about 2.5 hours until it reports **Succeeded**).
 
-| Path | Purpose |
+## What is in this folder
+
+| Path | What it is |
 |---|---|
-| `deploy-01.json` | ARM template for the team resource group: lab VM, Foundry resource, project, model deployments and the OAuth MCP connection, Azure AI Search, API Management with the two MCP APIs, Container Apps environment and app, Container Registry, Key Vault with its audit log, managed identities, Log Analytics, Application Insights, diagnostic settings and role assignments |
-| `deploy-01.parameters.json` | Parameter file with CloudLabs tokens and the tenant values from step 2 |
-| `scripts/psscript-01.ps1` | userData bootstrap (stage 1) on the Spektra `cloudlabs-windows-jumpvm` image: CloudLabs agent sequence, tooling, lab files, then `Provision-ServiceDesk.ps1` |
-| `scripts/logontask-01.ps1` | First-logon task (stage 2): VS Code extensions, desktop shortcuts (including **Lab readiness check**), team summary and notes files, final validation table and deployment status |
-| `assets/labfiles/` | Source of `C:\LabFiles` on the VM: provisioning scripts, Dataverse schema, seed generator and loader, search export and loader, agent instructions and lab tools |
-| `assets/msp-labfiles.zip` | Build output of `Build-LabFilesZip.ps1`; the file the VM downloads. It contains the private MCP server source, so it goes to the template library only and `.gitignore` keeps it out of this repository |
-| `Build-LabFilesZip.ps1` | Packages `assets/labfiles` and an MCP server release tag into `assets/msp-labfiles.zip` |
-| `policy/armpolicy-01.json` | Deny policy: allowed resource types, VM size and image, disk SKU, AI Search Basic, API Management Basic v2, ACR Basic, Foundry kind and model deployments |
-| `policy/armrbac-01.json` | `Spektra Custom RBAC` role for the attendee |
-| `policy/usagepolicy.json` | Usage limits per resource type |
-| `tenant/Initialize-LabTenant.ps1` | One-time tenant preparation: the MCP gateway app (scope, OAuth client secret, redirect URL), the Purview app, and the Power Platform checks |
-| `tests/test_seed_determinism.py` | Checks that the seed generator produces the same tickets, notes and counts for any anchor date (`python -m pytest setup/tests`) |
+| `bicep/main.bicep`, `bicep/modules/*.bicep` | The source of the Azure template. Change the template here, never in `deploy-01.json` |
+| `bicep/Build-Template.ps1`, `bicep/bicepconfig.json` | Compiles the template with the pinned Bicep version (0.48.1), checks the CloudLabs contract and writes `deploy-01.json`; fails when `deploy-01.json` is out of date |
+| `deploy-01.json` | The compiled ARM template CloudLabs deploys (generated) |
+| `deploy-01.parameters.json` | The parameters file with the CloudLabs tokens |
+| `scripts/psscript-01.ps1` | The VM bootstrap (stage 1): CloudLabs sequence, tools, lab files, then provisioning |
+| `scripts/logontask-01.ps1` | The first-logon task (stage 2): desktop, Lab notes, readiness check, final CloudLabs status |
+| `scripts/user-creation.json` | The second lab user (Tier 1 Technician) and both accounts' licenses |
+| `policy/armpolicy-01.json`, `policy/armrbac-01.json`, `policy/usagepolicy.json` | The CloudLabs governance: allowed resource types and SKUs, the participant's custom role, usage limits |
+| `apim/*.policy.xml` | The API Management policies of the read, write and diagnostics APIs (embedded in the template) |
+| `assets/labfiles/` | The source of `C:\LabFiles` on the lab VM: provisioning, seed, search, tools, agent instructions |
+| `Build-LabFilesZip.ps1` | Packs `assets/labfiles`, the reference solutions and the MCP server release into `assets/msp-labfiles.zip` |
+| `tenant/RUNBOOK.md`, `tenant/PURVIEW-RUNBOOK.md`, `tenant/Remove-LabTenantObjects.ps1` | Phases 3 and 7: preparing, checking, repairing and closing environments |
+| `DATA-SPEC.md`, `tests/` | The seed data specification and its determinism tests (data author) |
 
-## How the environment is secured
+## How one environment is built
 
-Safe by default, so no exercise asks participants to fix an exposure:
+One CloudLabs deployment is one participant environment: a **Dedicated Tenant** (a Microsoft Entra tenant of its own) with an Azure subscription in that tenant. Nothing is shared between participants.
 
-- **Two identities per team.** The team account is the **Senior Technician**. A second lab user is the **Tier 1 Technician**, read-only on tickets.
-- **User identity end to end.** The agent's MCP connection uses OAuth identity passthrough. API Management accepts only a signed-in technician's token for the gateway audience with the `ServiceDesk.Access` scope and forwards who the user is. The MCP server runs every Dataverse call on behalf of that user (`CallerObjectId`), so a call succeeds only when both the technician's role and the server's application user allow it.
-- **Least privilege, reads and writes separated.** The server's application user holds **Service Desk Agent Read**, **Service Desk Agent Write** (ticket updates and ticket notes only) and **Delegate**; never System Administrator. The agent itself has no Dataverse permission.
-- **Secrets in Key Vault.** The gateway key is a Key Vault secret that API Management reads through its managed identity and the MCP server reads at startup through its own. Nothing secret is in the repository, the image or the container app configuration, and the vault's audit log records every read.
-- **Approval on writes.** The agent's MCP tool lists only the nine read tools as never needing approval, so every write tool, and any tool a team adds, asks the user first.
-- **Input validation and correlation.** Every tool validates its arguments before it runs, and every call carries the API Management request ID as its correlation ID, from the gateway log to the Dataverse record.
-- **Data protection.** Internal notes are withheld unless asked for, contact columns can be secured, and when Purview is configured, ticket text and customer documents go through Microsoft Purview DLP; a document with the restricted sensitivity label is never returned.
+1. **The template** (`deploy-01.json`, about 35 to 50 minutes) creates, in Canada Central: the Foundry resource and project with `gpt-5.1` and `text-embedding-3-small` (Global Standard) and the `search` and `appinsights` project connections; Azure AI Search Basic (role-based access only); the export storage account; API Management Developer with the read, write and diagnostics MCP APIs and their policies; the Container Apps environment and the MCP server app; the container registry; Key Vault with its audit log; Log Analytics and Application Insights; three managed identities (`id-mcp`, `id-prov`, `id-apim`) and every role assignment Azure Resource Manager can make. The lab VM comes last, so its first boot finds everything in place.
+2. **The VM bootstrap** (`psscript-01.ps1`) installs the tools and the lab files and runs **provisioning** (`C:\LabFiles\provision\Provision-ServiceDesk.ps1`, 60 to 90 minutes) inside the tenant. A certificate-based **setup app**, created once by a bootstrap identity, creates the gateway and Purview app registrations, the two MCP OAuth connections, the sensitivity label, its publishing policy and the DLP policy, and the managed developer environment. The lab VM's identity `id-prov` deploys the Service Desk schema, roles and data, the search export, the MCP server image and the agent. The last step removes the participant's Global Administrator role, reduces `id-prov` to read-only, and strips the setup app of every right.
+3. **The logon task** (`logontask-01.ps1`) prepares the desktop, runs the readiness check and reports **Succeeded** or **Failed** to CloudLabs, with the Golden Environment version and the consistency fingerprint.
 
-## 1. Prerequisites to confirm (per tenant and subscription)
+The bootstrap identity creates the setup app. Two kinds are supported; CloudLabs chooses with the [questions below](#questions-for-cloudlabs):
 
-- [ ] **Region:** Sweden Central. East US and East US 2 currently block new Azure AI Search services.
-- [ ] **Model quota:** Global Standard `gpt-5.4-mini` (version 2026-03-17) and `text-embedding-3-small` (version 1) in Sweden Central, 30,000 TPM per team for each. 25 teams need 750,000 TPM of each model, so the subscription needs quota Tier 1 or higher.
-- [ ] **Subscription type:** not funded by free credits; ACR Tasks (`az acr build`) are paused on free-credit subscriptions.
-- [ ] **Image:** the Spektra `cloudlabs-windows-jumpvm` image (`win2022mssd`, version `24.04.01`) is available in Sweden Central, with `Standard_D4s_v5` capacity.
-- [ ] **Two lab users per deployment:** CloudLabs issues the team account (Senior Technician) and a second user (Tier 1 Technician), and passes the second user's UPN and object ID to `tier1UserName` and `tier1UserObjectId`. Both users' credentials appear on the **Environment** tab.
-- [ ] **Licences, for both users:** **Microsoft Power Apps for Developer** (`POWERAPPS_DEV`, `5b631642-bd26-49fe-bd20-1daaa972ef80`), and **Microsoft 365 E5** or **E5 Compliance** for Microsoft Purview DLP on AI interactions. Assign them in the CloudLabs template licence settings or through group-based licensing.
-- [ ] **Power Platform tenant settings:** **Developer environment assignments** allows the team accounts to create developer environments, and internal consent plans are allowed (`Initialize-LabTenant.ps1` prints both).
-- [ ] **Sign-in and MFA:** Azure's mandatory MFA covers sign-in to the Azure portal and every Azure Resource Manager change. Exercises 1, 3, 4 and 5 make such changes. Issue each lab user a multi-use **Temporary Access Pass** whose lifetime covers launch plus the 6-hour session, shown on the **Environment** tab. The VM needs Azure CLI 2.76 or later; `InstallAzCLI` installs the current release.
-- [ ] **Provisioning sign-in:** provisioning runs every Resource Manager change as the VM's user-assigned identity `id-prov-<DID>`, which is outside the MFA enforcement. Power Platform and Dataverse changes still run as the team account, because it owns the developer environment, with its password and no browser (the resource owner password grant). That needs a password in `AzureAdUserPassword` during provisioning and no Conditional Access policy that requires MFA for Power Platform or Dataverse. Confirm with CloudLabs how the TAP tenant provides this.
-- [ ] **Conditional Access:** no policy blocks agent identities.
-- [ ] **Microsoft Entra admin center access:** **Restrict access to Microsoft Entra administration portal** is **No**, so lab users can browse to **Agent ID** in Exercises 1 and 5.
-- [ ] **Microsoft Purview:** pay-as-you-go billing is enabled for Purview data security for AI apps, and the tenant has the DLP policy and sensitivity label from step 2.
-- [ ] **Application Insights GenAI content:** leave the `AppGenAIContent` table unprotected in each workspace, or grant the team account **Privileged Monitoring Data Reader**, so Exercise 6 Task 3 and `Get-ActionTrail.ps1` can read the agent's tool calls and results.
-- [ ] **Licensing confirmation:** each team shares one account per role. Get written confirmation from Microsoft licensing that this is acceptable for the training delivery, or give every attendee their own accounts.
+| Bootstrap | How it works | When to use it |
+|---|---|---|
+| **CloudLabs service principal (preferred)** | A per-tenant service principal with Application.ReadWrite.All, AppRoleAssignment.ReadWrite.All and RoleManagement.ReadWrite.Directory (or the Global Administrator role). Its application ID and secret arrive as the template parameters `bootstrapAppId` and `bootstrapAppSecret`; the template stores the secret in Key Vault only, and the last provisioning step deletes it | Always, when CloudLabs can supply it: no person and no password involved |
+| **ODL credential** | The participant's account, a Global Administrator during provisioning, signs in with its password (resource owner password grant) | Only when the ODL credential is a real password and no MFA applies to it. A Temporary Access Pass cannot be used this way |
 
-## 2. One-time tenant preparation
+Power Platform accepts the setup app only after a tenant administrator registered it with a user sign-in. Provisioning does that with the ODL password when it can. With a Temporary Access Pass, either CloudLabs registers its own service principal with Power Platform (question 2), or a supplier administrator signs in once per tenant ([RUNBOOK.md, Register the setup app with Power Platform](tenant/RUNBOOK.md#register-the-setup-app-with-power-platform)).
 
-1. As a tenant administrator, run:
+## Questions for CloudLabs
 
-   ```powershell
-   pwsh setup/tenant/Initialize-LabTenant.ps1 -TenantId <tenant id> -NewSecrets
-   ```
+Answer these before the first deployment; the answers decide the parameters and the runbook steps.
 
-   It creates or updates the **Relecloud Service Desk MCP Gateway** app (delegated scope `ServiceDesk.Access`, admin-consented, with a client secret for the Foundry OAuth connection) and the **Relecloud Service Desk Purview Integration** app (Graph application permission `Content.Process.All`, admin-consented, with a client secret). It prints the values once.
-1. Put the values in the CloudLabs template: `mcpGatewayAppId` and `purviewClientId` in `deploy-01.parameters.json`; `mcpOAuthClientSecret` and `purviewClientSecret` as **secure parameters** in the template configuration, never in this repository.
-1. **Redirect URL.** Foundry shows a redirect URL when an OAuth connection is created. After the first pilot deployment, open the team's Foundry project, **Management center** > **Connected resources** > `servicedesk-mcp`, copy its redirect URL and run `Initialize-LabTenant.ps1 -TenantId <tenant id> -RedirectUri <url>`. Until it is registered, the consent step in Exercise 1 fails with a redirect URI mismatch.
-1. **Sensitivity label.** In the Microsoft Purview portal, use or create the label **Confidential** (Information protection > Sensitivity labels) and put its label ID in `sensitivityLabelId`. Provisioning stamps it on the seeded customer configuration document, and the MCP server never returns documents with that label.
-1. **DLP policy.** In the Microsoft Purview portal, create a DLP policy for the location of the **Relecloud Service Desk Purview Integration** app (data security for AI apps) that detects **Credit Card Number** and blocks it. Seeded internal notes on TCK-10472 and TCK-10486 carry test card numbers, which Exercise 6 Task 2 relies on.
-1. Apply the Power Platform changes the script reports.
+| # | Question | Why it matters | Where the answer goes |
+|---|---|---|---|
+| 1 | Is the ODL credential (`AzureAdUserPassword`) a password or a Temporary Access Pass? | A password allows the ODL bootstrap; a Temporary Access Pass needs question 2 or a manual bootstrap per tenant. The guide calls the value a Temporary Access Pass either way | Bootstrap choice above |
+| 2 | Can CloudLabs supply a per-tenant service principal with the permissions above, as template tokens (for example `GET-SERVICEPRINCIPAL-APPLICATION-ID` and `GET-SERVICEPRINCIPAL-SECRET`), and register it once with Power Platform as a management application? | Fully unattended provisioning with no password, the preferred design | `bootstrapAppId` and `bootstrapAppSecret` in `deploy-01.parameters.json` |
+| 3 | Are security defaults off, and does no Conditional Access policy require MFA for the ODL account during provisioning or block agent identities? | Security defaults block the ODL bootstrap; a policy that blocks agent identities stops the agent's Entra Agent ID | Tenant baseline |
+| 4 | What are the CSP offer IDs of **Microsoft 365 E5** and **Power Apps Premium**, and how does the ODL user get them? | Both accounts need both licenses: Purview for Exercise 6, the managed developer environment for the Service Desk. `user-creation.json` assigns them to the Tier 1 Technician only (quantity 1 each), so the ODL user, the Senior Technician, needs them from the template's own license settings, or the quantities become 2 with the ODL user assigned | `scripts/user-creation.json` (replace the two `REPLACE-WITH-CSP-OFFER-ID-...` values, and raise the quantities if the JSON also licenses the ODL user) and the template's license settings |
+| 5 | Does every tenant keep a supplier Global Administrator besides the participant? | Provisioning removes the participant's Global Administrator role only when another administrator remains, so the tenant stays manageable | Template parameter `requireSupplierGlobalAdmin` (default `true`) |
+| 6 | Is the Azure subscription created in the same tenant, with the deployment identity as Owner? | Provisioning and the participant's roles assume the subscription and the tenant are the same | Tenant baseline |
+| 7 | Is each tenant deleted after the event, or returned to a pool? | A pooled tenant keeps the Power Platform environment, the app registrations and the Purview objects | Phase 7 in [RUNBOOK.md](tenant/RUNBOOK.md#phase-7-close-the-event) |
+| 8 | What is the object ID of the CloudLabs validation service principal in each tenant, and its token? | It gets read-only data roles on search and storage for the graded steps | `validationPrincipalObjectId` in `deploy-01.parameters.json` |
+| 9 | Under which field name does the **Environment** tab show the Tier 1 Technician's sign-in and pass? | The guide tells participants to copy it from there | Lab guide |
 
-## 3. The MCP server repository
+## Step 1: Check quota and region
 
-The MCP server source is in the private repository `CloudLabsAI-Azure/agentic-msp-mcp-server`, and this lab uses its tag `v2.0.0`. Lab VMs never contact GitHub, so they need no GitHub access or credentials:
+For every subscription the environments will use (one per participant tenant):
 
-- `Build-LabFilesZip.ps1` packs the tagged source into the lab files archive as `provision/mcp-server`, with `git archive`, so the archive holds exactly the tagged files.
-- `Provision-ServiceDesk.ps1` builds the starter image from that copy, and creates each team's local Git repository of the same release in `C:\LabFiles\mcp-server`, already cloned when the lab starts, with no remote. It also adds that folder to the VM's system-wide Git `safe.directory` list.
-- Exercises 3 and 4 change that local copy and redeploy it with `scripts/Deploy-McpServer.ps1`.
+- [ ] **Region:** Canada Central (fallback Canada East). East US 2 and Sweden Central no longer accept new Azure AI Search services. The Dataverse environment is created in the Power Platform region `canada` (template parameters `dataverseLocation` and `dataverseUrlSuffix` change both together).
+- [ ] **Model quota:** Global Standard `gpt-5.1` (version 2025-11-13), 100,000 tokens per minute, and `text-embedding-3-small` (version 1), 150,000 tokens per minute, per subscription (`chatModelCapacity` and `embeddingModelCapacity`). In the Foundry portal, **Quota** shows the subscription's limit for each model in the region; request more before the event if a new subscription's default is lower.
+- [ ] **Subscription type:** not funded by free credits, because ACR Tasks (the image build) are paused on free-credit subscriptions.
+- [ ] **Lab VM:** the Spektra `cloudlabs-windows-jumpvm` image (`win2022mssd`) and `Standard_D2s_v5` capacity in the region.
+- [ ] **Entra admin center access:** **Restrict access to Microsoft Entra admin center** is **No**, so participants can open **Agent ID** in Exercises 1 and 5.
+- [ ] **Application Insights GenAI content:** if `Get-ActionTrail.ps1` reports that the `AppGenAIContent` table is protected in the pilot, grant the Senior Technician **Privileged Monitoring Data Reader** on the workspace, or leave the table unprotected.
 
-To build the archive, you need a clone of the repository next to this one, or pass its path with `-McpServerRepo`:
+## Step 2: Build the template
+
+You need PowerShell 7 and the Azure CLI. `Build-Template.ps1` uses the Bicep version pinned in `bicep/bicepconfig.json`; install it once with `az bicep install --version v0.48.1`.
+
+```powershell
+pwsh setup/bicep/Build-Template.ps1            # checks: fails when deploy-01.json is out of date
+pwsh setup/bicep/Build-Template.ps1 -Update    # compiles and writes deploy-01.json
+```
+
+It fails on any Bicep warning, renames the outputs to the names CloudLabs shows (Bicep cannot use spaces), checks the eight CloudLabs platform parameters and the 38 outputs against the contract, and compares the result with `deploy-01.json`. The compiled template holds 12 nested deployments, one per Bicep module.
+
+## Step 3: Build the lab files archive
+
+You need a clone of the private MCP server repository next to this repository (or pass `-McpServerRepo`), with the release tag `v3.0.0`:
 
 ```powershell
 gh repo clone CloudLabsAI-Azure/agentic-msp-mcp-server
-```
-
-To ship a server change, commit it, tag a new release whose tag matches `__version__` in `src/servicedesk_mcp/__init__.py` (for example `v2.0.1` and `"2.0.1"`), and rebuild the archive with `-McpRelease v2.0.1`. The guide's version numbers (`2.0.0` at the start, `2.0.1` after Exercise 3 Task 4, `2.0.2` after Exercise 4 Task 4, `2.0.3` after Exercise 4 Task 5) assume the starter release is `2.0.0`; update them if you ship a newer starter.
-
-## 4. Build the lab files archive
-
-Run this after any change under `assets/labfiles` and after every new MCP server release:
-
-```powershell
 pwsh setup/Build-LabFilesZip.ps1
 ```
 
-The script checks that the tag exists and that its `__version__` matches. Upload the archive to the template library (section 5) and don't commit it.
+The script packs `assets/labfiles`, the repository's `solutions` folder and the tagged MCP server source (`git archive`, so exactly the tagged files) into `assets/msp-labfiles.zip`. It stops when the tag's `__version__` differs from `McpRelease` in `assets/labfiles/provision/LabConfig.psd1`, when the agent's read or write tool lists name a tool the release does not have, when a file the VM needs is missing, or when a PowerShell file does not parse. The archive holds the private server source: upload it to the template library only; `.gitignore` keeps it out of this repository.
 
-## 5. Register the template files (CloudEasyTemplates)
+To ship a server change later: tag a new release whose tag matches `__version__`, set `McpRelease` in `LabConfig.psd1` and the `lab-mcp-release` tag value in `bicep/main.bicep`, rebuild the template and the archive, and update the version numbers in the guide (3.0.0 at the start, 3.0.1 after Exercise 3, 3.0.2 and 3.0.3 in Exercise 4).
 
-1. In the AZ-Templates library, create the project folder `agentic-msp-support-agent` and add the files with this layout:
+## Step 4: Upload the files to the template library
+
+1. In the AZ-Templates library, create the project folder `agentic-msp-support-agent` with this layout, and add every file to `AZ-Templates.deployproj` as `Content`:
 
    ```text
    agentic-msp-support-agent/
@@ -100,6 +101,7 @@ The script checks that the tag exists and that its `__version__` matches. Upload
    ├── armpolicy-01.json
    ├── armrbac-01.json
    ├── usagepolicy.json
+   ├── user-creation.json
    ├── scripts/
    │   ├── psscript-01.ps1
    │   └── logontask-01.ps1
@@ -107,110 +109,125 @@ The script checks that the tag exists and that its `__version__` matches. Upload
        └── msp-labfiles.zip
    ```
 
-1. Add the files to `AZ-Templates.deployproj` so they are published with the project:
+2. Make sure these blob paths resolve; the lab VM downloads them at first boot:
 
-   ```xml
-   <Content Include="agentic-msp-support-agent\deploy-01.json" />
-   <Content Include="agentic-msp-support-agent\deploy-01.parameters.json" />
-   <Content Include="agentic-msp-support-agent\armpolicy-01.json" />
-   <Content Include="agentic-msp-support-agent\armrbac-01.json" />
-   <Content Include="agentic-msp-support-agent\usagepolicy.json" />
-   <Content Include="agentic-msp-support-agent\scripts\psscript-01.ps1" />
-   <Content Include="agentic-msp-support-agent\scripts\logontask-01.ps1" />
-   <Content Include="agentic-msp-support-agent\assets\msp-labfiles.zip" />
-   ```
-
-1. Make sure these blob paths resolve; the VM downloads them at boot:
-
-   - `https://experienceazure.blob.core.windows.net/templates/agentic-msp-support-agent/scripts/psscript-01.ps1`
+   - `https://experienceazure.blob.core.windows.net/templates/agentic-msp-support-agent/scripts/psscript-01.ps1` (the template's userData points here)
    - `https://experienceazure.blob.core.windows.net/templates/agentic-msp-support-agent/scripts/logontask-01.ps1`
    - `https://experienceazure.blob.core.windows.net/templates/agentic-msp-support-agent/assets/msp-labfiles.zip`
 
-## 6. Configure the CloudLabs Template
+## Step 5: Create the CloudLabs template
 
-- **Cloud and region:** Azure, Sweden Central, shared subscription with one resource group per deployment.
-- **ARM template:** `deploy-01.json` with `deploy-01.parameters.json`; governance `armpolicy-01.json`, `armrbac-01.json` and `usagepolicy.json`.
-- **Users:** two lab users per deployment (section 1), with the second user's UPN and object ID mapped to `tier1UserName` and `tier1UserObjectId`.
-- **Secure parameters:** `mcpOAuthClientSecret` and `purviewClientSecret` (step 2).
-- **Licences:** both users, as in section 1.
-- **Output parameters:** keep the deployment outputs on the **Environment** tab (the guide injects them). Add **Trainer Username** and **Trainer Password** (the CloudLabs support shadow account) to **Excluding Output Parameters**.
-- **Lab guide:** Github Master Document file URL `https://docs-api.cloudlabs.ai/repos/raw.githubusercontent.com/CloudLabsAI-Azure/Agentic-MSP-Support-Agent-Lab/refs/heads/main/masterdoc.json`.
-- **Validation:** turn on **Enable Lab Validation** and register the steps in `validation-scripts/README.md`, then replace each `REPLACE-WITH-VALIDATION-GUID` in the guide with the minted GUID.
-- **Duration:** 6 hours wall-clock (sign-in and breaks included), with a VM uptime limit of at least 6 hours. Launch deployments at least 2 hours before the start: provisioning takes about 50 to 80 minutes, and new Log Analytics workspaces can take up to 90 minutes to show their first diagnostic records.
+| Setting | Value |
+|---|---|
+| Cloud and tenancy | Azure, **Dedicated Tenant** with an Azure subscription in that tenant; region Canada Central |
+| ARM template | `deploy-01.json` with `deploy-01.parameters.json` |
+| Parameters | The eight platform parameters come from CloudLabs tokens (`GET-AZUSER-UPN`, `GET-AZUSER-PASSWORD`, `GET-ODL-ID`, `GET-DEPLOYMENT-ID`, `GEN-PASSWORD`); `azuserobjectid` is `GET-AZUSER-OBJECTID`. Set `bootstrapAppId` and `bootstrapAppSecret` to the service principal tokens from question 2 (as a secure parameter for the secret), or leave both empty for the ODL bootstrap. Set `validationPrincipalObjectId` from question 8 |
+| Users | `scripts/user-creation.json`: the Tier 1 Technician (`tier1.technician@<tenant domain>`, password generated by CloudLabs, no administrator role) and the licenses of both accounts, with the CSP offer IDs from question 4 |
+| Governance | `armpolicy-01.json` (deny policy), `armrbac-01.json` (the participant's custom role), `usagepolicy.json` |
+| Output parameters | Keep every output on the **Environment** tab: the guide injects them. Add **Trainer Username** and **Trainer Password** to **Excluding Output Parameters** |
+| Lab guide | The repository's `masterdoc.json` on the `toc-v3` branch, where this version lives: `https://docs-api.cloudlabs.ai/repos/raw.githubusercontent.com/CloudLabsAI-Azure/Agentic-MSP-Support-Agent-Lab/refs/heads/toc-v3/masterdoc.json`. Its pages point at the same branch. When the version is merged into `main`, change both to `refs/heads/main`. The repository is private, so CloudLabs also needs a fine-grained read-only token for it |
+| Validation | **Enable Lab Validation**, with the steps registered in phase 4 ([validation-scripts/README.md](../validation-scripts/README.md)) |
+| Duration | The 4-hour window plus the reviewers' 24-hour access agreed in phase 1. The template has no auto-shutdown schedule; CloudLabs manages uptime |
+| Deployment lead time | At least 24 hours before the start (sensitivity labels), see [RUNBOOK.md](tenant/RUNBOOK.md) |
 
-## 7. What provisioning creates outside Azure, and teardown
+## Step 6: Run one test deployment
 
-`Provision-ServiceDesk.ps1` creates a **Power Platform developer environment** named `Relecloud Service Desk <DeploymentID>` as the team account and adds the Tier 1 user to it. Deleting the CloudLabs resource group doesn't remove it. After the event, a Power Platform administrator deletes these environments in the Power Platform admin center (**Manage** > **Environments**), or they are disabled automatically after 30 days without activity and deleted 15 days later. The two app registrations are tenant-wide; keep them while labs run, and rotate their secrets after each event (`Initialize-LabTenant.ps1 -NewSecrets`).
+1. Deploy one environment from the template and watch its status: **Pending** while the VM provisions, then **Succeeded** with *Golden Environment v1.0 ready (fingerprint ...). Every component is ready.*
+2. On the lab VM, open `C:\LabFiles\provision-status.json`: every step shows **Succeeded**. The transcript is `C:\WindowsAzure\Logs\MspProvisioning.txt`.
+3. Double-click **Lab readiness check** on the desktop: ten components **Ready** and the last line *Every component is ready. You can start Exercise 1.*
+4. Enable Purview pay-as-you-go in the test tenant ([PURVIEW-RUNBOOK.md](tenant/PURVIEW-RUNBOOK.md)) and check its table.
+5. Keep this environment for the pilot (phase 5) if the pilot is within the next days; otherwise let it be deleted.
 
-## 8. Support runbook
+## Reference
 
-### Before the event
+### Template parameters
 
-- [ ] Every deployment reports **Succeeded** in the CloudLabs admin portal. The logon task fails the deployment if any provisioning step, the MCP server health check (including the Key Vault key), the Entra Agent ID or a lab tool is missing.
-- [ ] On one environment, double-click **Lab readiness check**: every component reports **Ready** (Tier 1 Technician reports **Not configured** when the deployment has no second user).
-- [ ] Walk one environment through Exercise 1 Task 1, including the one-time Foundry consent for the MCP connection.
-
-### Common issues
-
-| Symptom | Likely cause | Fix |
+| Parameter | Default | Purpose |
 |---|---|---|
-| The readiness check reports a component **Not ready** | Provisioning step failed or is still finishing | Read `C:\LabFiles\provision-status.json` and `C:\WindowsAzure\Logs\MspProvisioning.txt`; re-run the failed step (below) |
-| Scripts fail with *Run 'az login' first* | The participant's Azure CLI session expired or belongs to another user | `az login` as the team account in PowerShell 7 |
-| An `az` command or a portal change asks for multifactor authentication | Signed in without the Temporary Access Pass, or the pass expired | Sign in again with the pass from the **Environment** tab; CloudLabs issues a new one if it expired |
-| The agent's first tool call shows a consent link that fails with a redirect error | The connection's redirect URL is not registered on the gateway app | Step 2, **Redirect URL** |
-| Tool calls return 401 | The user's token lacks the `ServiceDesk.Access` scope, or the user consented before the scope existed | Re-run `Initialize-LabTenant.ps1`; the user removes the connection consent and consents again |
-| Write tools return `USER_CONTEXT_REQUIRED` | The call came through the diagnostics API, which carries no user | Expected: writes run only through the agent |
-| `Load-SearchIndex.ps1` prints rate-limit waits | The 30,000 TPM embedding deployment is saturated | Expected; let it finish (3 to 6 minutes) |
-| Log queries return nothing | Ingestion delay, or the environment was provisioned less than two hours ago | Wait 5 to 15 minutes; up to 90 minutes for brand-new workspaces |
-| `az acr build` fails with `TasksOperationsNotAllowed` | The subscription is funded by free credits | Move the deployment to a paid subscription |
-| A redeploy doesn't become healthy | The new image fails to start | `C:\LabFiles\mcp-server\scripts\Show-McpServerLog.ps1 -All`, fix the code error, redeploy; or roll back with `Deploy-McpServer.ps1 -Rollback` |
-| Dataverse writes fail with 429 | The tenant-pooled daily request allowance is exhausted | Stop bulk reloads; avoid `-ResetData` runs during the event |
-| Purview never blocks anything | No DLP policy for the Purview app, Purview pay-as-you-go not enabled, or the user lacks an E5 licence | Step 2 and section 1; `/health` reports `purview` as `enabled` when the server is configured |
+| `adminUsername`, `adminPassword` | `azureuser`, `GEN-PASSWORD` | Lab VM administrator (the account that signs in to the VM) |
+| `AzureUserName`, `AzurePassword` | `GET-AZUSER-UPN`, `GET-AZUSER-PASSWORD` | The participant, the Senior Technician; the password is used only by the ODL bootstrap |
+| `ODLID`, `DeploymentID` | `GET-ODL-ID`, `GET-DEPLOYMENT-ID` | CloudLabs instance and the naming suffix of every resource |
+| `trainerUserName`, `trainerUserPassword` | `trainer`, `GEN-PASSWORD` | The CloudLabs support shadow account on the VM (hidden outputs) |
+| `azuserobjectid` | `GET-AZUSER-OBJECTID` | The participant's object ID, for direct role assignments |
+| `bootstrapAppId`, `bootstrapAppSecret` | empty | The CloudLabs bootstrap service principal (question 2); the secret is stored only in Key Vault |
+| `validationPrincipalObjectId` | empty | The CloudLabs validation service principal (question 8): read-only data roles on search and storage |
+| `oauthRedirectUris` | empty | Redirect URLs of the Foundry OAuth connections, comma separated, when Foundry does not return them ([RUNBOOK.md](tenant/RUNBOOK.md#register-the-oauth-redirect-url)) |
+| `dataverseLocation`, `dataverseUrlSuffix` | `canada`, `crm3.dynamics.com` | Power Platform region of the managed developer environment |
+| `chatModelCapacity`, `embeddingModelCapacity` | `100`, `150` | Global Standard capacity in thousands of tokens per minute |
+| `requireSupplierGlobalAdmin` | `true` | Remove the participant's Global Administrator role only when another administrator remains |
+| `tier1FoundryRole` | `Foundry Agent Consumer` | The Tier 1 Technician's role on the Foundry project; `Foundry User` is the pilot fallback for the portal playground |
+| `seniorDataverseSystemAdministrator` | `false` | Pilot fallback: the Senior Technician is also System Administrator in the Dataverse environment |
+| `foundrySearchFallbackRoles` | `false` | Pilot fallback: extra search roles for the Foundry resource identity |
+| `mcpBackendKeySeed` | generated | Never set: seeds the per-deployment backend key |
 
-### Re-running provisioning
+### Outputs (the Environment tab and the guide's inject keys)
 
-Run these on the team's lab VM in PowerShell 7 started with **Run as administrator**, after `az login` as the team account. The commands read their values from `C:\LabFiles\team-settings.json`.
+`DeploymentID`, `Region`, `Resource Group Name`, `LabVM DNS Name`, `LabVM Admin Username`, `LabVM Admin Password`, `Trainer Username`, `Trainer Password` (hidden), `Foundry Resource Name`, `Foundry Project Name`, `Foundry Project Endpoint`, `Chat Model Deployment`, `Embedding Model Deployment`, `Agent Name`, `AI Search Service Name`, `AI Search Endpoint`, `Storage Account Name`, `Export Container`, `API Management Name`, `MCP Read Gateway URL`, `MCP Write Gateway URL`, `MCP Diagnostics URL`, `MCP Gateway Audience`, `MCP Read Connection`, `MCP Write Connection`, `MCP Server URL`, `Container App Name`, `Container Registry Name`, `Key Vault Name`, `Key Vault URL`, `Log Analytics Workspace`, `Application Insights Name`, `MCP Backend Identity Name`, `MCP Backend Identity Client ID`, `Dataverse Environment URL`, `Service Desk App URL`, `Tier 1 Technician Username`, `Golden Environment Version`.
 
-- **Re-run one or more steps** (for example after a transient failure):
+The resource group also carries the tags the validation steps read: `lab-golden-environment` (`v1.0`), `lab-searchable-documents` (`753`), `lab-new-incident-1` (`TCK-10561`), `lab-new-incident-2` (`TCK-10562`) and `lab-mcp-release` (`3.0.0`), merged with the tags CloudLabs sets. The readiness check compares them with the seed manifest and the release.
 
-  ```powershell
-  $s = Get-Content C:\LabFiles\team-settings.json -Raw | ConvertFrom-Json
-  pwsh C:\LabFiles\provision\Provision-ServiceDesk.ps1 -DeploymentID $s.DeploymentID -ResourceGroupName $s.ResourceGroup `
-      -AzureUserName $s.TeamUser -AzureTenantID $s.TenantId -AzureSubscriptionID $s.SubscriptionId `
-      -McpGatewayAppId $s.McpGatewayAppId -Steps security, readiness
-  ```
+### Names
 
-  Re-running `security` also restores the least-privileged roles if a team changed them.
+| Object | Name |
+|---|---|
+| Lab VM, Foundry resource and project | `labvm-<DID>`, `aif-msp-<DID>`, `proj-msp-<DID>` |
+| Model deployments | `gpt-5.1`, `text-embedding-3-small` |
+| Agent | `msp-support-agent`, MCP tools `servicedesk-read` (no approval) and `servicedesk-write` (approval on every call) |
+| Project connections | `servicedesk-read`, `servicedesk-write` (OAuth identity passthrough), `search` (Microsoft Entra ID), `appinsights` |
+| AI Search, index objects of Exercise 1 | `srch-msp-<DID>`; `servicedesk-knowledge`, `servicedesk-export-ds`, `servicedesk-embed-skills`, `servicedesk-export-indexer` |
+| Storage account and containers | `stmsp<DID><4 characters>`; `servicedesk-export` (one JSON file per document), `servicedesk-export-meta` (export manifest, readiness reports) |
+| API Management, APIs, diagnostics subscription | `apim-msp-<DID>`; `servicedesk-read`, `servicedesk-write`, `servicedesk-diag`; `lab-diagnostics` |
+| Container Apps environment and app, registry | `cae-msp-<DID>`, `ca-mcp-<DID>` (baseline revision suffix `baseline-<time>`), `acrmsp<DID><4 characters>`, image `mcp-server:3.0.0` |
+| Key Vault and its secrets | `kv-msp-<DID>-<4 characters>`; `mcp-backend-key`, `purview-client-secret`, `apim-diagnostics-key` |
+| Monitoring | `log-msp-<DID>`, `appi-msp-<DID>` |
+| Managed identities | `id-mcp-<DID>` (MCP server), `id-prov-<DID>` (lab VM), `id-apim-<DID>` (API Management) |
+| App registrations in the tenant | `Relecloud Lab Setup <DID>` (stripped at the end), `Relecloud Service Desk MCP Gateway` (scope `ServiceDesk.Access`, audience `https://<tenant domain>/servicedesk-mcp`), `Relecloud Service Desk Purview Integration` |
+| Microsoft Purview | Label `Relecloud Confidential`, label policy `Relecloud Service Desk label policy`, DLP policy `Relecloud Service Desk card numbers` with rule `Block card numbers sent to the agent` |
+| Power Platform | Managed developer environment `Relecloud Service Desk <DID>` (domain `mspdesk<DID>`), app **Service Desk** (`spk_ServiceDesk`) |
+| Dataverse roles | `Service Desk Agent Read`, `Service Desk Agent Write`, `Service Desk Senior Technician`, `Service Desk Tier 1 Technician`, `Service Desk Security Steward`, `Service Desk Readiness Read`; business unit `Relecloud Regulated Accounts`; column security profile `Contact Phone Protection` |
 
-- **Reload the seed data** (removes every seeded record, loads a fresh copy whose dates fall in the current week, re-exports the search content and loads the new incidents; participant changes to tickets and notes are lost): the same command with `-ResetData` instead of `-Steps`. The participants then run `C:\LabFiles\search\Load-SearchIndex.ps1` again.
-- **Restore the previous MCP server revision:** `C:\LabFiles\mcp-server\scripts\Deploy-McpServer.ps1 -Rollback`.
-- **Rebuild the agent definition:** `C:\LabFiles\tools\Update-AgentDefinition.ps1 -Knowledge` (state after Exercise 1) or `-Reset` (the baseline).
+### Settings file: C:\LabFiles\lab-settings.json
 
-## 9. Pilot checklist and setup TODO
+Written by provisioning, read by every lab tool; it never holds a secret. Keys: `DeploymentID`, `TenantId`, `SubscriptionId`, `ResourceGroup`, `Region`, `SeniorUser`, `SeniorUserObjectId`, `Tier1User`, `Tier1UserObjectId`, `FoundryResource`, `FoundryProject`, `FoundryProjectEndpoint`, `ChatDeployment`, `EmbeddingDeployment`, `AgentName`, `AgentId` (the Entra Agent ID client ID), `AgentIdentityObjectId`, `AgentVersion`, `SearchService`, `SearchEndpoint`, `SearchIndex`, `StorageAccount`, `ExportContainer`, `ExportMetaContainer`, `ExportManifest`, `ApimName`, `McpReadGatewayUrl`, `McpWriteGatewayUrl`, `McpDiagnosticsUrl`, `ApimDiagnosticsSubscription`, `ApimDiagnosticsKeySecret`, `McpReadConnection`, `McpWriteConnection`, `McpGatewayAppId`, `McpGatewayAppObjectId`, `McpGatewayAudience`, `McpGatewayScope`, `McpConnectionSecretExpires`, `McpConnectionRedirectUris`, `ContainerApp`, `ContainerRegistry`, `ContainerRegistryLoginServer`, `McpServerUrl`, `McpRelease`, `McpImage`, `McpBaselineRevision`, `McpBackendIdentityName`, `McpBackendIdentityClientId`, `ProvisioningIdentityClientId`, `ProvisioningPrincipalId`, `KeyVault`, `KeyVaultUrl`, `LogAnalyticsWorkspace`, `LogAnalyticsWorkspaceId`, `AppInsights`, `DataverseUrl`, `DataverseEnvironmentId`, `DataverseEnvironmentSku`, `ServiceDeskAppUrl`, `SensitivityLabelId`, `SensitivityLabelName`, `PurviewAppId`, `PurviewDlpPolicy`, `Purview` (a summary), `GoldenEnvironmentVersion`, `McpServerSource`, `SeedManifest`, `ReadinessReport`, `ProvisionedOn`.
 
-Walk one deployment through the whole guide before the first delivery. These are the items the documentation doesn't settle, and the manual setup that must be done once.
+Other files on the VM: `C:\LabFiles\provision-status.json` (provisioning steps), `C:\LabFiles\readiness\readiness-report.json` (one object per component: `Component`, `Status`, `Detail`) and `consistency-report.json` (with the facts and the fingerprint), `C:\LabFiles\search\export-manifest.json` and `sample-documents\`, `C:\LabFiles\seed\data\manifest.json`, and `C:\LabFiles\evidence\` (the participants' exported evidence).
 
-**Tenant, licence and manual setup (TODO before the first delivery):**
+### MCP server contract (release v3.0.0)
 
-- [ ] CloudLabs: a second lab user per deployment, its inject keys for the guide (Tier 1 UPN and password on the **Environment** tab), and the mapping to `tier1UserName` and `tier1UserObjectId`.
-- [ ] Licences for both users: Developer Plan, and E5 or E5 Compliance.
-- [ ] `Initialize-LabTenant.ps1` run, secrets stored as template secure parameters, redirect URL registered (step 2).
-- [ ] Sensitivity label ID set; DLP policy for the Purview app created; Purview pay-as-you-go enabled.
-- [ ] Power Platform tenant settings and the provisioning sign-in confirmed (section 1).
+What provisioning, API Management and the readiness check expect from the server in `CloudLabsAI-Azure/agentic-msp-mcp-server`:
 
-**Behaviors to confirm on the pilot:**
+| Item | Contract |
+|---|---|
+| Endpoints | `/read/mcp` read tools only (the `servicedesk-read` API), `/write/mcp` write tools only (`servicedesk-write`), `/mcp` every tool for the diagnostics API (user headers ignored, so writes refuse), `/health` without a key. Stateless streamable HTTP with JSON responses, port 8000 |
+| Gateway key | Every MCP path requires `x-backend-key`, compared with the Key Vault secret `mcp-backend-key`, which the server reads at startup with `id-mcp` |
+| Headers from API Management | `x-correlation-id` (a GUID, echoed in every result), `x-user-oid`, `x-user-name`, `x-client-app-id`, `x-agent-id` (the Entra Agent ID from the named value `agent-id`), `x-gateway-api` (`servicedesk-read`, `servicedesk-write` or `servicedesk-diag`), `x-gateway-caller` (`agent` or `operator`). The diagnostics API removes every user header |
+| Environment variables | `DATA_BACKEND`, `DATAVERSE_URL`, `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `KEY_VAULT_URL`, `BACKEND_KEY_SECRET_NAME`, `REQUIRE_BACKEND_KEY`, `DATAVERSE_IMPERSONATION`, `REQUIRE_USER_FOR_WRITES`, `AGENT_NAME`, `AGENT_ID`, `PURVIEW_ENABLED`, `PURVIEW_TENANT_ID`, `PURVIEW_CLIENT_ID`, `PURVIEW_CLIENT_SECRET_NAME`, `PURVIEW_RESTRICTED_LABELS` (label ID and name, comma separated), `MCP_ALLOWED_HOSTS`, `MCP_STATELESS`, `MCP_READ_PATH`, `MCP_WRITE_PATH`, `MCP_DIAGNOSTICS_PATH`, `GOLDEN_ENVIRONMENT_VERSION`, `LOG_LEVEL`, `PORT` |
+| `/health` | `status` `ok`, `version` equal to `__version__`, `gateway_key_source` `key vault`, `user_impersonation` `true`; `purview` is shown by the readiness check |
+| Tools | The read and write lists in `LabConfig.psd1` (`ReadTools`, `WriteTools`) are checked against the release's `@catalogue.read_tool` and `@catalogue.write_tool` functions when the archive is built. `get_ticket` takes `ticket_number`. Agent action records (`spk_agentaction`) are written by the server as itself, never impersonated |
+| Release | Tag `v3.0.0` with `__version__ = "3.0.0"`, and `scripts/Deploy-McpServer.ps1`, `Invoke-McpTool.ps1` and `Show-McpServerLog.ps1`, which provisioning copies to `C:\LabFiles\tools` and which read `C:\LabFiles\lab-settings.json`. The diagnostics key is available from the subscription `lab-diagnostics` (the participant's role may list its keys) or the Key Vault secret `apim-diagnostics-key` (the VM's identity may read it) |
 
-- [ ] The `servicedesk-mcp` connection that `deploy-01.json` creates (ARM, `authType` `OAuth2`, category `RemoteTool`) works for consent and tool calls. Compare it with a reference connection created with the same values by the Azure Developer CLI (`azd ai connection create`, kind `remote-tool`, auth type `oauth2`); if the metadata keys differ, align `deploy-01.json`.
-- [ ] The redirect URL is the same for every connection in the region (register once) or per connection (then provisioning must register each one).
-- [ ] The agent's `require_approval` `{ never: { tool_names: [...] } }` is accepted, the read tools run without a prompt and every write tool asks for approval.
-- [ ] API Management validates the user token (`scp` contains `ServiceDesk.Access`, `azp` is the gateway app) and forwards `x-user-oid` and `x-user-name`; the MCP log line shows the user.
-- [ ] Dataverse impersonation with `CallerObjectId`: the Tier 1 write is refused with `0x80040220`, the Senior write succeeds, and the audit history shows the technician with the application user as the caller.
-- [ ] Narrowing **Service Desk Agent Write** to Business Unit refuses writes on TCK-10479 and TCK-10491 (record owned by the **Relecloud Regulated Accounts** team) and record the exact error code.
-- [ ] The Tier 1 user is added to the developer environment by `Add-AdminPowerAppsSyncUser`, can sign in to Foundry with the Foundry User role on the project, and the Service Desk app opens for it.
-- [ ] The MCP server reads `mcp-backend-key` from Key Vault at startup, and `AZKVAuditLogs` shows the `SecretGet` by the server's managed identity.
-- [ ] Purview `processContent` returns `restrictAccess` for the seeded card numbers with the lab's DLP policy, and the DLP event shows in the Purview portal (Activity explorer).
-- [ ] `ApiManagementGatewayLogs.CorrelationId` equals the MCP server's `correlation_id`; record whether `ApiManagementGatewayMCPLog` carries a session ID.
-- [ ] Foundry agent traces in Application Insights contain the tool output with the correlation ID, so `Get-ActionTrail.ps1` finds the agent run.
-- [ ] Securing a contact column takes effect for the MCP application user within a minute.
-- [ ] Capture every screenshot listed in `SCREENSHOT-TODO.md` and replace the pending markers.
-- [ ] Register and deploy the validation steps; run Template Audit **Lab Test** end to end.
+### Identities and their rights
+
+| Identity | During provisioning | After provisioning |
+|---|---|---|
+| Senior Technician (the participant) | Global Administrator (CloudLabs) | No directory role. The custom role on the resource group; Foundry User on the project; Reader on the Foundry resource and the storage account; Log Analytics Reader; Key Vault Reader; Search Service Contributor and Search Index Data Reader; Storage Blob Data Reader; Managed Identity Operator on `id-mcp`; Purview role groups Information Protection Analysts and Data Security AI Viewers; Dataverse Service Desk Senior Technician and Service Desk Security Steward |
+| Tier 1 Technician | none | Foundry Agent Consumer on the project; Dataverse Service Desk Tier 1 Technician |
+| `id-prov` (lab VM) | Provisioning-only: Storage Blob Data Contributor, Foundry Project Manager, Key Vault Secrets Officer, API Management Service Contributor, a conditional role assignment administrator role; Dataverse System Administrator | Reader on the resource group, Foundry User, Storage Blob Data Reader, Log Analytics Reader, Key Vault Reader, Key Vault Secrets User on `apim-diagnostics-key` only, registry push and Tasks, Container Apps Contributor, Managed Identity Operator on `id-mcp`; Graph read-only (users, directory roles, applications, consent grants, published labels); Dataverse Service Desk Agent Read and Service Desk Readiness Read |
+| `id-mcp` (MCP server) | same as after | Key Vault Secrets User, AcrPull; Dataverse application user with Service Desk Agent Read, Service Desk Agent Write and Delegate (never System Administrator) |
+| `id-apim` (API Management) | same as after | Key Vault Secrets User, for the `mcp-backend-key` named value |
+| Setup app | Graph application permissions, Exchange.ManageAsApp, Global Administrator role, Power Platform management application, Dataverse System Administrator | No credential, no role, no permission (stripped by the last step); its certificate is deleted from the VM |
+| Agent (`msp-support-agent`) | none | Its own Entra Agent ID; no Dataverse permission. Its tool calls carry the signed-in technician's token |
+
+## Phase checklist
+
+- [ ] CloudLabs answered every question in [Questions for CloudLabs](#questions-for-cloudlabs), and the answers are in the parameters file and `user-creation.json`
+- [ ] Quota, region and tenant settings are confirmed (step 1)
+- [ ] `Build-Template.ps1` reports `deploy-01.json` up to date
+- [ ] `Build-LabFilesZip.ps1` built `msp-labfiles.zip` from the MCP server tag `v3.0.0` with every check passing
+- [ ] The files are uploaded and the three blob paths resolve
+- [ ] The CloudLabs template is configured as in step 5, with the trainer outputs excluded
+- [ ] One test deployment reports **Succeeded**, and its readiness check shows every component **Ready**
+
+---
+
+**Next:** Phase 3, prepare the environments: [tenant/RUNBOOK.md](tenant/RUNBOOK.md).

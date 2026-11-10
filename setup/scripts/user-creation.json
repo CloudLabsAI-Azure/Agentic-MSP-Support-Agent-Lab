@@ -1,0 +1,19 @@
+{
+  "AutoPasswordGeneration": true,
+  "Users": [
+    {
+      "FirstName": "Tier 1",
+      "LastName": "Technician",
+      "UPNPrefix": "tier1.technician",
+      "GlobalAdmin": false,
+      "UserLicenses": [
+        "REPLACE-WITH-CSP-OFFER-ID-MICROSOFT-365-E5",
+        "REPLACE-WITH-CSP-OFFER-ID-POWER-APPS-PREMIUM"
+      ]
+    }
+  ],
+  "Licenses": [
+    { "offerId": "REPLACE-WITH-CSP-OFFER-ID-MICROSOFT-365-E5", "quantity": 1 },
+    { "offerId": "REPLACE-WITH-CSP-OFFER-ID-POWER-APPS-PREMIUM", "quantity": 1 }
+  ]
+}

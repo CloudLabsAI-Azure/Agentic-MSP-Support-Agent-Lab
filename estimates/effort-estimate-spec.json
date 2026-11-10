@@ -1,151 +1,151 @@
 {
- "lab_name": "Agentic MSP Support Agent Guided Lab",
+ "lab_name": "Agentic MSP Support Agent Guided Lab (TOC v3 rebuild)",
  "prepared_by": "Amit Kumar (prepared with the CloudLabs Lab Builder)",
- "prepared_on": "2026-10-02",
+ "prepared_on": "2026-11-10",
  "currency": "USD",
  "phases": [
   {
-   "phase": "Research and solution design (Foundry agents, Entra Agent ID, OAuth identity passthrough, API Management, Container Apps, Dataverse impersonation and security, Purview, Key Vault, pricing)",
+   "phase": "Redesign for a dedicated tenant per participant (research refresh: Foundry and gpt-5.1, Entra Agent ID and identity passthrough, API Management and Container Apps, Dataverse managed developer environments, Purview pay-as-you-go, Azure AI Search; region move to Canada Central; setup app and role design)",
+   "low": 24,
+   "high": 36,
+   "confidence": "High",
+   "status": "Done",
+   "assumptions": "Six research notes refreshed on 2026-11-06 with sources and open questions; the settled design is in the build spec, section 3 (Canada Central, one Entra tenant and subscription per participant, OAuth identity passthrough, managed developer environment, certificate-based setup app, Global Administrator removed after provisioning)."
+  },
+  {
+   "phase": "Bicep template (main.bicep and 11 modules, Build-Template.ps1 that compiles and checks deploy-01.json, ARM outputs as Environment tab fields) and the governance quartet (ARM policy, custom RBAC, usage policy)",
    "low": 20,
-   "high": 30,
-   "confidence": "High",
-   "status": "Done",
-   "assumptions": "Microsoft Learn research notes with sources for every exercise area; region, model, tier and security decisions recorded in BUILD-NOTES.md."
+   "high": 32,
+   "confidence": "Medium-High",
+   "status": "In progress",
+   "assumptions": "Compiles to deploy-01.json; the first live deployment into a dedicated tenant is still to run. API Management MCP APIs need the preview API version 2025-09-01-preview."
   },
   {
-   "phase": "MCP server v2.0.0 (14 tools: 9 read, 5 approval-gated write; user context, Dataverse impersonation, input validation, Purview checks, Key Vault secret, correlation logging, tests, Dockerfile, client, deploy, rollback and log scripts)",
-   "low": 36,
-   "high": 52,
-   "confidence": "High",
-   "status": "Done",
-   "assumptions": "57 automated tests pass against the fixture backend; Dataverse calls verified against a mock. Not yet run against a live Dataverse environment."
+   "phase": "Per-tenant provisioning with the setup app (app registrations and admin consent, Purview label, label policy and DLP policy, managed developer environment, Dataverse schema, security roles and column security, seed load, search export, MCP image build and baseline revision, agent and its two MCP OAuth connections, role assignments, Global Administrator removal, readiness check and consistency report)",
+   "low": 56,
+   "high": 88,
+   "confidence": "Medium",
+   "status": "In progress",
+   "assumptions": "Scripts in setup/assets/labfiles/provision; not yet run end to end in a fresh tenant. Riskiest steps: unattended sign-in in a new tenant, Purview configuration with app-only PowerShell, managed developer environment creation, and the OAuth connection metadata."
   },
   {
-   "phase": "Seed data generator and loader (customers, procedures, contacts, articles, runbooks, technicians, tickets, notes, new incidents, labelled document, business-hours SLA)",
-   "low": 20,
-   "high": 28,
-   "confidence": "High",
-   "status": "Done",
-   "assumptions": "Deterministic seed; loader verified against a mock Dataverse Web API (all counts match). Volumes and exercise records in setup/DATA-SPEC.md."
-  },
-  {
-   "phase": "Provisioning automation (ARM template, userData bootstrap, logon task, Dataverse schema, app and least-privileged roles, two identities, OAuth connection, agent, Key Vault, readiness check)",
+   "phase": "MCP server v3.0.0 (read and write endpoints plus diagnostics, 23 tools with output schemas, the Agent Action table, the duplicate guard, Purview processContent checks, correlation logging, tests, build, deploy and rollback scripts)",
    "low": 40,
    "high": 60,
-   "confidence": "Medium",
-   "status": "Done",
-   "assumptions": "Static checks pass; first live deployment still to run. The OAuth connection metadata, developer environment creation as the team user and the Tier 1 user's environment access are the riskiest steps."
-  },
-  {
-   "phase": "Governance quartet (ARM policy, custom RBAC, usage policy) and masterdoc",
-   "low": 3,
-   "high": 5,
-   "confidence": "High",
-   "status": "Done",
-   "assumptions": "Allow-list mirrors deploy-01.json resource types and SKUs."
-  },
-  {
-   "phase": "Lab guide content (getting started, seven exercises with 27 tasks and 104 steps, README, reference solution, data specification)",
-   "low": 28,
-   "high": 40,
-   "confidence": "High",
-   "status": "Done",
-   "assumptions": "Written to the cloudlabs-step-by-step profile and the TOC v2 schedule; portal labels taken from Microsoft Learn and flagged where the docs are thin."
-  },
-  {
-   "phase": "Validation scripts (14 PowerShellV2 checks) and registration checklist",
-   "low": 8,
-   "high": 12,
    "confidence": "Medium-High",
-   "status": "Done",
-   "assumptions": "Checks read ARM, AI Search, Log Analytics and Dataverse with the CloudLabs service principal; GUIDs are minted at registration."
+   "status": "In progress",
+   "assumptions": "Tests run against the fixture backend in the MCP repository; Dataverse impersonation and the Purview calls are verified live in the pilot."
   },
   {
-   "phase": "Cost estimate workbook",
-   "low": 2,
-   "high": 3,
-   "confidence": "High",
-   "status": "Done",
-   "assumptions": "Sweden Central retail prices retrieved 2026-10-01; Purview meters and the Microsoft 365 E5 list price checked 2026-10-02."
-  },
-  {
-   "phase": "Screenshot production (58 captures with balloons)",
-   "low": 10,
-   "high": 16,
-   "confidence": "Medium",
-   "status": "Not started",
-   "assumptions": "Captured during the pilot walk-through; getting-started sign-in shots reused from the standard CloudLabs set."
-  },
-  {
-   "phase": "Pilot deployment, end-to-end test and fixes",
-   "low": 20,
+   "phase": "Data rebuild (120 knowledge articles, 36 customer documents, 500 historical tickets, 60 open tickets plus 2 new incidents, 1,436 ticket notes; deterministic generator, loader, manifest, data tests, DATA-SPEC.md)",
+   "low": 24,
    "high": 36,
-   "confidence": "Medium",
-   "status": "Not started",
-   "assumptions": "One full walk-through with both identities, plus fixes for the pilot checklist items in setup/README.md (OAuth connection, impersonation errors, Purview latency, portal label drift, log fields)."
+   "confidence": "High",
+   "status": "Done",
+   "assumptions": "The seed manifest meets the requirement minimums and gives the 753-document search export; the live load into a managed developer environment is checked in the pilot."
   },
   {
-   "phase": "Platform onboarding (template library, blob uploads, template configuration, second lab user, validation registration, licence assignment)",
-   "low": 6,
-   "high": 10,
+   "phase": "Lab guide: 7 rewritten exercises (27 tasks, 104 steps), getting started, README delivery path, AGENDA, SUPPORT-GUIDE and masterdoc",
+   "low": 56,
+   "high": 80,
+   "confidence": "Medium-High",
+   "status": "In progress",
+   "assumptions": "Exercises 1, 2 and 7 are rewritten for v3; Exercises 3 to 6 are being rewritten from the October text. Portal labels come from Microsoft Learn and are flagged where the docs are thin."
+  },
+  {
+   "phase": "9 animated diagrams (architecture, session journey and one per exercise), SVG sources rendered to PNG",
+   "low": 14,
+   "high": 22,
+   "confidence": "High",
+   "status": "Done",
+   "assumptions": "SVG and PNG pairs in Instructions/media; prose in each exercise matches its diagram."
+  },
+  {
+   "phase": "14 validation scripts and the acceptance test suite (the 14 acceptance criteria: login, isolation, baseline consistency, seeded data, grounded retrieval, MCP read and write, redeploy and rollback, authorization denial, secrets, data protection, audit evidence, reset, concurrency, spare recovery)",
+   "low": 28,
+   "high": 44,
+   "confidence": "Medium",
+   "status": "In progress",
+   "assumptions": "Checks read Azure Resource Manager, Azure AI Search and the MCP server's tool invocation log in Log Analytics as the CloudLabs service principal; GUIDs are minted at registration. Concurrency and reset criteria need real tenants."
+  },
+  {
+   "phase": "Cost and effort estimates for the v3 design",
+   "low": 4,
+   "high": 6,
+   "confidence": "High",
+   "status": "Done",
+   "assumptions": "Canada Central retail prices retrieved 2026-11-10 from the Azure Retail Prices API; license list prices from the research notes; arithmetic in estimates/ESTIMATE-NOTES.md."
+  },
+  {
+   "phase": "Pilot: one environment end to end with both identities, screenshots and 27 task GIFs, open questions settled, fixes",
+   "low": 48,
+   "high": 72,
+   "confidence": "Medium",
+   "status": "Not started",
+   "assumptions": "About 60 screenshots and 27 GIFs; settles the pilot items in BUILD-NOTES.md (identity passthrough in the playground, the Tier 1 role, the approval prompt, Purview latency, tokens per participant, the Container Apps environment charge)."
+  },
+  {
+   "phase": "Platform onboarding (Dedicated Tenant template with its user-creation JSON and license offer IDs, template library and blob uploads, lab files zip, validation registration)",
+   "low": 8,
+   "high": 14,
    "confidence": "Medium-High",
    "status": "Not started",
-   "assumptions": "Follows setup/README.md and validation-scripts/README.md."
+   "assumptions": "Follows setup/README.md and validation-scripts/README.md; license offer IDs for Microsoft 365 E5 and Power Apps Premium confirmed with CloudLabs first."
   },
   {
-   "phase": "Tenant preparation and licensing confirmation",
-   "low": 4,
-   "high": 8,
+   "phase": "Four workshop deliveries with support (per workshop: 27 environments provisioned at least 24 hours ahead, Purview pay-as-you-go enabled by hand in each tenant, readiness sweep and consistency report, live support during the 4-hour window with spare swaps and resets, the 24-hour review window, teardown check and cost reconciliation)",
+   "low": 80,
+   "high": 120,
    "confidence": "Medium",
    "status": "Not started",
-   "assumptions": "Gateway app registration with the ServiceDesk.Access scope, Purview app, sensitivity label and DLP policy, Purview pay-as-you-go, Power Platform settings, quota check, a Microsoft licensing answer on shared team accounts, and confirming Temporary Access Pass sign-in for attendees plus password sign-in to Power Platform for provisioning in the TAP tenant."
+   "assumptions": "20 to 30 hours per workshop: about 4 to 5 hours of Purview pay-as-you-go enablement (27 tenants x about 10 minutes), 3 hours of readiness checks, 10 hours of live support (two engineers for the window), 3 to 6 hours of review-window support, and 2 to 4 hours of teardown and reconciliation."
   }
  ],
  "risks": [
   {
-   "risk": "In the TAP tenant, AzureAdUserPassword holds a Temporary Access Pass, so provisioning can't sign the team account in to Power Platform and Dataverse without a browser",
-   "impact": "Developer environment, schema, security and seed steps fail; Azure Resource Manager steps are unaffected (they run as the provisioning managed identity)",
-   "mitigation": "Settle before the pilot: a password valid during provisioning, or a Power Platform service principal that creates the environment for the team account (setup/README.md section 1)"
+   "risk": "Unattended provisioning can't sign in to a new tenant (mandatory MFA, security defaults), or the setup app's certificate flow fails",
+   "impact": "Provisioning stops before Dataverse, Purview and the agent; the environment never reaches Ready",
+   "mitigation": "Pilot first in a fresh CloudLabs Dedicated Tenant; keep the bootstrap service principal parameters (bootstrapAppId, bootstrapAppSecret) as the fallback"
   },
   {
-   "risk": "Creating a Power Platform developer environment as each team account fails or is restricted in the lab tenant",
-   "impact": "No Dataverse environment, so no Service Desk app or seed data",
-   "mitigation": "Pilot first; fallback is an admin-created environment per team with the team account as System Administrator"
+   "risk": "Purview pay-as-you-go enablement is a manual portal step per tenant, in preview, and can take hours",
+   "impact": "No DLP block in Exercise 6 for tenants where it is missing",
+   "mitigation": "Enable it right after provisioning, at least 24 hours ahead; the readiness check asserts a block, not only a successful call"
   },
   {
-   "risk": "The Foundry OAuth2 project connection that deploy-01.json creates uses metadata keys that Microsoft doesn't document",
-   "impact": "The agent can't obtain the technician's token, so every MCP tool call fails",
-   "mitigation": "Pilot item: compare with a reference connection created by azd ai connection create and align deploy-01.json; confirm whether the redirect URL is per connection or regional"
+   "risk": "Sensitivity labels take up to 24 hours to apply",
+   "impact": "Exercise 6 label checks fail on environments provisioned late",
+   "mitigation": "Provision at least 24 hours ahead (this drives the 58-hour duration); spares come from the same batch"
   },
   {
-   "risk": "One account per role per team, shared by its members, is judged multiplexing",
-   "impact": "Licensing non-compliance",
-   "mitigation": "Get written confirmation from Microsoft licensing, or give every attendee their own accounts"
+   "risk": "A participant subscription is on the Free Tier or a low quota tier",
+   "impact": "gpt-5.1 can't be deployed (the Free Tier has no gpt-5.1 quota) or is throttled",
+   "mitigation": "Check each subscription's quota tier before provisioning; Tier 1 allows 250K TPM, above the 100K TPM deployment"
   },
   {
-   "risk": "The Tier 1 Technician can't sign in to the agent or the Service Desk app with the roles provisioning grants",
-   "impact": "The Exercise 5 Task 4 comparison between the two identities can't run",
-   "mitigation": "Pilot item; the readiness check reports the Tier 1 identity as Ready, Not ready or Not configured before the session"
+   "risk": "Token use above the estimate, for example if Foundry also sends the MCP output schemas to the model (about 31,700 more input tokens per model call) or the playground runs evaluators",
+   "impact": "Model use approaches or exceeds the 4M input and 0.4M output token allowance per environment",
+   "mitigation": "Measure tokens per participant in the pilot; trim tool descriptions and schemas if needed; watch usage during each workshop"
   },
   {
-   "risk": "Foundry portal labels for adding a knowledge source change before delivery",
-   "impact": "Participants can't follow Exercise 1 Task 2 as written",
-   "mitigation": "Fallback script Update-AgentDefinition.ps1 -Knowledge; re-check labels in the pilot"
+   "risk": "Licenses for 216 identities (108 tenants x 2): Microsoft 365 E5 and Power Apps Premium offer IDs and the license basis (per day or per month) are unconfirmed",
+   "impact": "Purview and the managed developer environment don't work without them; the cost per seat rises from 41.66 to 180.33 USD if licenses are held by the month",
+   "mitigation": "Confirm offer IDs and the license basis with CloudLabs before the pilot"
   },
   {
-   "risk": "Purview DLP events and Foundry agent traces take several minutes to appear",
-   "impact": "Exercise 6 evidence arrives after the step that looks for it",
-   "mitigation": "The guide checks the MCP server's result first and the portals last; Get-ActionTrail.ps1 shows the gateway, server and Dataverse hops first; measure the latency in the pilot"
+   "risk": "Preview dependencies: API Management MCP APIs (2025-09-01-preview), agent identity flows, Purview processContent for Entra-registered apps",
+   "impact": "Behavior changes between workshops",
+   "mitigation": "Pin versions, re-test before each workshop, and keep the documented fallbacks under the platform-dependency clause"
   },
   {
-   "risk": "Model quota below 30K TPM per team in Sweden Central",
-   "impact": "Deployment failure or heavy throttling",
-   "mitigation": "Check the quota tier before the event; reduce capacity per team if needed"
+   "risk": "The Container Apps Environment Management Hour applies to Consumption-only environments",
+   "impact": "About 5.80 USD more per environment (already in the up-to total)",
+   "mitigation": "Check Cost Management after the pilot and move the row into the base if it bills"
   },
   {
-   "risk": "Subscription funded by free credits",
-   "impact": "ACR Tasks paused: provisioning and redeploy exercises fail",
-   "mitigation": "Use a paid subscription"
+   "risk": "Participant subscriptions funded by free credits",
+   "impact": "ACR Tasks runs are paused: provisioning and the redeploy exercises fail",
+   "mitigation": "Use paid subscriptions; keep a pre-built fallback image"
   }
  ]
 }

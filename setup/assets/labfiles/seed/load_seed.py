@@ -11,9 +11,11 @@ is set (Provision-ServiceDesk.ps1 passes the team user's token this way), otherw
 from the Azure CLI session of the signed-in user (az account get-access-token --resource <url>).
 
 Every record is upserted with PATCH on its alternate key, so a re-run updates rather than
-duplicates. --reset first deletes every Service Desk record (notes, tickets, procedures,
-runbooks, articles, the configuration document, seeded contacts and accounts, technicians,
-SLA policies, calendars); use it to re-anchor the data before an event.
+duplicates. --reset first deletes every Service Desk record (notes, tickets, customer
+documents, procedures, runbooks, articles, the configuration document, seeded contacts and
+accounts, technicians, SLA policies, calendars); use it to re-anchor the data before an
+event. The Agent Action table (spk_agentaction) has no seed rows: the MCP server writes it,
+and neither a load nor a reset touches it.
 
 The two new incidents (newincidents.json) are not loaded by default: provisioning loads them
 with --only newincidents AFTER it exports the search content, so they are never indexed.
@@ -55,6 +57,7 @@ LOAD_ORDER = [
     ("contacts", "contacts", "spk_contactcode", "spk_contactcode ne null"),
     ("account_patches", "accounts", "spk_customercode", None),
     ("customerprocedures", "spk_customerprocedures", "spk_procedurecode", "spk_procedurecode ne null"),
+    ("customerdocuments", "spk_customerdocuments", "spk_documentcode", "spk_documentcode ne null"),
     ("runbooks", "spk_runbooks", "spk_runbookcode", "spk_runbookcode ne null"),
     ("knowledgearticles", "spk_knowledgearticles", "spk_articlenumber", "spk_articlenumber ne null"),
     ("tickets", "spk_tickets", "spk_ticketnumber", "spk_ticketnumber ne null"),
@@ -62,7 +65,8 @@ LOAD_ORDER = [
 ]
 PRIMARY_KEYS = {"spk_businesscalendars": "spk_businesscalendarid", "spk_slapolicies": "spk_slapolicyid",
                 "spk_technicians": "spk_technicianid", "accounts": "accountid", "contacts": "contactid",
-                "spk_customerprocedures": "spk_customerprocedureid", "spk_runbooks": "spk_runbookid",
+                "spk_customerprocedures": "spk_customerprocedureid", "spk_customerdocuments": "spk_customerdocumentid",
+                "spk_runbooks": "spk_runbookid",
                 "spk_knowledgearticles": "spk_knowledgearticleid", "spk_tickets": "spk_ticketid",
                 "spk_ticketnotes": "spk_ticketnoteid", "annotations": "annotationid", "teams": "teamid"}
 MSIP_FMTID = "{D5CDD505-2E9C-101B-9397-08002B2CF9AE}"
@@ -294,7 +298,7 @@ def main() -> int:
 
     print("Verifying counts")
     mismatches = []
-    # Notes the agent writes during the lab use codes like TCK-10507-A1; seeded notes end -N<n>.
+    # Notes the agent writes during the lab use codes like <ticket number>-A1; seeded notes end -N<n>.
     # The new incidents are loaded separately. Count only seeded rows, so re-running the
     # loader during or after the lab still verifies.
     excluded = "".join(f" and spk_ticketnumber ne '{n}'" for n in new_numbers)

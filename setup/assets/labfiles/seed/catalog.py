@@ -63,14 +63,14 @@ CHOICES = {
         "Draft": 765400602,
         "Retired": 765400603,
     },
+    # Lab version 3 has four teams. Service Desk keeps its value; the three merged teams get
+    # new values, so a client that still knows the seven version 2 teams shows "Unknown"
+    # instead of a wrong team name.
     "spk_technicianteam": {
         "Service Desk": 765400701,
-        "Network": 765400702,
-        "Endpoint": 765400703,
-        "Backup and Recovery": 765400704,
-        "Identity": 765400705,
-        "Collaboration": 765400706,
-        "Security": 765400707,
+        "Infrastructure": 765400708,
+        "Workplace": 765400709,
+        "Security and Identity": 765400710,
     },
     "spk_techniciantier": {
         "L1": 765400801,
@@ -109,7 +109,64 @@ CHOICES = {
         "Business hours": 765401206,
         "Data handling": 765401207,
     },
+    # Filled in below from SUBCATEGORIES: 7654013 + category digit + position digit.
+    "spk_subcategory": {},
+    "spk_outcome": {
+        "Permanent fix": 765401401,
+        "Workaround provided": 765401402,
+        "Resolved by vendor": 765401403,
+        "User guidance": 765401404,
+        "Duplicate": 765401405,
+        "No fault found": 765401406,
+        "Cancelled by customer": 765401407,
+    },
+    "spk_documenttype": {
+        "Support policy": 765401501,
+        "Escalation procedure": 765401502,
+        "Configuration notes": 765401503,
+        "Runbook reference": 765401504,
+        "Data handling": 765401505,
+    },
+    # Used by the Agent Action table that the MCP server writes; no seed rows.
+    "spk_authorizationresult": {
+        "Allowed": 765401601,
+        "Denied by Dataverse": 765401602,
+        "Rejected by the MCP server": 765401603,
+    },
+    "spk_actionoutcome": {
+        "Succeeded": 765401701,
+        "Failed": 765401702,
+        "Duplicate, first result returned": 765401703,
+    },
 }
+
+# ===========================================================================
+# Subcategories: four to six per category. Every ticket that has a category has a
+# subcategory consistent with its knowledge article; untriaged tickets have neither.
+# ===========================================================================
+SUBCATEGORIES = {
+    "Backup and Recovery": ["Job failure", "Storage quota", "Restore request", "Agent service and upgrade",
+                            "Policy change", "Backup performance"],
+    "Network and VPN": ["Remote Access", "Site-to-site tunnel", "Firewall rule", "Internet and DNS", "Wi-Fi",
+                        "Network hardware and firmware"],
+    "Endpoint": ["Endpoint Agent", "Patching", "Device performance", "Disk encryption", "Device policy",
+                 "Device setup and software"],
+    "Email and Collaboration": ["Mailbox and calendar", "Mailbox storage", "Mail flow", "Groups and lists",
+                                "Teams and OneDrive", "Suspicious email"],
+    "Identity and Access": ["Password reset", "Multifactor authentication", "Joiners and leavers", "Account lockout",
+                            "Permissions and admin rights", "Sign-in and conditional access"],
+    "Printing": ["Printer offline", "Print queue", "Scanning", "Drivers and setup", "Consumables and hardware"],
+    "Hardware": ["Laptop and desktop fault", "Docks and displays", "Peripherals", "Meeting room equipment",
+                 "Server hardware"],
+    "Line-of-Business App": ["Certificate", "Database connection", "Application performance", "Updates and releases",
+                             "Access and licensing", "Integrations"],
+    "Security": ["Suspicious sign-in", "Malware and ransomware", "Lost or stolen device", "Data protection",
+                 "Vulnerability management"],
+}
+for _cat_index, _category in enumerate(CHOICES["spk_category"], start=1):
+    for _position, _label in enumerate(SUBCATEGORIES[_category], start=1):
+        CHOICES["spk_subcategory"][_label] = 765401300 + _cat_index * 10 + _position
+SUBCATEGORY_CATEGORY = {label: category for category, labels in SUBCATEGORIES.items() for label in labels}
 
 PRIORITY_LABELS = {1: "P1 Critical", 2: "P2 High", 3: "P3 Medium", 4: "P4 Low"}
 
@@ -199,7 +256,7 @@ CUSTOMERS = [
      "tier": "Bronze", "contract": "Co-Managed", "seats": 40, "sites": 2,
      "rba": "5.1.3", "rra": "4.1.1", "rsg": "10.0.2", "rea": "7.3.2", "domain": "cohowinery.example",
      "account_manager": "Maya Okonjo",
-     "profile": "Winery with a production site and a visitor centre. The visitor centre point-of-sale depends on the site internet link."},
+     "profile": "Winery with a production site and a visitor center. The visitor center point-of-sale depends on the site internet link."},
     {"code": "CUST-012", "name": "Fourth Coffee", "industry": "Hospitality", "city": "Austin",
      "tier": "Bronze", "contract": "Break-Fix", "seats": 35, "sites": 6,
      "rba": "4.8.7", "rra": "3.9.2", "rsg": "9.6.2", "rea": "7.3.2", "domain": "fourthcoffee.example",
@@ -209,7 +266,7 @@ CUSTOMERS = [
      "tier": "Platinum", "contract": "Fully Managed", "seats": 510, "sites": 2,
      "rba": "5.2.1", "rra": "4.2.0", "rsg": "10.1.4", "rea": "7.4.1", "domain": "humongousinsurance.example",
      "account_manager": "Isabel Grant",
-     "profile": "Insurance carrier with a claims centre and a head office. The claims team uses a document management application to open policy documents; it is business-critical during claim intake hours."},
+     "profile": "Insurance carrier with a claims center and a head office. The claims team uses a document management application to open policy documents; it is business-critical during claim intake hours."},
     {"code": "CUST-014", "name": "Lamna Healthcare", "industry": "Healthcare", "city": "Minneapolis",
      "tier": "Gold", "contract": "Fully Managed", "seats": 240, "sites": 4,
      "rba": "5.2.1", "rra": "4.2.0", "rsg": "10.1.4", "rea": "7.4.1", "domain": "lamnahealthcare.example",
@@ -268,6 +325,69 @@ CUSTOMERS = [
 ]
 
 # ===========================================================================
+# Lab version 3 customer fields: the products and services Relecloud manages for each
+# customer (spk_servicesinscope) and a few configuration facts (spk_configurationnotes).
+# They agree with the profile, versions, procedures and customer documents. No secrets:
+# detailed configuration lives in the customer documents, and Woodgrove Bank's gateway
+# configuration only in its Confidential document.
+# ===========================================================================
+CUSTOMER_SERVICES = {
+    "CUST-001": "Fully managed service desk for 420 seats; endpoint management and patching with Relecloud Endpoint Agent 7.4.1; Relecloud Backup Agent 5.2.1 with the cloud vault; Secure Gateway firewalls on firmware 10.1.4 at the head office, the laboratory building and the distribution site; Remote Access 4.2.0; Microsoft 365 administration; printing and hardware support.",
+    "CUST-002": "Fully managed service desk for 160 seats; Remote Access 4.2.0 for property managers who work from home and on site; Secure Gateway firewalls on firmware 10.1.4 at the head office and the maintenance depot; endpoint management with Endpoint Agent 7.4.1; Relecloud Backup Agent 5.1.3 for the head office servers; Microsoft 365 administration.",
+    "CUST-003": "Relecloud manages the network (Secure Gateway firewalls and the site-to-site tunnels to three warehouses), Remote Access 3.9.2 and server backup with Relecloud Backup Agent 4.8.7, with Endpoint Agent 7.3.2 for monitoring. Northwind's own IT team handles desktop support, laptops and Microsoft 365 users.",
+    "CUST-004": "Relecloud manages the factory and showroom networks (Secure Gateway firewalls and the site-to-site tunnel), server backup with Relecloud Backup Agent 5.1.3, Remote Access 4.1.1 and the production scheduling application server. Adventure Works' IT team supports shop floor PCs, local switches and users.",
+    "CUST-005": "Monitoring of the five stores' Secure Gateway routers and back-office PCs is the only included service. Repairs, changes, upgrades, new devices and parts are billable and start after a written quote is approved.",
+    "CUST-006": "Fully managed service desk for 130 seats at the port office and the head office; endpoint management with Endpoint Agent 7.4.1; Relecloud Backup Agent 5.2.1; Secure Gateway firewalls on firmware 10.1.4 and the site-to-site tunnel; Remote Access 4.2.0; Microsoft 365 administration; first-line support for the customs submission application, with its vendor engaged for application faults.",
+    "CUST-007": "Fully managed service desk for 380 seats at the head office and five branches; Secure Gateway firewalls on firmware 10.1.4 at all six sites; Remote Access 4.2.0 for branch managers and the mortgage team; endpoint management with Endpoint Agent 7.4.0; Relecloud Backup Agent 5.2.1; Microsoft 365 administration; printing support.",
+    "CUST-008": "Relecloud manages the office network and Secure Gateway (firmware 10.0.2), backup of the central file server FS01 with Relecloud Backup Agent 5.1.3, Remote Access 4.1.1 and Microsoft 365 administration. Lucerne's IT team administers the payroll application server and its certificate.",
+    "CUST-009": "Monitoring of the two offices' Secure Gateway routers, the office server backup (Relecloud Backup Agent 4.8.7) and the back-office PCs. Firewall changes, upgrades, repairs and new devices are billable after an approved quote.",
+    "CUST-010": "Monitoring of the three sites' Secure Gateway routers and the booking office server backup (Relecloud Backup Agent 4.9.0). Seasonal account setup, licenses, Remote Access upgrades and repairs are billable after an approved quote.",
+    "CUST-011": "Relecloud manages the network and the Secure Gateway firewalls (firmware 10.0.2) at the production site and the visitor center, backup with Relecloud Backup Agent 5.1.3, and printing support. Coho's own IT contact manages user accounts and PCs.",
+    "CUST-012": "Monitoring of the back-office PCs and the Secure Gateway routers at six coffee shops. Repairs, replacements and changes are billable after an approved quote.",
+    "CUST-013": "Fully managed service desk for 510 seats at the claims center and the head office; endpoint management with Endpoint Agent 7.4.1; Relecloud Backup Agent 5.2.1; Secure Gateway firewalls on firmware 10.1.4; Remote Access 4.2.0; Microsoft 365 administration; application support for the claims document management application.",
+    "CUST-014": "Fully managed endpoints (Endpoint Agent 7.4.1), network (Secure Gateway firewalls on firmware 10.1.4 at four clinics, Remote Access 4.2.0), identity and backup (Relecloud Backup Agent 5.2.1). Clinical systems are hosted and supported by the customer's software vendor and are out of scope.",
+    "CUST-015": "Relecloud manages the office network and Secure Gateway (firmware 10.0.2), backup of the analytics file server with Relecloud Backup Agent 5.1.3 and its cloud vault, Remote Access 4.1.1 and endpoint monitoring with Endpoint Agent 7.3.2. Trey's IT team supports analysts' laptops and software.",
+    "CUST-016": "Fully managed service desk for 110 seats; endpoint management with Endpoint Agent 7.4.1; Remote Access 4.2.0 for consultants at client sites; Secure Gateway firewall on firmware 10.1.4; Relecloud Backup Agent 5.2.1; Microsoft 365 administration.",
+    "CUST-017": "Monitoring of the store and warehouse Secure Gateway routers and the office PCs. Microsoft 365 support, repairs, changes and new devices are billable after an approved quote.",
+    "CUST-018": "Relecloud supports staff devices, lecture hall equipment, printing and the campus network core (Secure Gateway firmware 10.0.2) at three campuses, and backs up staff file servers with Relecloud Backup Agent 5.1.3. The college IT team supports students.",
+    "CUST-019": "Relecloud manages server backup with Relecloud Backup Agent 4.9.0 and the cloud vault, the Secure Gateway firewalls (firmware 9.6.2), Remote Access 3.9.2 and identity. A. Datum's IT team supports CAD workstations and engineers' laptops.",
+    "CUST-020": "Fully managed service desk for 95 seats at the head office and the north and south depots; the routing application servers and their certificates; Secure Gateway firewalls on firmware 10.1.4; depot Wi-Fi; endpoint management with Endpoint Agent 7.4.1; Relecloud Backup Agent 5.2.1; Microsoft 365 administration.",
+    "CUST-021": "Relecloud manages corporate endpoints (Endpoint Agent 7.4.1), identity and Microsoft 365, the corporate network (Secure Gateway firmware 10.1.4), Remote Access 4.2.0 and corporate server backup with Relecloud Backup Agent 5.2.1. Blue Yonder's in-house IT team owns airport systems.",
+    "CUST-022": "Fully managed service desk for 330 seats; endpoint management with Endpoint Agent 7.3.2; Remote Access 4.1.1 for field engineers in vehicles; Secure Gateway firewalls on firmware 10.0.2 at three sites; Relecloud Backup Agent 5.1.3; Microsoft 365 administration and identity. The control room network is out of scope.",
+    "CUST-023": "Monitoring of the office router and PCs. Repairs, changes, software installs and new devices are billable after an approved quote.",
+    "CUST-024": "Relecloud manages the office network and Secure Gateway (firmware 10.1.4), Microsoft 365 administration and identity, Remote Access 4.2.0 and backup with Relecloud Backup Agent 5.2.1. Proseware's engineers manage their own build servers.",
+}
+CUSTOMER_CONFIGURATION = {
+    "CUST-001": "Three sites, each with its own Secure Gateway, linked to the head office by site-to-site tunnels. Laboratory systems sit on a separate network segment and change only under the quality team's change control (CUST-001-PR3). Laboratory PCs are in their own device group, and updates for them wait for the quality team's approval.",
+    "CUST-002": "Most users connect through Remote Access from home or from the buildings they manage, to the head office Secure Gateway. Both gateways were upgraded to firmware 10.1.4 in the most recent weekend maintenance window. Network maintenance runs on Saturday mornings and the operations contact is told beforehand (CUST-002-PR3).",
+    "CUST-003": "Head office and three warehouses, each with a Secure Gateway on firmware 9.6.2 and a site-to-site tunnel to head office. Remote Access clients stay on 3.9.2 and gateways on 9.6.2 until the customer approves the upgrade project. Every change is agreed in the weekly change call with Northwind's IT team (CUST-003-PR2).",
+    "CUST-004": "Two sites, the factory and the showroom, linked by a site-to-site tunnel; both gateways run firmware 10.0.2. Shop floor PCs run the production scheduling application, which must be available during shifts. Adventure Works' IT team manages the local switches at both sites.",
+    "CUST-005": "Five small stores, each with one back-office PC and a Secure Gateway router on firmware 9.6.2. Backup Agent 4.8.7 protects the back-office PCs. Card terminals use the store internet links but are managed by the payment provider, not Relecloud.",
+    "CUST-006": "Port office and head office linked by a site-to-site tunnel; staff at the port office use head office file shares. The customs submission application is updated by its vendor, and filings have hard daily cut-off times. Relecloud escalates application faults to the vendor and does not change the vendor's templates.",
+    "CUST-007": "Six Secure Gateway appliances, one at the head office and one in each branch, all on firmware 10.1.4 since the rollout four weeks ago. Branch managers and the mortgage team use Remote Access 4.2.0 when they visit clients. Detailed gateway configuration is in the Confidential document attached to this account and is never copied into tickets.",
+    "CUST-008": "One office with the central file server FS01, which holds all editorial content. The finance team runs payroll from an on-premises payroll application on Lucerne's own application server; payroll is submitted every Thursday (CUST-008-PR3). Changes to systems Lucerne's IT team administers are agreed in the weekly change call.",
+    "CUST-009": "Two high-street offices, each with a Secure Gateway router on firmware 9.6.2. The office server runs the booking system and is backed up every night with Backup Agent 4.8.7. Only the owner uses Remote Access (client 3.8.5).",
+    "CUST-010": "Three sites: the booking office, the main lodge and the rental shop. The booking office works remotely through Remote Access (client 3.9.2) outside the season. Seasonal staff join every November and need accounts and licenses set up in advance.",
+    "CUST-011": "The production site and the visitor center are linked by a site-to-site tunnel over the internet. The visitor center point-of-sale depends on the site internet link. Printers at the visitor center connect over Wi-Fi.",
+    "CUST-012": "Six stores, each with a back-office PC and a Secure Gateway router on firmware 9.6.2. Card terminals depend on the store router's internet link. The Store 2 router is the oldest unit, about six years old.",
+    "CUST-013": "The claims document management application runs on application server APP03; APP02 is the retired server, kept running read-only until its archive is moved. Claims intake runs from 08:00 to 18:00 local time, and an outage in those hours is P2 or higher (CUST-013-PR3).",
+    "CUST-014": "Four outpatient clinics, each with a Secure Gateway and a site-to-site tunnel to the main clinic. Records for this customer are held by the Relecloud Regulated Accounts team (CUST-014-PR3). Patient information is never recorded in tickets or notes.",
+    "CUST-015": "One office with a shared analytics file server holding large data sets; vault increases are billed monthly and approved by the finance director (CUST-015-PR3). Analysts work remotely two days a week through Remote Access. Laptop device groups date from Trey's onboarding and still carry their original policies.",
+    "CUST-016": "One office; most consultants work at client sites and connect through Remote Access with multifactor authentication. Laptops are the main devices and are backed up over Remote Access with upload throttling.",
+    "CUST-017": "A store and a small warehouse, each with a Secure Gateway router on firmware 9.6.2. The online store sends order emails through Microsoft 365. Only the owner uses Remote Access (client 3.8.5).",
+    "CUST-018": "Three campuses linked by site-to-site tunnels to the main campus. Lecture halls have a lectern PC connected to the main display and a portable projector as a fallback. Changes are agreed with the college IT team in the weekly change call (CUST-018-PR2).",
+    "CUST-019": "Two offices; the project archive server holds completed project drawings and is protected every night to the cloud vault. The vault has a contracted allowance, and retention or allowance changes need the IT manager's written approval (CUST-019-PR3). Large archive imports must be announced a week ahead so the vault can be sized first.",
+    "CUST-020": "Each depot has its own routing application server, CMRT-N01 at the north depot and CMRT-S01 at the south depot, each with its own TLS certificate. Dispatchers need the routing application from 06:00 local time (CUST-020-PR3). Depot Wi-Fi serves the drivers' handheld scanners.",
+    "CUST-021": "Four sites: the corporate head office and three airport offices. Airport systems are on networks Relecloud does not manage. Corporate laptops are in device groups with the Relecloud security baseline, and the in-house IT team keeps separate test device groups for airport kiosks.",
+    "CUST-022": "Field engineers sign in from vehicles over mobile data with Remote Access 4.1.1 and multifactor authentication. The control room network is separate and managed by the utility's own engineers. Depot copiers scan to email.",
+    "CUST-023": "One site with an office, a production area and a packing room. The packing room label printer and the payroll PC are the most business-critical devices. Payroll runs on an accounting system with a local database.",
+    "CUST-024": "One office; engineers work from home two days a week over Remote Access with split tunneling for collaboration traffic. The support team uses a shared mailbox for customer email. Build servers are excluded from Relecloud monitoring and backup.",
+}
+for _customer in CUSTOMERS:
+    _customer["services"] = CUSTOMER_SERVICES[_customer["code"]]
+    _customer["configuration"] = CUSTOMER_CONFIGURATION[_customer["code"]]
+
+# ===========================================================================
 # Contacts: three per customer. Names are drawn deterministically from these pools.
 # ===========================================================================
 FIRST_NAMES = [
@@ -298,37 +418,69 @@ CONTACT_ROLES = [
 ]
 
 # ===========================================================================
-# Technicians. EXERCISE: Marcus Webb is unavailable (on leave), so an agent that
-# assigns network work must choose Lucas Moreau instead.
+# Technicians: 15 in exactly four teams. EXERCISE: Marcus Webb is unavailable (on leave),
+# so an agent that assigns network work must choose another Infrastructure technician with
+# network skills, such as Lucas Moreau. TECH-13 to TECH-15 joined in lab version 3.
 # ===========================================================================
 TECHNICIANS = [
-    {"code": "TECH-01", "name": "Priya Raman", "tier": "L2", "team": "Backup and Recovery", "available": True,
-     "skills": "Relecloud Backup Agent, restores, vault storage"},
-    {"code": "TECH-02", "name": "Marcus Webb", "tier": "L3", "team": "Network", "available": False,
-     "skills": "Secure Gateway firmware, VPN, site-to-site tunnels (on leave until next Monday)"},
+    {"code": "TECH-01", "name": "Priya Raman", "tier": "L2", "team": "Infrastructure", "available": True,
+     "skills": "Relecloud Backup Agent, restores, vault storage", "availability": "Available"},
+    {"code": "TECH-02", "name": "Marcus Webb", "tier": "L3", "team": "Infrastructure", "available": False,
+     "skills": "Secure Gateway firmware, VPN, site-to-site tunnels", "availability": "On leave until next Monday"},
     {"code": "TECH-03", "name": "Elena Petrova", "tier": "L1", "team": "Service Desk", "available": True,
-     "skills": "First-line triage, printing, password resets"},
-    {"code": "TECH-04", "name": "Jonah Okafor", "tier": "L2", "team": "Endpoint", "available": True,
-     "skills": "Endpoint Agent, patching, laptop builds"},
-    {"code": "TECH-05", "name": "Sofia Lindqvist", "tier": "L2", "team": "Identity", "available": True,
-     "skills": "Accounts, MFA, access reviews"},
+     "skills": "First-line triage, printing, password resets", "availability": "Available"},
+    {"code": "TECH-04", "name": "Jonah Okafor", "tier": "L2", "team": "Workplace", "available": True,
+     "skills": "Endpoint Agent, patching, laptop builds", "availability": "Available"},
+    {"code": "TECH-05", "name": "Sofia Lindqvist", "tier": "L2", "team": "Security and Identity", "available": True,
+     "skills": "Accounts, MFA, access reviews", "availability": "Available"},
     {"code": "TECH-06", "name": "Daniel Cho", "tier": "L1", "team": "Service Desk", "available": True,
-     "skills": "First-line triage, line-of-business application support"},
-    {"code": "TECH-07", "name": "Amara Nwosu", "tier": "L3", "team": "Security", "available": True,
-     "skills": "Incident response, endpoint isolation, sign-in investigations"},
-    {"code": "TECH-08", "name": "Lucas Moreau", "tier": "L2", "team": "Network", "available": True,
-     "skills": "Secure Gateway configuration, Remote Access, Wi-Fi"},
+     "skills": "First-line triage, line-of-business application support", "availability": "Available"},
+    {"code": "TECH-07", "name": "Amara Nwosu", "tier": "L3", "team": "Security and Identity", "available": True,
+     "skills": "Incident response, endpoint isolation, sign-in investigations",
+     "availability": "Available; security on-call engineer this week"},
+    {"code": "TECH-08", "name": "Lucas Moreau", "tier": "L2", "team": "Infrastructure", "available": True,
+     "skills": "Secure Gateway configuration, Remote Access, Wi-Fi",
+     "availability": "Available; covers network work while Marcus Webb is on leave"},
     {"code": "TECH-09", "name": "Hannah Becker", "tier": "L1", "team": "Service Desk", "available": True,
-     "skills": "First-line triage, hardware logistics"},
-    {"code": "TECH-10", "name": "Ravi Iyer", "tier": "L2", "team": "Collaboration", "available": True,
-     "skills": "Mailboxes, calendars, Teams"},
-    {"code": "TECH-11", "name": "Grace Mbeki", "tier": "L3", "team": "Backup and Recovery", "available": True,
-     "skills": "Backup architecture, disaster recovery tests"},
-    {"code": "TECH-12", "name": "Tomas Herrera", "tier": "L2", "team": "Endpoint", "available": True,
-     "skills": "Endpoint Agent, device encryption, docking hardware"},
+     "skills": "First-line triage, hardware logistics", "availability": "Available"},
+    {"code": "TECH-10", "name": "Ravi Iyer", "tier": "L2", "team": "Workplace", "available": True,
+     "skills": "Mailboxes, calendars, Teams", "availability": "Available"},
+    {"code": "TECH-11", "name": "Grace Mbeki", "tier": "L3", "team": "Infrastructure", "available": True,
+     "skills": "Backup architecture, disaster recovery tests", "availability": "Available"},
+    {"code": "TECH-12", "name": "Tomas Herrera", "tier": "L2", "team": "Workplace", "available": True,
+     "skills": "Endpoint Agent, device encryption, docking hardware", "availability": "Available"},
+    {"code": "TECH-13", "name": "Kwame Asante", "tier": "L2", "team": "Security and Identity", "available": True,
+     "skills": "Identity and access, licensing, sign-in log reviews, data loss prevention alerts",
+     "availability": "Available"},
+    {"code": "TECH-14", "name": "Arjun Mehta", "tier": "L2", "team": "Infrastructure", "available": True,
+     "skills": "Site-to-site tunnels, Secure Gateway, Windows servers, server hardware", "availability": "Available"},
+    {"code": "TECH-15", "name": "Isla Fraser", "tier": "L2", "team": "Workplace", "available": True,
+     "skills": "Microsoft 365 mailboxes, Teams and OneDrive, laptops and docks",
+     "availability": "Available; works Monday to Thursday"},
 ]
+TEAMS = {
+    "Service Desk": ["TECH-03", "TECH-06", "TECH-09"],
+    "Infrastructure": ["TECH-01", "TECH-02", "TECH-08", "TECH-11", "TECH-14"],
+    "Workplace": ["TECH-04", "TECH-10", "TECH-12", "TECH-15"],
+    "Security and Identity": ["TECH-05", "TECH-07", "TECH-13"],
+}
 
+# Technicians who take each category's tickets, consistent with TEAMS.
 CATEGORY_TEAMS = {
+    "Backup and Recovery": ["TECH-01", "TECH-11"],
+    "Network and VPN": ["TECH-08", "TECH-02", "TECH-14"],
+    "Endpoint": ["TECH-04", "TECH-12", "TECH-15"],
+    "Email and Collaboration": ["TECH-10", "TECH-15"],
+    "Identity and Access": ["TECH-05", "TECH-13"],
+    "Printing": ["TECH-03", "TECH-09"],
+    "Hardware": ["TECH-09", "TECH-12"],
+    "Line-of-Business App": ["TECH-06", "TECH-03"],
+    "Security": ["TECH-07", "TECH-13"],
+}
+# The lab version 2 pools. The original 431 historical tickets still draw their technician
+# from these lists, so the random sequence (and every one of those tickets) stays exactly as
+# it was. Each of these technicians is in the team that owns the category in version 3.
+LEGACY_CATEGORY_TEAMS = {
     "Backup and Recovery": ["TECH-01", "TECH-11"],
     "Network and VPN": ["TECH-08", "TECH-02"],
     "Endpoint": ["TECH-04", "TECH-12"],
@@ -348,6 +500,8 @@ CATEGORY_TEAMS = {
 #   KB0012 vs KB0013  same symptom, decided by SLA tier
 #   KB0044 vs KB0045  same request, decided by contract type
 #   KB0073 vs KB0074  same request, decided by contract type
+#   KB0067 vs KB0062  same symptom, decided by Endpoint Agent version (added in lab version 3;
+#                     KB0062 and the other 69 new articles are in knowledge_additions.py)
 #   KB0019 is Retired and superseded by KB0007
 # ===========================================================================
 KB_ARTICLES = [
@@ -493,7 +647,7 @@ KB_ARTICLES = [
      "cause": "Branch devices use the head office DNS server across the tunnel.",
      "resolution": "1. Enable the DNS forwarder on the branch gateway. 2. Point the branch DHCP scope at the local gateway for DNS.",
      "keywords": "DNS, slow, branch, name resolution"},
-    {"number": "KB0055", "title": "Choppy calls over Remote Access: enable split tunnelling for collaboration traffic",
+    {"number": "KB0055", "title": "Choppy calls over Remote Access: enable split tunneling for collaboration traffic",
      "category": "Network and VPN", "product": "Relecloud Remote Access",
      "versions": {"rra": ["4."]}, "tiers": [], "contracts": [], "status": "Published", "reviewed_days_ago": 110,
      "symptom": "Audio and video in online meetings are choppy only while Remote Access is connected.",
@@ -570,7 +724,7 @@ KB_ARTICLES = [
      "versions": {}, "tiers": [], "contracts": [], "status": "Published", "reviewed_days_ago": 210,
      "symptom": "A user receives 'mailbox almost full' warnings.",
      "cause": "Mailbox close to its quota.",
-     "resolution": "1. Enable the online archive for the user if the customer's licence includes it. 2. Show the user how to empty Deleted Items. 3. If no archive is available, raise with the account manager.",
+     "resolution": "1. Enable the online archive for the user if the customer's license includes it. 2. Show the user how to empty Deleted Items. 3. If no archive is available, raise with the account manager.",
      "keywords": "mailbox full, quota, archive"},
     {"number": "KB0085", "title": "Set up calendar delegation for an executive assistant",
      "category": "Email and Collaboration", "product": "Microsoft 365",
@@ -613,14 +767,14 @@ KB_ARTICLES = [
      "versions": {}, "tiers": [], "contracts": [], "status": "Published", "reviewed_days_ago": 115,
      "symptom": "The customer asks for an account for a new employee.",
      "cause": "Not a fault. Request.",
-     "resolution": "1. Use the starter form fields: name, job title, manager, start date, licence. 2. Create the account three business days before the start date. 3. Send the temporary credentials to the manager, never to the starter's personal address.",
-     "keywords": "new starter, account, onboarding, licence"},
+     "resolution": "1. Use the starter form fields: name, job title, manager, start date, license. 2. Create the account three business days before the start date. 3. Send the temporary credentials to the manager, never to the starter's personal address.",
+     "keywords": "new starter, account, onboarding, license"},
     {"number": "KB0097", "title": "Leaver: disable the account within 24 hours",
      "category": "Identity and Access", "product": "Microsoft 365",
      "versions": {}, "tiers": [], "contracts": [], "status": "Published", "reviewed_days_ago": 60,
      "symptom": "The customer reports that an employee is leaving or has left.",
      "cause": "Not a fault. Request.",
-     "resolution": "1. Disable sign-in and revoke sessions within 24 hours of the leaving date. 2. Convert the mailbox to shared if the manager needs it. 3. Remove licences after 30 days.",
+     "resolution": "1. Disable sign-in and revoke sessions within 24 hours of the leaving date. 2. Convert the mailbox to shared if the manager needs it. 3. Remove licenses after 30 days.",
      "keywords": "leaver, disable account, offboarding"},
     {"number": "KB0099", "title": "Repeated account lockouts",
      "category": "Identity and Access", "product": "Microsoft 365",
@@ -699,7 +853,7 @@ KB_ARTICLES = [
     {"number": "KB0143", "title": "Ransomware indicator from Endpoint Agent: isolate the device",
      "category": "Security", "product": "Relecloud Endpoint Agent",
      "versions": {}, "tiers": [], "contracts": [], "status": "Published", "reviewed_days_ago": 18,
-     "symptom": "Endpoint Agent raises a ransomware behaviour alert on a device.",
+     "symptom": "Endpoint Agent raises a ransomware behavior alert on a device.",
      "cause": "Possible ransomware execution.",
      "resolution": "1. Isolate the device from the network in the Endpoint Agent console immediately. 2. Open a P1 Security ticket and page the on-call security engineer. 3. Do not power the device off. 4. Notify the customer's primary IT contact by phone.",
      "keywords": "ransomware, isolate device, security incident, P1"},
@@ -711,3 +865,84 @@ KB_ARTICLES = [
      "resolution": "1. Issue a remote wipe from the device console. 2. Revoke the user's sessions. 3. Ask the user to report theft to the police and record the report number.",
      "keywords": "lost laptop, stolen phone, remote wipe"},
 ]
+
+# ===========================================================================
+# Lab version 3 metadata for the 50 articles above, kept apart so that their published
+# text stays exactly as it was. "subcategory" and "tags" are what tickets resolved with the
+# article carry (the generator adds a product and version tag); "related" fills
+# spk_relatedarticles: two to four Published articles, never a Retired or Draft one.
+# ===========================================================================
+KB_METADATA = {
+    "KB0007": ("Job failure", ["rba-1043", "snapshot timeout", "pending restart"], ["KB0063", "KB0008", "KB0021"]),
+    "KB0019": ("Job failure", ["rba-1043", "retired workaround"], ["KB0007", "KB0021"]),
+    "KB0012": ("Job failure", ["failed backup", "same-day re-run"], ["KB0013", "KB0039"]),
+    "KB0013": ("Job failure", ["failed backup", "automatic retry"], ["KB0012", "KB0039", "KB0126"]),
+    "KB0021": ("Agent service and upgrade", ["agent upgrade", "out of support"], ["KB0007", "KB0014", "KB0020"]),
+    "KB0023": ("Storage quota", ["rba-2201", "vault quota"], ["KB0018", "KB0036"]),
+    "KB0026": ("Restore request", ["file restore", "restore point"], ["KB0016", "KB0024", "KB0088"]),
+    "KB0028": ("Agent service and upgrade", ["rba-3105", "hotfix 5.1.4"], ["KB0020", "KB0039"]),
+    "KB0033": ("Backup performance", ["slow backup", "vault encryption"], ["KB0014", "KB0029", "KB0036"]),
+    "KB0036": ("Policy change", ["pst exclusion", "large uploads"], ["KB0023", "KB0033"]),
+    "KB0039": ("Agent service and upgrade", ["status unknown", "agent offline"], ["KB0012", "KB0013", "KB0028"]),
+    "KB0031": ("Remote Access", ["rra-4012", "hourly disconnect"], ["KB0058", "KB0055", "KB0046"]),
+    "KB0058": ("Remote Access", ["rra-4012", "hourly disconnect", "ike lifetime"], ["KB0031", "KB0053", "KB0055"]),
+    "KB0041": ("Network hardware and firmware", ["high cpu", "deep packet inspection"], ["KB0053", "KB0027"]),
+    "KB0042": ("Site-to-site tunnel", ["tunnel down", "peer address"], ["KB0054", "KB0043", "KB0052"]),
+    "KB0044": ("Firewall rule", ["firewall rule", "standard change"], ["KB0045", "KB0057", "KB0027"]),
+    "KB0045": ("Firewall rule", ["firewall rule", "billable quote"], ["KB0044", "KB0057", "KB0027"]),
+    "KB0047": ("Remote Access", ["mfa loop", "token cache"], ["KB0093", "KB0103"]),
+    "KB0049": ("Wi-Fi", ["guest wi-fi", "captive portal"], ["KB0050", "KB0048"]),
+    "KB0052": ("Internet and DNS", ["slow dns", "branch office"], ["KB0051", "KB0042"]),
+    "KB0055": ("Remote Access", ["choppy calls", "split tunnel"], ["KB0031", "KB0058", "KB0056", "KB0029"]),
+    "KB0061": ("Endpoint Agent", ["duplicate device", "reimage"], ["KB0077", "KB0066", "KB0076"]),
+    "KB0063": ("Patching", ["pending restart", "restart deadline"], ["KB0007", "KB0068", "KB0136"]),
+    "KB0065": ("Disk encryption", ["bitlocker", "recovery key"], ["KB0064", "KB0091", "KB0145"]),
+    "KB0067": ("Device performance", ["slow sign-in", "inventory scan"], ["KB0062", "KB0060"]),
+    "KB0069": ("Device policy", ["usb blocked", "policy exception"], ["KB0148", "KB0072"]),
+    "KB0071": ("Device performance", ["low disk space", "cleanup script"], ["KB0068", "KB0020", "KB0151"]),
+    "KB0073": ("Device setup and software", ["new laptop", "included build"], ["KB0074", "KB0077", "KB0070"]),
+    "KB0074": ("Device setup and software", ["new laptop", "billable build"], ["KB0073", "KB0070", "KB0077"]),
+    "KB0081": ("Mailbox and calendar", ["shared mailbox", "full access"], ["KB0082", "KB0085"]),
+    "KB0083": ("Mailbox storage", ["mailbox full", "online archive"], ["KB0082", "KB0088"]),
+    "KB0085": ("Mailbox and calendar", ["calendar delegation", "executive assistant"], ["KB0081", "KB0090"]),
+    "KB0087": ("Groups and lists", ["distribution list", "membership change"], ["KB0105", "KB0152"]),
+    "KB0089": ("Suspicious email", ["phishing", "reported email"], ["KB0141", "KB0147", "KB0144"]),
+    "KB0091": ("Password reset", ["password reset", "identity verification"], ["KB0094", "KB0065", "KB0099"]),
+    "KB0093": ("Multifactor authentication", ["mfa", "new phone"], ["KB0103", "KB0047", "KB0094"]),
+    "KB0095": ("Joiners and leavers", ["new starter", "account creation"], ["KB0097", "KB0100", "KB0105", "KB0096"]),
+    "KB0097": ("Joiners and leavers", ["leaver", "disable account"], ["KB0095", "KB0105", "KB0100"]),
+    "KB0099": ("Account lockout", ["account lockout", "saved password"], ["KB0142", "KB0091"]),
+    "KB0101": ("Permissions and admin rights", ["admin rights", "time-limited elevation"], ["KB0070", "KB0104", "KB0114", "KB0098"]),
+    "KB0111": ("Printer offline", ["printer offline", "ip reservation"], ["KB0112", "KB0115"]),
+    "KB0113": ("Scanning", ["scan to email", "smtp authentication"], ["KB0118", "KB0117"]),
+    "KB0115": ("Print queue", ["print spooler", "stuck queue"], ["KB0111", "KB0117", "KB0116", "KB0112"]),
+    "KB0121": ("Laptop and desktop fault", ["warranty claim", "loan laptop"], ["KB0127", "KB0126", "KB0122", "KB0075"]),
+    "KB0123": ("Docks and displays", ["dock firmware", "monitor flicker"], ["KB0122", "KB0124"]),
+    "KB0131": ("Database connection", ["database connection", "password rotation"], ["KB0132", "KB0136"]),
+    "KB0133": ("Certificate", ["certificate expired", "tls binding"], ["KB0136", "KB0130"]),
+    "KB0141": ("Suspicious sign-in", ["suspicious sign-in", "impossible travel"], ["KB0142", "KB0147", "KB0089", "KB0145"]),
+    "KB0143": ("Malware and ransomware", ["ransomware", "device isolation"], ["KB0148", "KB0066"]),
+    "KB0145": ("Lost or stolen device", ["lost device", "remote wipe"], ["KB0065", "KB0141"]),
+}
+for _kb in KB_ARTICLES:
+    _kb["subcategory"], _kb["tags"], _kb["related"] = KB_METADATA[_kb["number"]]
+
+# The 70 articles added in lab version 3 carry the same keys inline.
+from knowledge_additions import KB_ADDITIONS  # noqa: E402
+
+KB_ARTICLES = KB_ARTICLES + KB_ADDITIONS
+KB_BY_NUMBER = {kb["number"]: kb for kb in KB_ARTICLES}
+
+# Which teams own each category's tickets (CATEGORY_TEAMS draws from these teams).
+# Server hardware is the exception that proves the rule: it goes to Infrastructure.
+CATEGORY_OWNERS = {
+    "Backup and Recovery": ["Infrastructure"],
+    "Network and VPN": ["Infrastructure"],
+    "Endpoint": ["Workplace"],
+    "Email and Collaboration": ["Workplace"],
+    "Identity and Access": ["Security and Identity"],
+    "Printing": ["Service Desk"],
+    "Hardware": ["Service Desk", "Workplace", "Infrastructure"],
+    "Line-of-Business App": ["Service Desk"],
+    "Security": ["Security and Identity"],
+}

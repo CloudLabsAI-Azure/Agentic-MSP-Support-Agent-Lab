@@ -6,7 +6,13 @@ customer's product versions, SLA tier and contract type. Priorities follow the
 Relecloud priority rules in catalog.PRIORITY_RULES: the `impacts` list pairs a priority
 with the affected-user range that justifies it.
 
-Placeholders: {server} {device} {site} {count} {app} {printer} {first} {weekday}
+Placeholders: {server} {device} {site} {count} {app} {printer} {first} {weekday}, and the
+customer's deployed versions {rba} {rra} {rsg} {rea} (they use no random draws).
+
+Lab version 3 adds LEGACY_OUTCOMES (the spk_outcome of each resolution option, in the same
+order) and LEGACY_RESOLUTION_FOR_CONTRACT (the option that matches the customer's contract).
+These templates generate the original 431 historical tickets; history_additions.py adds the
+rest. Never change the length of a list here: that would change every later random draw.
 """
 
 TEMPLATES = [
@@ -45,8 +51,8 @@ TEMPLATES = [
      "titles": ["Upgrade Backup Agent on {server} to 5.2", "Request: move warehouse servers to Backup Agent 5.2"],
      "descriptions": ["Please upgrade the Backup Agent on {server}; we were told 4.x is out of support.",
                       "Can you upgrade the backup agent on our servers to the current version?"],
-     "resolution": ["Upgrade to 5.2.1 deployed from the software library; schedule and vault retained (KB0021).",
-                    "Quote sent and approved; upgraded {server} to 5.2.1 (KB0021)."],
+     "resolution": ["Upgraded {server} to 5.2.1 from the software library as the first server of the upgrade; schedule and vault retained (KB0021).",
+                    "Checked free disk space and upgraded {server} to 5.2.1; the remaining servers follow in the customer's upgrade plan (KB0021)."],
      "internal": ["Checked free disk space first: 14 GB free."],
      "impacts": [(4, 0, 0, 1)], "channel": "Email"},
     {"kb": "KB0023", "weight": 6, "days": (3, 268),
@@ -79,7 +85,7 @@ TEMPLATES = [
      "titles": ["Backups slow since encryption was enabled", "Backup jobs running into the morning"],
      "descriptions": ["Since we turned on vault encryption, backups of {server} take six hours instead of two.",
                       "The backup is still running when staff arrive and the server is slow."],
-     "resolution": ["Moved the job start to 20:00 and excluded the vault range from inspection; duration back to 2.5 hours (KB0033).",
+     "resolution": ["Moved the job start to 20:00 so it no longer overlaps the overnight maintenance tasks; duration back to 2.5 hours (KB0033).",
                     "Server has two cores; recommended a hardware refresh to the account manager (KB0033)."],
      "internal": ["CPU at 100 percent during the encrypted job."],
      "impacts": [(3, 1, 10, 1)], "channel": "Email"},
@@ -93,7 +99,7 @@ TEMPLATES = [
      "titles": ["Backup status Unknown for {device}", "Device not reporting to backup for 3 days"],
      "descriptions": ["The backup dashboard shows {device} as Unknown since {weekday}.",
                       "Laptop {device} has not backed up for three days."],
-     "resolution": ["User had been travelling with the laptop off the network; connected overnight and backup completed (KB0039).",
+     "resolution": ["User had been traveling with the laptop off the network; connected overnight and backup completed (KB0039).",
                     "Device was replaced; removed the old record from the backup policy."],
      "internal": ["Last check-in 72 hours ago."],
      "impacts": [(4, 1, 1, 1)], "channel": "Monitoring Alert"},
@@ -103,8 +109,8 @@ TEMPLATES = [
      "descriptions": ["{first} says Remote Access drops roughly every hour and has to reconnect. It has been happening all week.",
                       "Remote workers lose the VPN connection about once an hour. The log shows RRA-4012 tunnel reset by peer.",
                       "Our booking staff get disconnected from Remote Access every hour or so."],
-     "resolution": ["Client was 3.9.2. Upgraded to Remote Access 4.2.0 from the software library; no drops reported over two days (KB0031).",
-                    "Upgraded the Remote Access client to 4.2.0. No gateway change needed (KB0031)."],
+     "resolution": ["Client was {rra}. Upgraded the user's Remote Access client to 4.2.0 from the software library; no drops reported over two days. The rest of the fleet stays on {rra} until the upgrade project is approved (KB0031).",
+                    "Upgraded the affected users' Remote Access clients to 4.2.0. No gateway change needed (KB0031)."],
      "internal": ["Client log: RRA-4012 at 60 minute intervals. Client version 3.x.",
                   "Gateway firmware 9.6, so the 10.1 IKE issue does not apply."],
      "impacts": [(3, 1, 1, 2), (2, 2, 6, 1)], "channel": "Phone"},
@@ -280,7 +286,7 @@ TEMPLATES = [
      "titles": ["New starter account: {first}", "Account needed for new hire starting Monday"],
      "descriptions": ["New starter {first} begins on Monday; please create their account.", "We have a new hire next week."],
      "resolution": ["Account created three business days before the start date; credentials sent to the manager (KB0095)."],
-     "internal": ["Licence assigned from the customer's pool."],
+     "internal": ["License assigned from the customer's pool."],
      "impacts": [(4, 0, 0, 1)], "channel": "Portal"},
     {"kb": "KB0097", "weight": 6, "days": (3, 268),
      "titles": ["Leaver: disable account for departing employee"],
@@ -351,13 +357,13 @@ TEMPLATES = [
     {"kb": "KB0141", "weight": 5, "days": (3, 268),
      "titles": ["Suspicious sign-in alert for {first}", "Impossible travel alert"],
      "descriptions": ["Monitoring: sign-in for {first} from an unfamiliar country.", "Impossible travel alert on a finance account."],
-     "resolution": ["User confirmed they were travelling; alert closed with the source IP recorded (KB0141).",
-                    "User did not recognise the sign-in; password reset and sessions revoked; handled as P1 Security (KB0141)."],
+     "resolution": ["User confirmed they were traveling; alert closed with the source IP recorded (KB0141).",
+                    "User did not recognize the sign-in; password reset and sessions revoked; handled as P1 Security (KB0141)."],
      "internal": ["Source IP recorded in the security log."],
      "impacts": [(2, 1, 1, 2), (1, 1, 1, 1)], "channel": "Monitoring Alert"},
     {"kb": "KB0143", "weight": 2, "days": (20, 268),
-     "titles": ["Ransomware behaviour alert on {device}"],
-     "descriptions": ["Endpoint Agent raised a ransomware behaviour alert on {device}."],
+     "titles": ["Ransomware behavior alert on {device}"],
+     "descriptions": ["Endpoint Agent raised a ransomware behavior alert on {device}."],
      "resolution": ["Device isolated immediately, P1 Security handled by the on-call engineer; false positive from a backup tool, device released (KB0143)."],
      "internal": ["Isolation took 4 minutes from alert."],
      "impacts": [(1, 1, 1, 1)], "channel": "Monitoring Alert"},
@@ -375,3 +381,121 @@ APP_NAMES = [
 ]
 PRINTER_NAMES = ["reception", "second floor", "finance office", "warehouse", "design studio", "front desk"]
 WEEKDAYS = ["Monday", "Tuesday", "Wednesday", "Thursday"]
+
+# ===========================================================================
+# Lab version 3: the outcome of each resolution option above, in the same order.
+# ===========================================================================
+LEGACY_OUTCOMES = {
+    "KB0007": ["Permanent fix", "Permanent fix"],
+    "KB0012": ["Permanent fix", "No fault found"],
+    "KB0013": ["No fault found", "Permanent fix"],
+    "KB0021": ["Permanent fix", "Permanent fix"],
+    "KB0023": ["Permanent fix", "Workaround provided"],
+    "KB0026": ["Permanent fix", "Permanent fix"],
+    "KB0028": ["Permanent fix", "Permanent fix"],
+    "KB0033": ["Workaround provided", "User guidance"],
+    "KB0036": ["Permanent fix"],
+    "KB0039": ["User guidance", "Permanent fix"],
+    "KB0031": ["Permanent fix", "Permanent fix"],
+    "KB0058": ["Permanent fix", "Permanent fix"],
+    "KB0041": ["Permanent fix"],
+    "KB0042": ["Permanent fix", "Permanent fix"],
+    "KB0044": ["Permanent fix", "Permanent fix"],
+    "KB0045": ["Permanent fix", "Permanent fix"],
+    "KB0047": ["Permanent fix", "Workaround provided"],
+    "KB0049": ["Permanent fix"],
+    "KB0052": ["Permanent fix"],
+    "KB0055": ["Permanent fix"],
+    "KB0061": ["Permanent fix"],
+    "KB0063": ["Permanent fix", "Permanent fix"],
+    "KB0065": ["Permanent fix", "Permanent fix"],
+    "KB0067": ["Permanent fix"],
+    "KB0069": ["Permanent fix"],
+    "KB0071": ["Permanent fix"],
+    "KB0073": ["Permanent fix"],
+    "KB0074": ["Permanent fix", "Permanent fix"],
+    "KB0081": ["Permanent fix"],
+    "KB0083": ["Permanent fix"],
+    "KB0085": ["Permanent fix"],
+    "KB0087": ["Permanent fix"],
+    "KB0089": ["Permanent fix", "Permanent fix"],
+    "KB0091": ["Permanent fix"],
+    "KB0093": ["Permanent fix"],
+    "KB0095": ["Permanent fix"],
+    "KB0097": ["Permanent fix"],
+    "KB0099": ["Permanent fix"],
+    "KB0101": ["Permanent fix"],
+    "KB0111": ["Permanent fix"],
+    "KB0113": ["Permanent fix"],
+    "KB0115": ["Permanent fix"],
+    "KB0121": ["Resolved by vendor"],
+    "KB0123": ["Permanent fix"],
+    "KB0131": ["Permanent fix"],
+    "KB0133": ["Permanent fix"],
+    "KB0141": ["No fault found", "Permanent fix"],
+    "KB0143": ["No fault found"],
+    "KB0145": ["Permanent fix"],
+}
+
+# The resolution option that fits the customer's contract. The random draw still happens,
+# so the sequence is unchanged; only the text that matches the contract is kept.
+LEGACY_RESOLUTION_FOR_CONTRACT = {
+    "KB0074": {"Co-Managed": 0, "Break-Fix": 1},
+}
+
+# A sentence added to the resolution according to the customer's contract.
+LEGACY_CONTRACT_NOTES = {
+    "KB0021": {"Break-Fix": " Billable under Break-Fix: the customer approved the quote before the work.",
+               "*": " Included in the managed service."},
+}
+
+# Text that must agree with the ticket's own impact. After the random draws, a drawn option
+# written for several people is swapped for the single-user text when one person is
+# affected, and the other way round. Keys are (article, field); values list the option
+# indexes written for one person ("single") and for several ("multi"), and the text to use.
+LEGACY_AUDIENCE = {
+    ("KB0031", "titles"): {"single": [1], "multi": [], "multi_text": "Remote Access disconnects every hour"},
+    ("KB0031", "descriptions"): {
+        "single": [0], "multi": [1, 2],
+        "single_text": "{first} says Remote Access drops roughly every hour and has to reconnect. It has been happening all week.",
+        "multi_text": "Remote workers lose the VPN connection about once an hour. The log shows RRA-4012 tunnel reset by peer."},
+    ("KB0055", "descriptions"): {
+        "single": [0], "multi": [1],
+        "single_text": "{first} says meeting audio is choppy only while connected to Remote Access.",
+        "multi_text": "Video calls freeze when people are on the VPN at home."},
+    ("KB0058", "titles"): {"single": [], "multi": [2], "single_text": "VPN drops every hour after firewall upgrade"},
+    ("KB0058", "descriptions"): {
+        "single": [], "multi": [0, 1, 2],
+        "single_text": "Since the gateway upgrade, {first} is disconnected from Remote Access about every hour. Reinstalling the client did not help."},
+    ("KB0067", "titles"): {"single": [], "multi": [0], "single_text": "Laptop slow after agent update"},
+    ("KB0067", "descriptions"): {
+        "single": [], "multi": [0],
+        "single_text": "Since the Endpoint Agent updated to 7.4.0, {first}'s laptop is slow for the first hour after sign-in."},
+    ("KB0081", "titles"): {"single": [0], "multi": [1], "single_text": "Shared mailbox access for {first}",
+                           "multi_text": "Add the team to the accounts shared mailbox"},
+    ("KB0081", "descriptions"): {"single": [0], "multi": [1], "single_text": "Please give {first} access to the shared mailbox.",
+                                 "multi_text": "The accounts team needs access to the shared mailbox."},
+    ("KB0089", "titles"): {"single": [0], "multi": [], "multi_text": "Phishing e-mail claiming to be a courier"},
+    ("KB0089", "descriptions"): {"single": [0], "multi": [1],
+                                 "single_text": "{first} forwarded an e-mail asking to confirm a delivery address.",
+                                 "multi_text": "Several staff received a fake invoice e-mail."},
+    ("KB0089", "resolution"): {"single": [0], "multi": [1]},
+    ("KB0111", "descriptions"): {
+        "single": [], "multi": [0, 1],
+        "single_text": "The {printer} printer shows offline on {first}'s PC since the network work. {first} is using another printer for now."},
+    ("KB0115", "titles"): {"single": [], "multi": [1], "single_text": "Print jobs stuck in the queue"},
+    ("KB0133", "descriptions"): {
+        "single": [], "multi": [1],
+        "single_text": "Since this morning {first} gets a certificate warning in the {app} and cannot continue."},
+}
+# For "resolution", the swap uses the first option of the other kind (no new text).
+
+# Text or option that must agree with the ticket's priority.
+LEGACY_PRIORITY_TEXT = {
+    # A P2 tunnel ticket is not a whole site down (that is P1 under KB0042).
+    ("KB0042", "descriptions"): {2: {0: "Staff at {site} cannot open the stock system or file shares, but email and the internet still work."}},
+}
+LEGACY_RESOLUTION_FOR_PRIORITY = {
+    # P1 means the user did not recognize the sign-in; P2 means they were traveling.
+    "KB0141": {1: 1, 2: 0},
+}

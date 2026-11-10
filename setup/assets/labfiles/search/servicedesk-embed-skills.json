@@ -1,0 +1,22 @@
+{
+  "name": "servicedesk-embed-skills",
+  "description": "Turns each document's content field into one 1536-dimension vector with text-embedding-3-small on the lab's Foundry resource. No chunking: one vector per record, so one search result and one citation per record.",
+  "skills": [
+    {
+      "@odata.type": "#Microsoft.Skills.Text.AzureOpenAIEmbeddingSkill",
+      "name": "embed-content",
+      "description": "Embedding of the content field. Calls the model with the search service's managed identity (no key).",
+      "context": "/document",
+      "resourceUri": "{{EmbeddingResourceUri}}",
+      "deploymentId": "{{EmbeddingDeployment}}",
+      "modelName": "text-embedding-3-small",
+      "dimensions": 1536,
+      "inputs": [
+        { "name": "text", "source": "/document/content" }
+      ],
+      "outputs": [
+        { "name": "embedding", "targetName": "contentVector" }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,98 @@
+<policies>
+    <!--
+        Relecloud Service Desk MCP gateway: API servicedesk-read (client path /servicedesk-read/mcp,
+        backend <Container App>/read/mcp). Applied by setup/bicep/modules/apim.bicep, which loads
+        this file as it is, so this file is the deliverable and the deployed policy at once.
+
+        What it enforces, in order:
+          1. Correlation: a well-formed incoming x-correlation-id (a GUID) is kept, anything else is
+             replaced by the gateway request ID, so a caller can never inject text into the logs.
+             The same value goes to the backend and back to the caller, also on errors.
+          2. Identity: validate-azure-ad-token accepts only a signed-in user's token issued in this
+             tenant to the gateway client app, for the gateway audience, carrying the delegated
+             scope ServiceDesk.Access. Anything else gets 401.
+          3. Who is asking: x-user-oid and x-user-name come from the validated token, and
+             x-agent-id from the named value that provisioning sets to the agent's Entra Agent ID.
+             Incoming copies of these headers are overwritten, never trusted.
+          4. Backend trust: x-backend-key comes from the Key Vault named value mcp-backend-key.
+             Authorization, Origin and any subscription key are removed before forwarding.
+          5. Streaming safety: nothing here reads or rewrites the response body.
+    -->
+    <inbound>
+        <base />
+        <set-header name="Origin" exists-action="delete" />
+        <set-variable name="correlationId" value="@{
+            string incoming = context.Request.Headers.GetValueOrDefault(&quot;x-correlation-id&quot;, &quot;&quot;);
+            Guid parsed;
+            return Guid.TryParse(incoming, out parsed) ? parsed.ToString() : context.RequestId.ToString();
+        }" />
+        <validate-azure-ad-token tenant-id="{{tenant-id}}" header-name="Authorization" failed-validation-httpcode="401" failed-validation-error-message="Unauthorized. This gateway accepts only a signed-in Relecloud technician's token for the Service Desk scope." output-token-variable-name="userToken">
+            <client-application-ids>
+                <application-id>{{mcp-gateway-app-id}}</application-id>
+            </client-application-ids>
+            <audiences>
+                <audience>{{mcp-gateway-app-id}}</audience>
+                <audience>api://{{mcp-gateway-app-id}}</audience>
+                <audience>{{mcp-gateway-audience}}</audience>
+            </audiences>
+            <required-claims>
+                <claim name="scp" match="any" separator=" ">
+                    <value>{{mcp-gateway-scope}}</value>
+                </claim>
+            </required-claims>
+        </validate-azure-ad-token>
+        <rate-limit-by-key calls="120" renewal-period="60" counter-key="@(((Jwt)context.Variables[&quot;userToken&quot;]).Claims.GetValueOrDefault(&quot;oid&quot;, &quot;unknown&quot;))" />
+        <set-header name="x-correlation-id" exists-action="override">
+            <value>@((string)context.Variables["correlationId"])</value>
+        </set-header>
+        <set-header name="x-user-oid" exists-action="override">
+            <value>@(((Jwt)context.Variables["userToken"]).Claims.GetValueOrDefault("oid", ""))</value>
+        </set-header>
+        <set-header name="x-user-name" exists-action="override">
+            <value>@{
+                var jwt = (Jwt)context.Variables["userToken"];
+                return jwt.Claims.GetValueOrDefault("preferred_username", jwt.Claims.GetValueOrDefault("upn", ""));
+            }</value>
+        </set-header>
+        <set-header name="x-client-app-id" exists-action="override">
+            <value>@{
+                var jwt = (Jwt)context.Variables["userToken"];
+                return jwt.Claims.GetValueOrDefault("azp", jwt.Claims.GetValueOrDefault("appid", ""));
+            }</value>
+        </set-header>
+        <set-header name="x-agent-id" exists-action="override">
+            <value>{{agent-id}}</value>
+        </set-header>
+        <set-header name="x-gateway-api" exists-action="override">
+            <value>servicedesk-read</value>
+        </set-header>
+        <set-header name="x-gateway-caller" exists-action="override">
+            <value>agent</value>
+        </set-header>
+        <set-header name="x-backend-key" exists-action="override">
+            <value>{{mcp-backend-key}}</value>
+        </set-header>
+        <set-header name="Authorization" exists-action="delete" />
+        <set-header name="Ocp-Apim-Subscription-Key" exists-action="delete" />
+        <trace source="servicedesk-gateway" severity="information">
+            <message>@("servicedesk-read " + (string)context.Variables["correlationId"])</message>
+            <metadata name="correlation-id" value="@((string)context.Variables[&quot;correlationId&quot;])" />
+            <metadata name="user-oid" value="@(((Jwt)context.Variables[&quot;userToken&quot;]).Claims.GetValueOrDefault(&quot;oid&quot;, &quot;&quot;))" />
+        </trace>
+    </inbound>
+    <backend>
+        <base />
+    </backend>
+    <outbound>
+        <base />
+        <set-header name="x-correlation-id" exists-action="override">
+            <value>@((string)context.Variables["correlationId"])</value>
+        </set-header>
+    </outbound>
+    <on-error>
+        <base />
+        <set-header name="x-correlation-id" exists-action="override">
+            <value>@(context.Variables.ContainsKey("correlationId") ? (string)context.Variables["correlationId"] : context.RequestId.ToString())</value>
+        </set-header>
+    </on-error>
+</policies>

@@ -1,0 +1,62 @@
+<policies>
+    <!--
+        Relecloud Service Desk MCP gateway: API servicedesk-diag (client path /servicedesk-diag/mcp,
+        backend <Container App>/mcp, every tool). Used from the lab VM for diagnostics (the lab
+        tools and the readiness check) with the subscription key of the product
+        servicedesk-diagnostics. Applied by setup/bicep/modules/apim.bicep, which loads this file
+        as it is.
+
+        This API carries no signed-in user: it removes every user and agent header a caller might
+        send, so the MCP server runs read tools as its own application user (which never holds
+        the contact phone column permissions) and refuses every write tool with
+        USER_CONTEXT_REQUIRED. It keeps the same correlation rule as the agent APIs and adds the
+        Key Vault backend key. Nothing here reads or rewrites the response body.
+    -->
+    <inbound>
+        <base />
+        <set-header name="Origin" exists-action="delete" />
+        <set-variable name="correlationId" value="@{
+            string incoming = context.Request.Headers.GetValueOrDefault(&quot;x-correlation-id&quot;, &quot;&quot;);
+            Guid parsed;
+            return Guid.TryParse(incoming, out parsed) ? parsed.ToString() : context.RequestId.ToString();
+        }" />
+        <rate-limit-by-key calls="60" renewal-period="60" counter-key="@(context.Subscription.Id)" />
+        <set-header name="x-correlation-id" exists-action="override">
+            <value>@((string)context.Variables["correlationId"])</value>
+        </set-header>
+        <set-header name="x-user-oid" exists-action="delete" />
+        <set-header name="x-user-name" exists-action="delete" />
+        <set-header name="x-client-app-id" exists-action="delete" />
+        <set-header name="x-agent-id" exists-action="delete" />
+        <set-header name="x-gateway-api" exists-action="override">
+            <value>servicedesk-diag</value>
+        </set-header>
+        <set-header name="x-gateway-caller" exists-action="override">
+            <value>operator</value>
+        </set-header>
+        <set-header name="x-backend-key" exists-action="override">
+            <value>{{mcp-backend-key}}</value>
+        </set-header>
+        <set-header name="Authorization" exists-action="delete" />
+        <set-header name="Ocp-Apim-Subscription-Key" exists-action="delete" />
+        <trace source="servicedesk-gateway" severity="information">
+            <message>@("servicedesk-diag " + (string)context.Variables["correlationId"])</message>
+            <metadata name="correlation-id" value="@((string)context.Variables[&quot;correlationId&quot;])" />
+        </trace>
+    </inbound>
+    <backend>
+        <base />
+    </backend>
+    <outbound>
+        <base />
+        <set-header name="x-correlation-id" exists-action="override">
+            <value>@((string)context.Variables["correlationId"])</value>
+        </set-header>
+    </outbound>
+    <on-error>
+        <base />
+        <set-header name="x-correlation-id" exists-action="override">
+            <value>@(context.Variables.ContainsKey("correlationId") ? (string)context.Variables["correlationId"] : context.RequestId.ToString())</value>
+        </set-header>
+    </on-error>
+</policies>

@@ -1,0 +1,151 @@
+{
+  "$comment": "Dataverse security baseline of the Relecloud Service Desk (BUILD-SPEC 3.1 and 3.5), applied by Set-DataverseSecurity.ps1. This file is authoritative for roles, role assignments, the regulated business unit, the column security profile and auditing; the securityRoles, roleAssignments and businessUnits blocks of schema.json are not used. Depth values: Basic (user), Local (business unit), Deep (parent and child business units), Global (organization). Entries marked optional are skipped with a warning when the table or privilege does not exist. Read and write are separate roles; nothing here grants System Administrator.",
+  "roles": [
+    {
+      "name": "Service Desk Agent Read",
+      "description": "MCP server application user (and the readiness identity): read access to the Service Desk tables, used by the read tools. Separate from the write role on purpose. Also the role of the Relecloud Regulated Accounts team, which owns the regulated customer's records.",
+      "baseRole": "App Opener",
+      "privileges": [
+        { "table": "spk_ticket", "read": "Global" },
+        { "table": "spk_ticketnote", "read": "Global" },
+        { "table": "spk_knowledgearticle", "read": "Global" },
+        { "table": "spk_runbook", "read": "Global" },
+        { "table": "spk_customerprocedure", "read": "Global" },
+        { "table": "spk_customerdocument", "read": "Global" },
+        { "table": "spk_technician", "read": "Global" },
+        { "table": "spk_slapolicy", "read": "Global" },
+        { "table": "spk_businesscalendar", "read": "Global" },
+        { "table": "spk_agentaction", "read": "Global" },
+        { "table": "account", "read": "Global" },
+        { "table": "contact", "read": "Global" },
+        { "table": "annotation", "read": "Global" },
+        { "table": "systemuser", "read": "Global", "optional": true },
+        { "table": "team", "read": "Global", "optional": true },
+        { "table": "businessunit", "read": "Global", "optional": true }
+      ]
+    },
+    {
+      "name": "Service Desk Agent Write",
+      "description": "MCP server application user: the only changes the agent can make. Ticket fields and ticket notes run on behalf of the signed-in user, so that user's role applies too; agent action records (duplicate suppression and audit) are written by the server as itself.",
+      "baseRole": "",
+      "privileges": [
+        { "table": "spk_ticket", "write": "Global", "append": "Global", "appendTo": "Global" },
+        { "table": "spk_ticketnote", "create": "Global", "write": "Global", "append": "Global", "appendTo": "Global" },
+        { "table": "spk_technician", "appendTo": "Global" },
+        { "table": "spk_knowledgearticle", "appendTo": "Global" },
+        { "table": "spk_agentaction", "create": "Global", "append": "Global" }
+      ]
+    },
+    {
+      "name": "Service Desk Senior Technician",
+      "description": "Senior Technician: reads every Service Desk table (including the agent action records), updates tickets, adds notes, and reads the audit history and audit summary (View Audit History and View Audit Summary, used by Get-ActionTrail.ps1).",
+      "baseRole": "App Opener",
+      "privileges": [
+        { "table": "spk_ticket", "read": "Global", "write": "Global", "append": "Global", "appendTo": "Global" },
+        { "table": "spk_ticketnote", "read": "Global", "create": "Global", "write": "Global", "append": "Global", "appendTo": "Global" },
+        { "table": "spk_knowledgearticle", "read": "Global", "appendTo": "Global" },
+        { "table": "spk_runbook", "read": "Global" },
+        { "table": "spk_customerprocedure", "read": "Global" },
+        { "table": "spk_customerdocument", "read": "Global" },
+        { "table": "spk_technician", "read": "Global", "appendTo": "Global" },
+        { "table": "spk_slapolicy", "read": "Global" },
+        { "table": "spk_businesscalendar", "read": "Global" },
+        { "table": "spk_agentaction", "read": "Global" },
+        { "table": "account", "read": "Global" },
+        { "table": "contact", "read": "Global" },
+        { "table": "annotation", "read": "Global" }
+      ],
+      "privilegeNames": [
+        { "name": "prvReadRecordAuditHistory", "depth": "Global" },
+        { "name": "prvReadAuditSummary", "depth": "Global" }
+      ]
+    },
+    {
+      "name": "Service Desk Tier 1 Technician",
+      "description": "Tier 1 Technician: read-only on tickets and every other Service Desk table.",
+      "baseRole": "App Opener",
+      "privileges": [
+        { "table": "spk_ticket", "read": "Global" },
+        { "table": "spk_ticketnote", "read": "Global" },
+        { "table": "spk_knowledgearticle", "read": "Global" },
+        { "table": "spk_runbook", "read": "Global" },
+        { "table": "spk_customerprocedure", "read": "Global" },
+        { "table": "spk_customerdocument", "read": "Global" },
+        { "table": "spk_technician", "read": "Global" },
+        { "table": "spk_slapolicy", "read": "Global" },
+        { "table": "spk_businesscalendar", "read": "Global" },
+        { "table": "spk_agentaction", "read": "Global" },
+        { "table": "account", "read": "Global" },
+        { "table": "contact", "read": "Global" }
+      ]
+    },
+    {
+      "name": "Service Desk Readiness Read",
+      "description": "The lab VM's provisioning identity after provisioning, for the readiness check only: reads users and their roles, the app and the column security profiles. Never held by the MCP server or a person.",
+      "baseRole": "",
+      "privileges": [
+        { "table": "systemuser", "read": "Global" },
+        { "table": "role", "read": "Global" },
+        { "table": "appmodule", "read": "Global", "optional": true },
+        { "table": "fieldsecurityprofile", "read": "Global", "optional": true },
+        { "table": "team", "read": "Global", "optional": true },
+        { "table": "businessunit", "read": "Global", "optional": true }
+      ]
+    },
+    {
+      "name": "Service Desk Security Steward",
+      "description": "Senior Technician add-on: may edit security roles and column security profiles in this environment (Exercise 5 Task 3 and Exercise 6 Task 1). Not System Administrator: column security still applies to its holder.",
+      "baseRole": "",
+      "privileges": [
+        { "table": "role", "read": "Global", "write": "Global" },
+        { "table": "fieldsecurityprofile", "create": "Global", "read": "Global", "write": "Global", "optional": true },
+        { "table": "fieldpermission", "create": "Global", "read": "Global", "write": "Global", "optional": true }
+      ],
+      "privilegeNames": [
+        { "name": "prvReadEntity", "depth": "Global", "optional": true },
+        { "name": "prvWriteEntity", "depth": "Global", "optional": true },
+        { "name": "prvReadAttribute", "depth": "Global", "optional": true },
+        { "name": "prvWriteAttribute", "depth": "Global", "optional": true },
+        { "name": "prvPublishCustomizations", "depth": "Global", "optional": true }
+      ]
+    }
+  ],
+  "assignments": {
+    "mcpApplicationUser": [ "Service Desk Agent Read", "Service Desk Agent Write", "Delegate" ],
+    "provisioningApplicationUser": [ "Service Desk Agent Read", "Service Desk Readiness Read" ],
+    "seniorTechnician": [ "Service Desk Senior Technician", "Service Desk Security Steward" ],
+    "tier1Technician": [ "Service Desk Tier 1 Technician" ],
+    "appRoles": [ "System Administrator", "Service Desk Senior Technician", "Service Desk Tier 1 Technician" ],
+    "neverHold": {
+      "mcpApplicationUser": [ "System Administrator", "System Customizer", "Service Desk Readiness Read" ],
+      "seniorTechnician": [ "System Customizer" ],
+      "tier1Technician": [ "System Administrator", "System Customizer", "Service Desk Senior Technician", "Service Desk Agent Write", "Service Desk Security Steward", "Service Desk Readiness Read", "Environment Maker" ],
+      "provisioningApplicationUser": [ "System Administrator", "System Customizer", "Service Desk Agent Write" ]
+    }
+  },
+  "businessUnits": [
+    {
+      "name": "Relecloud Regulated Accounts",
+      "description": "Customers under a regulated-data contract. Their records are owned by this business unit's team, so a role narrowed to the Relecloud business unit can't change them.",
+      "teamRole": "Service Desk Agent Read",
+      "customers": [ "CUST-014" ]
+    }
+  ],
+  "columnSecurityProfiles": [
+    {
+      "name": "Contact Phone Protection",
+      "description": "Contact phone numbers are secured from the start. Members may read them; the MCP server's application user is not a member, so the agent never receives a phone number. Exercise 6 Task 1 extends the protection to the email column.",
+      "columns": [
+        { "table": "contact", "column": "telephone1" },
+        { "table": "contact", "column": "mobilephone" }
+      ],
+      "permissions": { "canread": 4, "cancreate": 0, "canupdate": 0, "canreadunmasked": 0 },
+      "members": [ "seniorTechnician" ],
+      "neverMembers": [ "mcpApplicationUser", "provisioningApplicationUser" ]
+    }
+  ],
+  "audit": {
+    "organization": true,
+    "retentionDays": 30
+  }
+}

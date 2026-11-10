@@ -1,0 +1,93 @@
+<policies>
+    <!--
+        Relecloud Service Desk MCP gateway: API servicedesk-write (client path /servicedesk-write/mcp,
+        backend <Container App>/write/mcp). Applied by setup/bicep/modules/apim.bicep, which loads
+        this file as it is, so this file is the deliverable and the deployed policy at once.
+
+        Same controls as servicedesk-read: correlation ID (incoming GUID or the gateway request ID),
+        validate-azure-ad-token (tenant, gateway client app, gateway audience, scope
+        ServiceDesk.Access), user and agent headers from the validated token and the agent-id
+        named value, the Key Vault backend key, and removal of Authorization, Origin and any
+        subscription key. Every write tool behind this API also needs the user's approval in the
+        agent chat (the agent's servicedesk-write tool has require_approval always), and Dataverse
+        applies the signed-in user's own security role to every change.
+        Nothing here reads or rewrites the response body, which would break MCP streaming.
+    -->
+    <inbound>
+        <base />
+        <set-header name="Origin" exists-action="delete" />
+        <set-variable name="correlationId" value="@{
+            string incoming = context.Request.Headers.GetValueOrDefault(&quot;x-correlation-id&quot;, &quot;&quot;);
+            Guid parsed;
+            return Guid.TryParse(incoming, out parsed) ? parsed.ToString() : context.RequestId.ToString();
+        }" />
+        <validate-azure-ad-token tenant-id="{{tenant-id}}" header-name="Authorization" failed-validation-httpcode="401" failed-validation-error-message="Unauthorized. This gateway accepts only a signed-in Relecloud technician's token for the Service Desk scope." output-token-variable-name="userToken">
+            <client-application-ids>
+                <application-id>{{mcp-gateway-app-id}}</application-id>
+            </client-application-ids>
+            <audiences>
+                <audience>{{mcp-gateway-app-id}}</audience>
+                <audience>api://{{mcp-gateway-app-id}}</audience>
+                <audience>{{mcp-gateway-audience}}</audience>
+            </audiences>
+            <required-claims>
+                <claim name="scp" match="any" separator=" ">
+                    <value>{{mcp-gateway-scope}}</value>
+                </claim>
+            </required-claims>
+        </validate-azure-ad-token>
+        <rate-limit-by-key calls="120" renewal-period="60" counter-key="@(((Jwt)context.Variables[&quot;userToken&quot;]).Claims.GetValueOrDefault(&quot;oid&quot;, &quot;unknown&quot;))" />
+        <set-header name="x-correlation-id" exists-action="override">
+            <value>@((string)context.Variables["correlationId"])</value>
+        </set-header>
+        <set-header name="x-user-oid" exists-action="override">
+            <value>@(((Jwt)context.Variables["userToken"]).Claims.GetValueOrDefault("oid", ""))</value>
+        </set-header>
+        <set-header name="x-user-name" exists-action="override">
+            <value>@{
+                var jwt = (Jwt)context.Variables["userToken"];
+                return jwt.Claims.GetValueOrDefault("preferred_username", jwt.Claims.GetValueOrDefault("upn", ""));
+            }</value>
+        </set-header>
+        <set-header name="x-client-app-id" exists-action="override">
+            <value>@{
+                var jwt = (Jwt)context.Variables["userToken"];
+                return jwt.Claims.GetValueOrDefault("azp", jwt.Claims.GetValueOrDefault("appid", ""));
+            }</value>
+        </set-header>
+        <set-header name="x-agent-id" exists-action="override">
+            <value>{{agent-id}}</value>
+        </set-header>
+        <set-header name="x-gateway-api" exists-action="override">
+            <value>servicedesk-write</value>
+        </set-header>
+        <set-header name="x-gateway-caller" exists-action="override">
+            <value>agent</value>
+        </set-header>
+        <set-header name="x-backend-key" exists-action="override">
+            <value>{{mcp-backend-key}}</value>
+        </set-header>
+        <set-header name="Authorization" exists-action="delete" />
+        <set-header name="Ocp-Apim-Subscription-Key" exists-action="delete" />
+        <trace source="servicedesk-gateway" severity="information">
+            <message>@("servicedesk-write " + (string)context.Variables["correlationId"])</message>
+            <metadata name="correlation-id" value="@((string)context.Variables[&quot;correlationId&quot;])" />
+            <metadata name="user-oid" value="@(((Jwt)context.Variables[&quot;userToken&quot;]).Claims.GetValueOrDefault(&quot;oid&quot;, &quot;&quot;))" />
+        </trace>
+    </inbound>
+    <backend>
+        <base />
+    </backend>
+    <outbound>
+        <base />
+        <set-header name="x-correlation-id" exists-action="override">
+            <value>@((string)context.Variables["correlationId"])</value>
+        </set-header>
+    </outbound>
+    <on-error>
+        <base />
+        <set-header name="x-correlation-id" exists-action="override">
+            <value>@(context.Variables.ContainsKey("correlationId") ? (string)context.Variables["correlationId"] : context.RequestId.ToString())</value>
+        </set-header>
+    </on-error>
+</policies>

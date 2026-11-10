@@ -1,0 +1,11 @@
+{
+  "name": "servicedesk-export-ds",
+  "description": "Relecloud Service Desk export: one JSON file per searchable record, read with the search service's system-assigned managed identity (no key in the connection).",
+  "type": "azureblob",
+  "credentials": {
+    "connectionString": "ResourceId=/subscriptions/{{SubscriptionId}}/resourceGroups/{{ResourceGroup}}/providers/Microsoft.Storage/storageAccounts/{{StorageAccount}}/;"
+  },
+  "container": {
+    "name": "{{ExportContainer}}"
+  }
+}

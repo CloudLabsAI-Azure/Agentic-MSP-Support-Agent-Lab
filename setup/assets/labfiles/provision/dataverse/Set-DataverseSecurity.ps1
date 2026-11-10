@@ -1,59 +1,61 @@
 #Requires -Version 7.0
 <#
 .SYNOPSIS
-    Security and audit configuration for a team's Service Desk environment: least-privileged
-    roles, application users, the two technician identities, the regulated-accounts business
-    unit and auditing.
+    Dataverse security baseline of the Service Desk environment, from security.json: auditing,
+    least-privileged roles, the MCP application user, both technicians, the regulated business unit,
+    the Contact Phone Protection column security profile and the app's sharing.
 
 .DESCRIPTION
-    Safe by default. Every step is idempotent and resets the configuration to the documented
-    baseline, so a re-run also undoes changes made during the exercises.
+    Runs as the provisioning identity (id-prov), which is System Administrator in the environment
+    until the last provisioning step reduces it to Service Desk Agent Read. This script never changes
+    id-prov's own roles. Every step is idempotent: a re-run restores the documented baseline for the
+    objects it manages and leaves anything else (for example a column a participant secured in
+    Exercise 6) as it is.
 
-    1. Auditing on for the environment (30-day retention). Tables and columns are audited by
-       the schema.
-    2. Security roles from schema.json, with exactly the privileges listed there (plus those of
-       the base role). Privilege names and IDs come from each table's metadata, so names such
-       as prvReadNote (annotation) need no special cases. Reads and writes are separate roles:
-         Service Desk Agent Read      read the Service Desk tables
-         Service Desk Agent Write     update tickets and add ticket notes, nothing else
-         Service Desk Senior Technician / Service Desk Tier 1 Technician   the people
-    3. The MCP server's managed identity as an application user holding Agent Read, Agent
-       Write and Delegate. Delegate (prvActOnBehalfOfAnotherUser) lets the server run each call
-       on behalf of the signed-in user, so Dataverse applies the user's role as well as its own.
-       System Administrator is removed if an earlier run assigned it.
-    4. The VM's provisioning identity as an application user holding Agent Read, used by the
-       readiness check and the validation scripts.
-    5. The Senior Technician (the team user, who owns the environment) and the Tier 1
-       Technician (read-only on tickets) with their roles. The Tier 1 user must already be in
-       the environment (New-DeveloperEnvironment.ps1 adds them); this script waits for it.
-    6. The business unit 'Relecloud Regulated Accounts' with its default team, which owns the
-       regulated customer's records (assigned by the seed loader), and the team's role.
-    7. The Service Desk app shared with the System Administrator and both technician roles.
-
-.EXAMPLE
-    .\Set-DataverseSecurity.ps1 -OrgUrl https://mspdesk123456.crm4.dynamics.com -McpIdentityClientId <guid> `
-        -ReadinessIdentityClientId <guid> -SeniorUserName labuser@contoso.onmicrosoft.com -Tier1UserObjectId <guid>
+    1. Organization auditing on, with the retention in security.json (table and column auditing
+       comes from the schema).
+    2. Roles, each with exactly its privileges (its base role's privileges plus the listed ones):
+         Service Desk Agent Read        read the Service Desk tables (MCP application user, readiness,
+                                        and the regulated business unit's team)
+         Service Desk Agent Write       ticket updates, ticket notes, agent action records
+         Service Desk Senior Technician read and write on tickets and notes, audit history
+         Service Desk Tier 1 Technician read only
+         Service Desk Security Steward  edit roles and column security profiles (Senior add-on)
+    3. The MCP server's managed identity (an application user) holds Agent Read, Agent Write and the
+       predefined Delegate role, never System Administrator. Delegate lets it act on behalf of the
+       signed-in user, so Dataverse applies that user's role as well.
+    4. The Senior Technician holds Senior Technician and Security Steward; with
+       -SeniorSystemAdministrator (pilot fallback) also System Administrator in this environment.
+       The Tier 1 Technician holds only Tier 1 Technician. Users are added on first reference.
+    5. Business unit Relecloud Regulated Accounts; its default team holds Agent Read so it can own
+       the regulated customer's records (the seed loader assigns them).
+    6. Column security: contact telephone1 and mobilephone are secured; the profile Contact Phone
+       Protection grants read to the Senior Technician only.
+    7. The Service Desk app is shared with the System Administrator and both technician roles.
+    Returns the IDs and a summary.
 #>
 [CmdletBinding()]
 param(
     [Parameter(Mandatory)][string]$OrgUrl,
     [Parameter(Mandatory)][string]$McpIdentityClientId,
-    [string]$ReadinessIdentityClientId,
-    [Parameter(Mandatory)][string]$SeniorUserName,
-    [string]$Tier1UserObjectId,
-    [string]$Tier1UserName,
-    [int]$UserWaitMinutes = 15,
-    [string]$SchemaPath = (Join-Path $PSScriptRoot 'schema.json')
+    [Parameter(Mandatory)][string]$SeniorObjectId,
+    [string]$Tier1ObjectId,
+    [switch]$SeniorSystemAdministrator,
+    [int]$UserWaitMinutes = 20,
+    [string]$SecurityPath = (Join-Path $PSScriptRoot 'security.json'),
+    [string]$AppUniqueName = 'spk_ServiceDesk'
 )
 
 $ErrorActionPreference = 'Stop'
 Import-Module (Join-Path (Split-Path $PSScriptRoot -Parent) 'MspLab.Common.psm1') -Force
-$schema = Get-Content $SchemaPath -Raw | ConvertFrom-Json -AsHashtable
+$security = Get-Content $SecurityPath -Raw | ConvertFrom-Json -AsHashtable
 $OrgUrl = $OrgUrl.TrimEnd('/')
 $api = "$OrgUrl/api/data/v9.2"
-function DV { param([string]$Method, [string]$Path, $Body = $null, [switch]$AllowNotFound)
-    Invoke-Dataverse -OrgUrl $OrgUrl -Method $Method -Path $Path -Body $Body -AllowNotFound:$AllowNotFound }
+$warnings = New-Object System.Collections.Generic.List[string]
+function DV { param([string]$Method, [string]$Path, $Body = $null, [switch]$AllowNotFound, [hashtable]$Headers = @{})
+    Invoke-Dataverse -OrgUrl $OrgUrl -Method $Method -Path $Path -Body $Body -Headers $Headers -AllowNotFound:$AllowNotFound }
 function Lit([string]$value) { return "'" + $value.Replace("'", "''") + "'" }
+function Warn([string]$text) { $warnings.Add($text); Write-Step "  WARNING: $text" }
 
 $rootBu = ((DV GET 'businessunits?$select=businessunitid&$filter=_parentbusinessunitid_value eq null').Body.value | Select-Object -First 1).businessunitid
 function Get-RoleId([string]$name, [string]$businessUnitId = $rootBu) {
@@ -61,48 +63,48 @@ function Get-RoleId([string]$name, [string]$businessUnitId = $rootBu) {
     if ($r) { return $r.roleid }
     return $null
 }
-function Get-UserRoles([string]$userId) {
-    return @((DV GET "systemusers($userId)/systemuserroles_association?`$select=roleid,name").Body.value)
-}
+function Get-UserRoles([string]$userId) { return @((DV GET "systemusers($userId)/systemuserroles_association?`$select=roleid,name").Body.value) }
 function Grant-Role([string]$userId, [string]$roleName) {
     $roleId = Get-RoleId $roleName
     if (-not $roleId) { throw "Security role '$roleName' was not found." }
     if ((Get-UserRoles $userId).roleid -notcontains $roleId) {
-        DV POST "systemusers($userId)/systemuserroles_association/`$ref" @{ '@odata.id' = "$api/roles($roleId)" } | Out-Null
+        $null = DV POST "systemusers($userId)/systemuserroles_association/`$ref" @{ '@odata.id' = "$api/roles($roleId)" }
     }
 }
 function Revoke-Role([string]$userId, [string]$roleName) {
     $roleId = Get-RoleId $roleName
     if ($roleId -and ((Get-UserRoles $userId).roleid -contains $roleId)) {
-        DV DELETE "systemusers($userId)/systemuserroles_association($roleId)/`$ref" | Out-Null
+        $null = DV DELETE "systemusers($userId)/systemuserroles_association($roleId)/`$ref"
         Write-Step "  removed '$roleName'"
     }
 }
 function Set-ExactRoles([string]$userId, [string[]]$roleNames, [string[]]$neverHold = @()) {
     foreach ($name in $roleNames) { Grant-Role $userId $name }
-    foreach ($name in $neverHold) { Revoke-Role $userId $name }
+    foreach ($name in ($neverHold | Where-Object { $_ -notin $roleNames })) { Revoke-Role $userId $name }
+    return @((Get-UserRoles $userId).name)
 }
 
-# ================================================================== 1. environment auditing
+# ==== 1. Organization auditing
 Write-Step 'Environment auditing'
-$org = (DV GET 'organizations?$select=organizationid,isauditenabled').Body.value | Select-Object -First 1
-if (-not $org.isauditenabled) {
-    DV PATCH "organizations($($org.organizationid))" @{ isauditenabled = $true; auditretentionperiodv2 = 30 } | Out-Null
+$org = (DV GET 'organizations?$select=organizationid,isauditenabled,auditretentionperiodv2').Body.value | Select-Object -First 1
+$retention = [int]$security.audit.retentionDays
+if (-not $org.isauditenabled -or [int]$org.auditretentionperiodv2 -ne $retention) {
+    $null = DV PATCH "organizations($($org.organizationid))" @{ isauditenabled = $true; auditretentionperiodv2 = $retention }
 }
-Write-Step '  auditing is on (30-day retention)'
+Write-Step "  auditing is on ($retention-day retention)"
 
-# ================================================================== 2. security roles
+# ==== 2. Roles
 $privilegeCache = @{}
 function Get-TablePrivileges([string]$table) {
     if (-not $privilegeCache.ContainsKey($table)) {
-        $meta = (DV GET "EntityDefinitions(LogicalName='$table')?`$select=LogicalName,Privileges").Body
-        $privilegeCache[$table] = @($meta.Privileges)
+        $meta = DV GET "EntityDefinitions(LogicalName='$table')?`$select=LogicalName,Privileges" -AllowNotFound
+        $privilegeCache[$table] = if ($meta) { @($meta.Body.Privileges) } else { $null }
     }
     return $privilegeCache[$table]
 }
-$verbs = @{ create = 'Create'; read = 'Read'; write = 'Write'; append = 'Append'; appendTo = 'AppendTo' }
+$verbs = [ordered]@{ create = 'Create'; read = 'Read'; write = 'Write'; append = 'Append'; appendTo = 'AppendTo' }
 
-foreach ($roleDef in $schema.securityRoles) {
+foreach ($roleDef in $security.roles) {
     Write-Step "Role '$($roleDef.name)'"
     $roleId = Get-RoleId $roleDef.name
     if (-not $roleId) {
@@ -111,7 +113,9 @@ foreach ($roleDef in $schema.securityRoles) {
     }
     $merged = @{}
     if ($roleDef.baseRole) {
-        $baseId = Get-RoleId $roleDef.baseRole
+        $baseName = $roleDef.baseRole
+        $baseId = Get-RoleId $baseName
+        if (-not $baseId -and $baseName -eq 'App Opener') { $baseName = 'Basic User'; $baseId = Get-RoleId $baseName; Warn "role App Opener not found; $($roleDef.name) is based on Basic User" }
         if (-not $baseId) { throw "Base role '$($roleDef.baseRole)' was not found." }
         foreach ($p in (DV GET "RetrieveRolePrivilegesRole(RoleId=$baseId)").Body.RolePrivileges) {
             $merged[$p.PrivilegeId] = @{ PrivilegeId = $p.PrivilegeId; Depth = $p.Depth; BusinessUnitId = $rootBu; PrivilegeName = $p.PrivilegeName }
@@ -119,145 +123,189 @@ foreach ($roleDef in $schema.securityRoles) {
     }
     foreach ($entry in $roleDef.privileges) {
         $available = Get-TablePrivileges $entry.table
+        if ($null -eq $available) {
+            if ($entry.optional) { Warn "table $($entry.table) not found; skipped in $($roleDef.name)"; continue }
+            throw "Table $($entry.table) does not exist; deploy the schema first."
+        }
         foreach ($verb in $verbs.Keys) {
             if (-not $entry.ContainsKey($verb)) { continue }
             $priv = $available | Where-Object { $_.PrivilegeType -eq $verbs[$verb] } | Select-Object -First 1
-            if (-not $priv) { throw "Table $($entry.table) has no $($verbs[$verb]) privilege." }
+            if (-not $priv) {
+                if ($entry.optional) { Warn "table $($entry.table) has no $($verbs[$verb]) privilege"; continue }
+                throw "Table $($entry.table) has no $($verbs[$verb]) privilege."
+            }
             $merged[$priv.PrivilegeId] = @{ PrivilegeId = $priv.PrivilegeId; Depth = $entry[$verb]; BusinessUnitId = $rootBu; PrivilegeName = $priv.Name }
         }
     }
+    foreach ($named in @($roleDef.privilegeNames)) {
+        if (-not $named) { continue }
+        $priv = (DV GET "privileges?`$select=privilegeid,name&`$filter=name eq $(Lit $named.name)").Body.value | Select-Object -First 1
+        if (-not $priv) {
+            if ($named.optional) { Warn "privilege $($named.name) not found; skipped in $($roleDef.name)"; continue }
+            throw "Privilege $($named.name) was not found."
+        }
+        $merged[$priv.privilegeid] = @{ PrivilegeId = $priv.privilegeid; Depth = $named.depth; BusinessUnitId = $rootBu; PrivilegeName = $priv.name }
+    }
     # Replace, not add: the role ends up with exactly this privilege set.
-    DV POST "roles($roleId)/Microsoft.Dynamics.CRM.ReplacePrivilegesRole" @{ Privileges = @($merged.Values) } | Out-Null
+    $null = DV POST "roles($roleId)/Microsoft.Dynamics.CRM.ReplacePrivilegesRole" @{ Privileges = @($merged.Values) }
     Write-Step "  $($merged.Count) privileges"
 }
 
-# Delegate holds prvActOnBehalfOfAnotherUser. It is a built-in role; create an equivalent if
-# the environment lacks it.
-$delegateName = 'Delegate'
-if (-not (Get-RoleId $delegateName)) {
-    $delegateName = 'Service Desk Delegate'
-    if (-not (Get-RoleId $delegateName)) {
-        $priv = (DV GET "privileges?`$select=privilegeid,name&`$filter=name eq 'prvActOnBehalfOfAnotherUser'").Body.value | Select-Object -First 1
-        if (-not $priv) { throw 'Privilege prvActOnBehalfOfAnotherUser was not found.' }
-        $r = DV POST 'roles' @{ name = $delegateName; description = 'Act on behalf of another user (impersonation).'
-            'businessunitid@odata.bind' = "/businessunits($rootBu)" }
-        $roleId = Get-EntityIdFromHeader $r.Headers
-        DV POST "roles($roleId)/Microsoft.Dynamics.CRM.ReplacePrivilegesRole" @{ Privileges = @(@{
-            PrivilegeId = $priv.privilegeid; Depth = 'Global'; BusinessUnitId = $rootBu; PrivilegeName = $priv.name }) } | Out-Null
+# Delegate holds prvActOnBehalfOfAnotherUser. It is a predefined role: Dataverse refuses to add that
+# privilege to a custom role (0x8004Ed43), so there is no fallback.
+if (-not (Get-RoleId 'Delegate')) { throw 'The predefined Delegate role was not found in the environment.' }
+
+# ==== 3. The MCP server's application user
+Write-Step "Application user of the MCP server ($McpIdentityClientId)"
+$mcpUser = Invoke-WithRetry -What 'MCP application user' -Attempts 10 -DelaySeconds 30 -Action {
+    $u = (DV GET "systemusers?`$select=systemuserid,fullname,isdisabled&`$filter=applicationid eq $McpIdentityClientId").Body.value | Select-Object -First 1
+    if (-not $u) { throw 'not in the environment yet (the environment step adds it)' }
+    $u
+}
+$mcpRoles = Set-ExactRoles $mcpUser.systemuserid @($security.assignments.mcpApplicationUser) @($security.assignments.neverHold.mcpApplicationUser)
+Write-Step "  $($mcpUser.systemuserid) holds $($mcpRoles -join ', ')"
+
+# ==== 4. The two technicians (added to Dataverse on first reference; they need their licenses)
+function Resolve-HumanUser([string]$objectId, [string]$label) {
+    return Invoke-WithRetry -What "$label in Dataverse" -Attempts ([Math]::Max(1, [int]($UserWaitMinutes * 2))) -DelaySeconds 30 -Action {
+        $u = (DV GET "systemusers(azureactivedirectoryobjectid=$objectId)?`$select=systemuserid,fullname,domainname,isdisabled").Body
+        if (-not $u -or $u.isdisabled) { throw "$label is not an enabled user yet (license still syncing?)" }
+        $u
     }
 }
-$assignments = $schema.roleAssignments
-$mcpRoles = @($assignments.mcpApplicationUser | ForEach-Object { if ($_ -eq 'Delegate') { $delegateName } else { $_ } })
+Write-Step 'Senior Technician'
+$senior = Resolve-HumanUser $SeniorObjectId 'Senior Technician'
+$seniorWanted = @($security.assignments.seniorTechnician)
+$seniorNever = @($security.assignments.neverHold.seniorTechnician)
+if ($SeniorSystemAdministrator) { $seniorWanted += 'System Administrator' } else { $seniorNever += 'System Administrator' }
+try { $seniorRoles = Set-ExactRoles $senior.systemuserid $seniorWanted $seniorNever }
+catch { throw "Setting the Senior Technician's roles failed: $($_.Exception.Message). If System Administrator cannot be removed from the environment's user, deploy with seniorDataverseSystemAdministrator true (pilot fallback)." }
+Write-Step "  $($senior.domainname) holds $($seniorRoles -join ', ')"
 
-# ================================================================== 3 and 4. application users
-function Get-ApplicationUser([string]$clientId, [string]$purpose) {
-    $user = (DV GET "systemusers?`$select=systemuserid,fullname&`$filter=applicationid eq $clientId").Body.value | Select-Object -First 1
-    if ($user) { return $user.systemuserid }
-    try {
-        $r = DV POST 'systemusers' @{ applicationid = $clientId; 'businessunitid@odata.bind' = "/businessunits($rootBu)" }
-        return Get-EntityIdFromHeader $r.Headers
-    }
-    catch {
-        throw ("Creating the application user for the $purpose failed: $($_.Exception.Message). Create it by hand: Power Platform " +
-               "admin center, this environment, Settings, Users + permissions, Application users, New app user, Add an app, " +
-               "enter $clientId, business unit = root.")
-    }
+$tier1 = $null
+$tier1Roles = @()
+if ($Tier1ObjectId) {
+    Write-Step 'Tier 1 Technician'
+    $tier1 = Resolve-HumanUser $Tier1ObjectId 'Tier 1 Technician'
+    $tier1Roles = Set-ExactRoles $tier1.systemuserid @($security.assignments.tier1Technician) @($security.assignments.neverHold.tier1Technician)
+    Write-Step "  $($tier1.domainname) holds $($tier1Roles -join ', ')"
 }
+else { Warn 'no Tier 1 Technician given; Exercise 5 Task 4 needs one' }
 
-Write-Step "Application user for the MCP server ($McpIdentityClientId)"
-$appUserId = Get-ApplicationUser $McpIdentityClientId 'MCP server'
-Set-ExactRoles $appUserId $mcpRoles @('System Administrator', 'System Customizer')
-Write-Step "  $appUserId holds $($mcpRoles -join ', ')"
-
-$readinessUserId = $null
-if ($ReadinessIdentityClientId) {
-    Write-Step "Application user for the readiness check ($ReadinessIdentityClientId)"
-    $readinessUserId = Get-ApplicationUser $ReadinessIdentityClientId 'readiness check'
-    Set-ExactRoles $readinessUserId @($assignments.readinessApplicationUser) @('System Administrator', 'Service Desk Agent Write')
-    Write-Step "  $readinessUserId holds $($assignments.readinessApplicationUser -join ', ')"
-}
-
-# ================================================================== 5. the two technicians
-function Find-HumanUser([string]$objectId, [string]$userName) {
-    $filters = @()
-    if ($objectId) { $filters += "azureactivedirectoryobjectid eq $objectId" }
-    if ($userName) { $filters += "domainname eq $(Lit $userName)" }
-    $deadline = (Get-Date).AddMinutes($UserWaitMinutes)
-    do {
-        foreach ($f in $filters) {
-            $u = (DV GET "systemusers?`$select=systemuserid,fullname,isdisabled&`$filter=$f").Body.value | Select-Object -First 1
-            if ($u -and -not $u.isdisabled) { return $u.systemuserid }
-        }
-        Write-Step "  waiting for $($userName ?? $objectId) to appear in the environment"
-        Start-Sleep -Seconds 30
-    } while ((Get-Date) -lt $deadline)
-    return $null
-}
-
-Write-Step "Senior Technician ($SeniorUserName)"
-$seniorId = Find-HumanUser '' $SeniorUserName
-if (-not $seniorId) { throw "The team user $SeniorUserName is not a user of the environment." }
-Set-ExactRoles $seniorId @($assignments.seniorTechnician)
-Write-Step "  $seniorId holds $($assignments.seniorTechnician -join ', ') (and System Administrator as the environment owner)"
-
-$tier1Id = $null
-if ($Tier1UserObjectId -or $Tier1UserName) {
-    Write-Step "Tier 1 Technician ($($Tier1UserName ?? $Tier1UserObjectId))"
-    $tier1Id = Find-HumanUser $Tier1UserObjectId $Tier1UserName
-    if (-not $tier1Id) { throw "The Tier 1 user did not appear in the environment within $UserWaitMinutes minutes." }
-    Set-ExactRoles $tier1Id @($assignments.tier1Technician) @('System Administrator', 'System Customizer', 'Service Desk Senior Technician',
-                                                            'Service Desk Agent Write', 'Environment Maker')
-    Write-Step "  $tier1Id holds $($assignments.tier1Technician -join ', ') only"
-}
-else { Write-Step 'Tier 1 Technician: no user given; skipped (Exercise 5 Task 4 needs it).' }
-
-# ================================================================== 6. regulated accounts business unit
+# ==== 5. Regulated accounts business unit
 $buIds = @{}
-foreach ($bu in $schema.businessUnits) {
+foreach ($bu in $security.businessUnits) {
     Write-Step "Business unit '$($bu.name)'"
     $existing = (DV GET "businessunits?`$select=businessunitid&`$filter=name eq $(Lit $bu.name)").Body.value | Select-Object -First 1
     $buId = if ($existing) { $existing.businessunitid } else {
-        $r = DV POST 'businessunits' @{ name = $bu.name; description = $bu.description
-            'parentbusinessunitid@odata.bind' = "/businessunits($rootBu)" }
+        $r = DV POST 'businessunits' @{ name = $bu.name; description = $bu.description; 'parentbusinessunitid@odata.bind' = "/businessunits($rootBu)" }
         Get-EntityIdFromHeader $r.Headers
     }
     $buIds[$bu.name] = $buId
-    # Every business unit has a default team with its name; it owns the regulated records.
     $team = Invoke-WithRetry -What "default team of $($bu.name)" -DelaySeconds 10 -Action {
         $t = (DV GET "teams?`$select=teamid,name&`$filter=_businessunitid_value eq $buId and isdefault eq true").Body.value | Select-Object -First 1
         if (-not $t) { throw 'not created yet' }
         $t
     }
-    # Owner teams need a security role to own records. Roles are copied into every business
-    # unit, so use this business unit's copy.
+    # Roles are copied into every business unit; owner teams need a role of their own business unit.
     $teamRoleId = Invoke-WithRetry -What "role copy in $($bu.name)" -DelaySeconds 10 -Action {
         $id = Get-RoleId $bu.teamRole $buId
         if (-not $id) { throw 'not copied yet' }
         $id
     }
-    $teamRoles = (DV GET "teams($($team.teamid))/teamroles_association?`$select=roleid").Body.value | ForEach-Object { $_.roleid }
+    $teamRoles = @((DV GET "teams($($team.teamid))/teamroles_association?`$select=roleid").Body.value | ForEach-Object { $_.roleid })
     if ($teamRoles -notcontains $teamRoleId) {
-        DV POST "teams($($team.teamid))/teamroles_association/`$ref" @{ '@odata.id' = "$api/roles($teamRoleId)" } | Out-Null
+        $null = DV POST "teams($($team.teamid))/teamroles_association/`$ref" @{ '@odata.id' = "$api/roles($teamRoleId)" }
     }
-    Write-Step "  team '$($team.name)' ($($team.teamid)) holds '$($bu.teamRole)'; owns the records of $($bu.customers -join ', ')"
+    Write-Step "  team '$($team.name)' holds '$($bu.teamRole)'; owns the records of $($bu.customers -join ', ')"
 }
 
-# ================================================================== 7. app visibility
-$appUnique = $schema.app.uniqueName
-$app = (DV GET "appmodules?`$select=appmoduleid&`$filter=uniquename eq '$appUnique'").Body.value | Select-Object -First 1
-if ($app) {
-    $appRoles = (DV GET "appmodules($($app.appmoduleid))/appmoduleroles_association?`$select=roleid").Body.value | ForEach-Object { $_.roleid }
-    foreach ($roleName in $assignments.appRoles) {
-        $roleId = Get-RoleId $roleName
-        if ($roleId -and $appRoles -notcontains $roleId) {
-            DV POST "appmodules($($app.appmoduleid))/appmoduleroles_association/`$ref" @{ '@odata.id' = "$api/roles($roleId)" } | Out-Null
+# ==== 6. Column security
+$principalIds = @{ seniorTechnician = $senior.systemuserid; mcpApplicationUser = $mcpUser.systemuserid }
+$provisioningUser = (DV GET "systemusers?`$select=systemuserid&`$filter=applicationid eq $(Get-ProvisioningClientId)").Body.value | Select-Object -First 1
+if ($provisioningUser) { $principalIds.provisioningApplicationUser = $provisioningUser.systemuserid }
+if ($tier1) { $principalIds.tier1Technician = $tier1.systemuserid }
+$profiles = @()
+foreach ($profileDef in $security.columnSecurityProfiles) {
+    Write-Step "Column security profile '$($profileDef.name)'"
+    $publish = @()
+    foreach ($col in $profileDef.columns) {
+        $path = "EntityDefinitions(LogicalName='$($col.table)')/Attributes(LogicalName='$($col.column)')"
+        $attr = (DV GET "$path`?`$select=LogicalName,IsSecured,CanBeSecuredForRead,AttributeType").Body
+        if (-not $attr.CanBeSecuredForRead) { throw "$($col.table).$($col.column) cannot be secured for read." }
+        if (-not $attr.IsSecured) {
+            $full = (DV GET "$path/Microsoft.Dynamics.CRM.StringAttributeMetadata").Body
+            $full.PSObject.Properties.Remove('@odata.context')
+            $full.IsSecured = $true
+            $null = DV PUT $path $full -Headers @{ 'MSCRM.MergeLabels' = 'true' }
+            $publish += $col.table
+            Write-Step "  secured $($col.table).$($col.column)"
         }
     }
-    Write-Step "  Service Desk app shared with $($assignments.appRoles -join ', ')"
+    foreach ($table in ($publish | Select-Object -Unique)) {
+        $null = DV POST 'PublishXml' @{ ParameterXml = "<importexportxml><entities><entity>$table</entity></entities></importexportxml>" }
+    }
+    $profile = (DV GET "fieldsecurityprofiles?`$select=fieldsecurityprofileid,name&`$filter=name eq $(Lit $profileDef.name)").Body.value | Select-Object -First 1
+    $profileId = if ($profile) { $profile.fieldsecurityprofileid } else {
+        $r = DV POST 'fieldsecurityprofiles' @{ name = $profileDef.name; description = $profileDef.description }
+        Get-EntityIdFromHeader $r.Headers
+    }
+    $existingPermissions = @((DV GET "fieldpermissions?`$select=fieldpermissionid,entityname,attributelogicalname,canread,cancreate,canupdate,canreadunmasked&`$filter=_fieldsecurityprofileid_value eq $profileId").Body.value)
+    foreach ($col in $profileDef.columns) {
+        $wanted = $profileDef.permissions
+        $perm = $existingPermissions | Where-Object { $_.entityname -eq $col.table -and $_.attributelogicalname -eq $col.column } | Select-Object -First 1
+        $values = @{ canread = [int]$wanted.canread; cancreate = [int]$wanted.cancreate; canupdate = [int]$wanted.canupdate; canreadunmasked = [int]$wanted.canreadunmasked }
+        if (-not $perm) {
+            $body = $values.Clone()
+            $body.entityname = $col.table
+            $body.attributelogicalname = $col.column
+            $body['fieldsecurityprofileid@odata.bind'] = "/fieldsecurityprofiles($profileId)"
+            $null = DV POST 'fieldpermissions' $body
+        }
+        elseif ($perm.canread -ne $values.canread -or $perm.cancreate -ne $values.cancreate -or $perm.canupdate -ne $values.canupdate) {
+            $null = DV PATCH "fieldpermissions($($perm.fieldpermissionid))" $values
+        }
+    }
+    $memberIds = @((DV GET "fieldsecurityprofiles($profileId)/systemuserprofiles_association?`$select=systemuserid").Body.value | ForEach-Object { $_.systemuserid })
+    foreach ($member in $profileDef.members) {
+        $id = $principalIds[$member]
+        if ($id -and $memberIds -notcontains $id) {
+            $null = DV POST "systemusers($id)/systemuserprofiles_association/`$ref" @{ '@odata.id' = "$api/fieldsecurityprofiles($profileId)" }
+        }
+    }
+    foreach ($outsider in $profileDef.neverMembers) {
+        $id = $principalIds[$outsider]
+        if ($id -and $memberIds -contains $id) {
+            $null = DV DELETE "systemusers($id)/systemuserprofiles_association($profileId)/`$ref"
+            Write-Step "  removed $outsider from the profile"
+        }
+    }
+    Write-Step "  $($profileDef.columns.Count) columns; members: $($profileDef.members -join ', ')"
+    $profiles += [pscustomobject]@{ Name = $profileDef.name; Id = $profileId; Columns = @($profileDef.columns | ForEach-Object { "$($_.table).$($_.column)" }) }
 }
-else { Write-Step "  WARNING: app $appUnique not found; share it with the technician roles in the maker portal." }
+
+# ==== 7. App sharing
+$app = (DV GET "appmodules?`$select=appmoduleid&`$filter=uniquename eq '$AppUniqueName'").Body.value | Select-Object -First 1
+if ($app) {
+    $appRoles = @((DV GET "appmodules($($app.appmoduleid))/appmoduleroles_association?`$select=roleid").Body.value | ForEach-Object { $_.roleid })
+    foreach ($roleName in $security.assignments.appRoles) {
+        $roleId = Get-RoleId $roleName
+        if ($roleId -and $appRoles -notcontains $roleId) {
+            $null = DV POST "appmodules($($app.appmoduleid))/appmoduleroles_association/`$ref" @{ '@odata.id' = "$api/roles($roleId)" }
+        }
+    }
+    Write-Step "  Service Desk app shared with $($security.assignments.appRoles -join ', ')"
+}
+else { throw "The app $AppUniqueName was not found; deploy the schema first." }
 
 [pscustomobject]@{
-    ApplicationUserId = $appUserId; ReadinessUserId = $readinessUserId; SeniorUserId = $seniorId; Tier1UserId = $tier1Id
+    McpApplicationUserId    = $mcpUser.systemuserid
+    McpRoles                = $mcpRoles
+    SeniorUserId            = $senior.systemuserid
+    SeniorRoles             = $seniorRoles
+    Tier1UserId             = if ($tier1) { $tier1.systemuserid } else { $null }
+    Tier1Roles              = $tier1Roles
     RegulatedBusinessUnitId = ($buIds.Values | Select-Object -First 1)
+    ColumnSecurityProfiles  = $profiles
+    Warnings                = @($warnings)
 }

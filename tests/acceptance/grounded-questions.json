@@ -1,0 +1,46 @@
+{
+  "about": "Acceptance criterion 5: the agent answers five scripted questions citing the expected sources. Each question passes when every ID in expected_sources is among the sources the answer cites (url_citation annotations, mapped to the index field sourceId). acceptable_sources may also be cited without failing the question. Facts come from the seed manifest (data_version 3.0); manifest_ref names the entry each expectation traces to.",
+  "data_version": "3.0",
+  "questions": [
+    {
+      "id": "Q1",
+      "kind": "Simple retrieval: one knowledge article",
+      "question": "Backup jobs at a customer fail with error RBA-2201 and no new restore points are created. What causes this, and how do we resolve it? Cite your sources.",
+      "expected_sources": ["KB0023"],
+      "acceptable_sources": ["CDOC-033", "TCK-10521", "TCK-10004", "TCK-10029", "TCK-10035", "TCK-10040", "TCK-10066", "TCK-10104", "TCK-10232", "TCK-10305", "TCK-10458", "TCK-10471"],
+      "manifest_ref": "scenarios.new_incident_adatum_expected.true_matches (article KB0023, its history and open ticket TCK-10521)"
+    },
+    {
+      "id": "Q2",
+      "kind": "Ambiguous: conflicting articles decided by the customer's versions",
+      "question": "Woodgrove Bank users are disconnected from Remote Access about every hour. Which knowledge article applies to Woodgrove Bank, and which of the customer's versions decide it? Cite your sources.",
+      "expected_sources": ["KB0058"],
+      "acceptable_sources": ["KB0031", "CUST-007", "CDOC-007", "CDOC-025", "CDOC-031", "TCK-10548", "TCK-10553", "TCK-10518"],
+      "manifest_ref": "scenarios.conflicting_pairs.pairs[0]: CUST-007 has Remote Access 4.2.0 and Secure Gateway 10.1.4, so KB0058 applies, not KB0031"
+    },
+    {
+      "id": "Q3",
+      "kind": "Ambiguous: conflicting articles decided by the contract type",
+      "question": "Margie's Travel asks us to change a firewall rule. Which knowledge article applies to them, and why? Cite your sources.",
+      "expected_sources": ["KB0045"],
+      "acceptable_sources": ["KB0044", "CUST-009", "CDOC-009", "TCK-10502"],
+      "manifest_ref": "scenarios.conflicting_pairs.pairs[2]: CUST-009 has a Break-Fix contract, so KB0045 applies, not KB0044"
+    },
+    {
+      "id": "Q4",
+      "kind": "Customer document: escalation procedure",
+      "question": "For a P2 incident at Humongous Insurance, whom does Relecloud phone first, and during which hours is the claims document management application business-critical? Cite your sources.",
+      "expected_sources": ["CDOC-026"],
+      "acceptable_sources": ["CDOC-013", "CDOC-034", "CUST-013", "TCK-10524"],
+      "manifest_ref": "scenarios.customer_documents.escalation_procedures.CUST-013 = CDOC-026 (Kofi Kim first; claims intake hours 08:00 to 18:00)"
+    },
+    {
+      "id": "Q5",
+      "kind": "Grounding for the second new incident: article and runbook",
+      "question": "Dispatchers at Consolidated Messenger's north depot see a warning that the routing application's security certificate has expired, while the south depot works. Which knowledge article and runbook apply, and which server is affected? Cite your sources.",
+      "expected_sources": ["KB0133", "RB-005"],
+      "acceptable_sources": ["CDOC-032", "CDOC-030", "CDOC-020", "CUST-020", "TCK-10559", "TCK-10524"],
+      "manifest_ref": "scenarios.new_incident_consolidated_expected (article KB0133, runbook RB-005, CDOC-032 names server CMRT-N01); the incident TCK-10562 itself is never indexed"
+    }
+  ]
+}

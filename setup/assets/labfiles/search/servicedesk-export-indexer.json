@@ -1,0 +1,23 @@
+{
+  "name": "servicedesk-export-indexer",
+  "description": "Reads every JSON file in the export container (parsing mode json: one file is one search document), embeds its content with servicedesk-embed-skills and writes it to servicedesk-knowledge. Unscheduled: it runs when it is created and when you run it.",
+  "dataSourceName": "servicedesk-export-ds",
+  "targetIndexName": "{{SearchIndex}}",
+  "skillsetName": "servicedesk-embed-skills",
+  "parameters": {
+    "batchSize": 10,
+    "maxFailedItems": 0,
+    "maxFailedItemsPerBatch": 0,
+    "configuration": {
+      "parsingMode": "json",
+      "dataToExtract": "contentAndMetadata",
+      "indexedFileNameExtensions": ".json"
+    }
+  },
+  "fieldMappings": [
+    { "sourceFieldName": "id", "targetFieldName": "id" }
+  ],
+  "outputFieldMappings": [
+    { "sourceFieldName": "/document/contentVector", "targetFieldName": "contentVector" }
+  ]
+}

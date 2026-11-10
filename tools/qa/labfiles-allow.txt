@@ -1,0 +1,30 @@
+# Lab files paths that the guide uses but that are created on the lab VM, not shipped in the zip.
+# Patterns are relative to C:\LabFiles, with forward slashes; * also matches across folders.
+# Used by: python tools/qa/check-labfiles-zip.py . setup/assets/msp-labfiles.zip --allow-file tools/qa/labfiles-allow.txt
+
+# Written by provisioning (Provision-ServiceDesk.ps1, step prerequisites)
+lab-settings.json
+
+# The MCP server working copy: a local Git repository of the release, created by provision/mcp/Deploy-McpBaseline.ps1
+mcp-server
+mcp-server/*
+
+# Copied from the MCP server release to C:\LabFiles\tools by provision/mcp/Deploy-McpBaseline.ps1
+tools/deploy-mcpserver.ps1*
+tools/invoke-mcptool.ps1*
+tools/show-mcpserverlog.ps1*
+
+# Written by provision/export/Export-SearchContent.ps1 from the participant's own Dataverse data
+search/sample-documents
+search/sample-documents/*
+search/export-manifest.json
+
+# Generated seed data (provisioning runs seed/generate_seed.py into this folder)
+seed/data/*
+
+# Evidence the participant exports with Get-ActionTrail.ps1 -OutFile (the logon task pre-creates the folder)
+evidence
+evidence/*
+
+# A tool quoted with its arguments in the guide
+tools/update-agentdefinition.ps1 *

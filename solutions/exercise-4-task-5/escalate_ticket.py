@@ -1,8 +1,16 @@
-    # ================================================================== Exercise 4 Task 5
-    # Reference solution: paste this block inside register() in src/servicedesk_mcp/tools_write.py,
-    # after add_ticket_note, with the same indentation (four spaces). It needs no new imports.
+    # ==== Exercise 4 Task 5: reference solution
+    # Paste this block inside register() in src/servicedesk_mcp/tools_write.py, after add_public_reply,
+    # with the same indentation (four spaces). It needs no new imports. The decorator publishes the
+    # tool on the write endpoint (/write/mcp), so the agent asks for approval before every call, and
+    # the catalogue adds the duplicate guard, the Agent Action row and the log line.
+    ESCALATE_TICKET_OUTPUT = schemas.result({**schemas.WRITE_TICKET, "changes": schemas.obj({
+        "escalated_to": schemas.string("The escalation level now recorded on the ticket."),
+        "escalated_on": schemas.string("When the ticket was escalated (ISO 8601 UTC)."),
+        "previous_level": schemas.string("The escalation level before, or none."),
+    }, required=["escalated_to", "escalated_on"])}, "The ticket's new escalation.", write=True)
 
-    @mcp.tool(annotations=WRITE, meta=write_meta("escalation flag, level, time and reason", "medium", TICKET_WRITE))
+    @catalogue.write_tool(permission=TICKET_WRITE, changes="escalation flag, level, time and reason",
+                          sensitivity="medium", output=ESCALATE_TICKET_OUTPUT)
     async def escalate_ticket(
         ctx: Context,
         ticket_number: TicketNumber,
@@ -10,35 +18,29 @@
                          Field(description="Who the ticket is escalated to. A Major Incident is declared by a person "
                                            "through runbook RB-009, never by the agent.")],
         reason: Reason,
-    ) -> CallToolResult:
-        """Escalate a ticket to an L3 specialist, the vendor or the customer's account manager.
+    ) -> dict[str, Any]:
+        """Escalate an open ticket to an L3 specialist, the vendor or the customer's account manager.
+        Requires approval.
 
-        Requires approval. Records the escalation level, time and reason on the ticket and
-        writes an internal note. It doesn't change the priority, the status or the assigned
-        technician, and it never declares a Major Incident: a person does that through the
-        major incident process (runbook RB-009).
+        Records the escalation level, time and reason on the ticket and writes an internal audit
+        note. It doesn't change the priority, the status or the assigned technician, and it never
+        declares a Major Incident: a person does that through the major incident process (runbook
+        RB-009). A Resolved or Closed ticket is refused (TICKET_CLOSED).
         """
-        telemetry.bind_from_context(ctx)
-        args = {"ticket_number": ticket_number, "level": level, "reason": reason}
-        with telemetry.ToolCallLog("escalate_ticket", args) as log:
-            try:
-                require_user("escalate_ticket")
-                reason_text = policy.validate_reason(reason)
-                ticket = await load(ticket_number)
-                if ticket["status"] in ("Resolved", "Closed"):
-                    raise ToolFailure(code="TICKET_CLOSED",
-                                      message=f"{ticket_number} is {ticket['status']}; a closed ticket isn't escalated.",
-                                      hint="Reopen the ticket with update_ticket_status first, or ask the user.")
-                now = datetime.now(timezone.utc).replace(microsecond=0)
-                changes = {"spk_isescalated": True, "spk_escalationlevel": choices.ESCALATION_LEVEL_VALUE[level],
-                           "spk_escalatedon": now, "spk_escalationreason": reason_text}
-                await repo.update_ticket(ticket["id"], changes)
-                log.record = {"table": "spk_ticket", "id": ticket["id"], "columns": sorted(changes)}
-                note_code = await audit_note(ticket, f"Escalated by the service desk agent to {level}. Reason: {reason_text}")
-                updated = await load(ticket_number)
-                return ok(audited({"ticket_number": ticket_number,
-                                   "changes": {"escalated_to": level, "escalated_on": updated["escalation"]["escalated_on"]},
-                                   "audit_note": note_code, "ticket": ticket_summary(updated)}))
-            except ToolFailure as failure:
-                log.fail(failure.code)
-                return failed(failure)
+        require_user("escalate_ticket")
+        reason_text = policy.validate_reason(reason)
+        ticket = await load_ticket(repo, ticket_number)
+        if ticket["status"] in ("Resolved", "Closed"):
+            raise ToolFailure(code="TICKET_CLOSED",
+                              message=f"{ticket_number} is {ticket['status']}; a closed ticket isn't escalated.",
+                              hint="Reopen the ticket with update_ticket_status first, or ask the user.")
+        now = datetime.now(timezone.utc).replace(microsecond=0)
+        previous = ticket["escalation"]["level"] or "none"
+        updates = {"spk_isescalated": True, "spk_escalationlevel": choices.ESCALATION_LEVEL_VALUE[level],
+                   "spk_escalatedon": now, "spk_escalationreason": reason_text}
+        await repo.update_ticket(ticket["id"], updates)
+        record_change(ticket, updates)
+        return await changed(ticket, f"Escalated by the service desk agent to {level} (was {previous}). "
+                                     f"Reason: {reason_text}",
+                             {"escalated_to": level, "escalated_on": now.strftime("%Y-%m-%dT%H:%M:%SZ"),
+                              "previous_level": previous})

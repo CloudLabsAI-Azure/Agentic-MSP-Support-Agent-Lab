@@ -1,5 +1,5 @@
 {
-  "$comment": "Declarative schema for the Relecloud Service Desk, a custom model-driven app that Spektra builds for this lab over Dataverse tables with the spk_ prefix. Applied by Deploy-ServiceDeskSchema.ps1 and Set-DataverseSecurity.ps1 through the Dataverse Web API. Logical names here are a contract shared with the seed generator (seed/generate_seed.py), the search export, the MCP server and the validation scripts; change them everywhere or not at all.",
+  "$comment": "Declarative schema for the Relecloud Service Desk, a custom model-driven app that Spektra builds for this lab over Dataverse tables with the spk_ prefix. Applied by Deploy-ServiceDeskSchema.ps1 and Set-DataverseSecurity.ps1 through the Dataverse Web API. Logical names here are a contract shared with the seed generator (seed/generate_seed.py), the search export, the MCP server and the validation scripts; change them everywhere or not at all. Lab version 3 adds the Customer Document and Agent Action tables, ticket subcategory, outcome and tags, related articles, technician availability notes, the customer fields Services in Scope and Configuration Notes, and merges the technician teams into four.",
   "publisher": {
     "uniquename": "spektra",
     "friendlyname": "Spektra Systems",
@@ -9,7 +9,7 @@
   "solution": {
     "uniquename": "RelecloudServiceDesk",
     "friendlyname": "Relecloud Service Desk",
-    "version": "2.0.0.0"
+    "version": "3.0.0.0"
   },
   "globalChoices": [
     { "name": "spk_priority", "displayName": "Priority", "options": [
@@ -38,10 +38,8 @@
       { "value": 765400601, "label": "Published" }, { "value": 765400602, "label": "Draft" },
       { "value": 765400603, "label": "Retired" } ] },
     { "name": "spk_technicianteam", "displayName": "Technician Team", "options": [
-      { "value": 765400701, "label": "Service Desk" }, { "value": 765400702, "label": "Network" },
-      { "value": 765400703, "label": "Endpoint" }, { "value": 765400704, "label": "Backup and Recovery" },
-      { "value": 765400705, "label": "Identity" }, { "value": 765400706, "label": "Collaboration" },
-      { "value": 765400707, "label": "Security" } ] },
+      { "value": 765400701, "label": "Service Desk" }, { "value": 765400708, "label": "Infrastructure" },
+      { "value": 765400709, "label": "Workplace" }, { "value": 765400710, "label": "Security and Identity" } ] },
     { "name": "spk_techniciantier", "displayName": "Technician Tier", "options": [
       { "value": 765400801, "label": "L1" }, { "value": 765400802, "label": "L2" }, { "value": 765400803, "label": "L3" } ] },
     { "name": "spk_channel", "displayName": "Ticket Channel", "options": [
@@ -60,7 +58,32 @@
       { "value": 765401201, "label": "Change approval" }, { "value": 765401202, "label": "Maintenance window" },
       { "value": 765401203, "label": "Escalation contacts" }, { "value": 765401204, "label": "Billing and quotes" },
       { "value": 765401205, "label": "Access and security" }, { "value": 765401206, "label": "Business hours" },
-      { "value": 765401207, "label": "Data handling" } ] }
+      { "value": 765401207, "label": "Data handling" } ] },
+    { "name": "spk_subcategory", "displayName": "Ticket Subcategory", "options": [
+      { "value": 765401311, "label": "Job failure" }, { "value": 765401312, "label": "Storage quota" }, { "value": 765401313, "label": "Restore request" }, { "value": 765401314, "label": "Agent service and upgrade" }, { "value": 765401315, "label": "Policy change" }, { "value": 765401316, "label": "Backup performance" },
+      { "value": 765401321, "label": "Remote Access" }, { "value": 765401322, "label": "Site-to-site tunnel" }, { "value": 765401323, "label": "Firewall rule" }, { "value": 765401324, "label": "Internet and DNS" }, { "value": 765401325, "label": "Wi-Fi" }, { "value": 765401326, "label": "Network hardware and firmware" },
+      { "value": 765401331, "label": "Endpoint Agent" }, { "value": 765401332, "label": "Patching" }, { "value": 765401333, "label": "Device performance" }, { "value": 765401334, "label": "Disk encryption" }, { "value": 765401335, "label": "Device policy" }, { "value": 765401336, "label": "Device setup and software" },
+      { "value": 765401341, "label": "Mailbox and calendar" }, { "value": 765401342, "label": "Mailbox storage" }, { "value": 765401343, "label": "Mail flow" }, { "value": 765401344, "label": "Groups and lists" }, { "value": 765401345, "label": "Teams and OneDrive" }, { "value": 765401346, "label": "Suspicious email" },
+      { "value": 765401351, "label": "Password reset" }, { "value": 765401352, "label": "Multifactor authentication" }, { "value": 765401353, "label": "Joiners and leavers" }, { "value": 765401354, "label": "Account lockout" }, { "value": 765401355, "label": "Permissions and admin rights" }, { "value": 765401356, "label": "Sign-in and conditional access" },
+      { "value": 765401361, "label": "Printer offline" }, { "value": 765401362, "label": "Print queue" }, { "value": 765401363, "label": "Scanning" }, { "value": 765401364, "label": "Drivers and setup" }, { "value": 765401365, "label": "Consumables and hardware" },
+      { "value": 765401371, "label": "Laptop and desktop fault" }, { "value": 765401372, "label": "Docks and displays" }, { "value": 765401373, "label": "Peripherals" }, { "value": 765401374, "label": "Meeting room equipment" }, { "value": 765401375, "label": "Server hardware" },
+      { "value": 765401381, "label": "Certificate" }, { "value": 765401382, "label": "Database connection" }, { "value": 765401383, "label": "Application performance" }, { "value": 765401384, "label": "Updates and releases" }, { "value": 765401385, "label": "Access and licensing" }, { "value": 765401386, "label": "Integrations" },
+      { "value": 765401391, "label": "Suspicious sign-in" }, { "value": 765401392, "label": "Malware and ransomware" }, { "value": 765401393, "label": "Lost or stolen device" }, { "value": 765401394, "label": "Data protection" }, { "value": 765401395, "label": "Vulnerability management" } ] },
+    { "name": "spk_outcome", "displayName": "Ticket Outcome", "options": [
+      { "value": 765401401, "label": "Permanent fix" }, { "value": 765401402, "label": "Workaround provided" },
+      { "value": 765401403, "label": "Resolved by vendor" }, { "value": 765401404, "label": "User guidance" },
+      { "value": 765401405, "label": "Duplicate" }, { "value": 765401406, "label": "No fault found" },
+      { "value": 765401407, "label": "Cancelled by customer" } ] },
+    { "name": "spk_documenttype", "displayName": "Customer Document Type", "options": [
+      { "value": 765401501, "label": "Support policy" }, { "value": 765401502, "label": "Escalation procedure" },
+      { "value": 765401503, "label": "Configuration notes" }, { "value": 765401504, "label": "Runbook reference" },
+      { "value": 765401505, "label": "Data handling" } ] },
+    { "name": "spk_authorizationresult", "displayName": "Authorization Result", "options": [
+      { "value": 765401601, "label": "Allowed" }, { "value": 765401602, "label": "Denied by Dataverse" },
+      { "value": 765401603, "label": "Rejected by the MCP server" } ] },
+    { "name": "spk_actionoutcome", "displayName": "Agent Action Outcome", "options": [
+      { "value": 765401701, "label": "Succeeded" }, { "value": 765401702, "label": "Failed" },
+      { "value": 765401703, "label": "Duplicate, first result returned" } ] }
   ],
   "tables": [
     {
@@ -113,6 +136,7 @@
         { "schemaName": "spk_Team", "type": "Picklist", "displayName": "Team", "globalChoice": "spk_technicianteam" },
         { "schemaName": "spk_Tier", "type": "Picklist", "displayName": "Tier", "globalChoice": "spk_techniciantier" },
         { "schemaName": "spk_IsAvailable", "type": "Boolean", "displayName": "Available", "trueLabel": "Available", "falseLabel": "Unavailable", "default": true },
+        { "schemaName": "spk_AvailabilityNote", "type": "String", "displayName": "Availability Note", "maxLength": 200 },
         { "schemaName": "spk_Skills", "type": "String", "displayName": "Skills", "maxLength": 400 }
       ],
       "keys": [ { "schemaName": "spk_key_techniciancode", "displayName": "Technician Code Key", "columns": [ "spk_techniciancode" ] } ]
@@ -136,7 +160,8 @@
         { "schemaName": "spk_AppliesToContracts", "type": "String", "displayName": "Applies to Contract Types", "maxLength": 200 },
         { "schemaName": "spk_KbStatus", "type": "Picklist", "displayName": "Article Status", "globalChoice": "spk_kbstatus" },
         { "schemaName": "spk_LastReviewedOn", "type": "DateTime", "displayName": "Last Reviewed On", "format": "DateOnly", "behavior": "DateOnly" },
-        { "schemaName": "spk_Keywords", "type": "String", "displayName": "Keywords", "maxLength": 400 }
+        { "schemaName": "spk_Keywords", "type": "String", "displayName": "Keywords", "maxLength": 400 },
+        { "schemaName": "spk_RelatedArticles", "type": "String", "displayName": "Related Articles", "maxLength": 200 }
       ],
       "keys": [ { "schemaName": "spk_key_articlenumber", "displayName": "Article Number Key", "columns": [ "spk_articlenumber" ] } ]
     },
@@ -177,6 +202,24 @@
       "keys": [ { "schemaName": "spk_key_procedurecode", "displayName": "Procedure Code Key", "columns": [ "spk_procedurecode" ] } ]
     },
     {
+      "logicalName": "spk_customerdocument", "schemaName": "spk_CustomerDocument", "entitySet": "spk_customerdocuments",
+      "displayName": "Customer Document", "pluralName": "Customer Documents",
+      "description": "Customer documentation: support policies, escalation procedures and configuration notes. Indexed for grounding; the sensitivity-labeled configuration file stays an attachment on the account.",
+      "ownership": "UserOwned", "audit": true,
+      "primaryName": { "schemaName": "spk_Name", "displayName": "Title", "maxLength": 200 },
+      "columns": [
+        { "schemaName": "spk_DocumentCode", "type": "String", "displayName": "Document Code", "maxLength": 20, "required": true },
+        { "schemaName": "spk_DocumentType", "type": "Picklist", "displayName": "Document Type", "globalChoice": "spk_documenttype" },
+        { "schemaName": "spk_Body", "type": "Memo", "displayName": "Body", "maxLength": 10000 },
+        { "schemaName": "spk_Version", "type": "String", "displayName": "Version", "maxLength": 20 },
+        { "schemaName": "spk_LastReviewedOn", "type": "DateTime", "displayName": "Last Reviewed On", "format": "DateOnly", "behavior": "DateOnly" }
+      ],
+      "lookups": [
+        { "schemaName": "spk_CustomerId", "displayName": "Customer", "target": "account", "relationshipSchemaName": "spk_account_customerdocument" }
+      ],
+      "keys": [ { "schemaName": "spk_key_documentcode", "displayName": "Document Code Key", "columns": [ "spk_documentcode" ] } ]
+    },
+    {
       "logicalName": "spk_ticket", "schemaName": "spk_Ticket", "entitySet": "spk_tickets",
       "displayName": "Ticket", "pluralName": "Tickets",
       "description": "Service desk incidents and requests.",
@@ -186,6 +229,7 @@
         { "schemaName": "spk_TicketNumber", "type": "String", "displayName": "Ticket Number", "maxLength": 20, "required": true },
         { "schemaName": "spk_Description", "type": "Memo", "displayName": "Description", "maxLength": 8000 },
         { "schemaName": "spk_Category", "type": "Picklist", "displayName": "Category", "globalChoice": "spk_category" },
+        { "schemaName": "spk_Subcategory", "type": "Picklist", "displayName": "Subcategory", "globalChoice": "spk_subcategory" },
         { "schemaName": "spk_Priority", "type": "Picklist", "displayName": "Priority", "globalChoice": "spk_priority" },
         { "schemaName": "spk_Status", "type": "Picklist", "displayName": "Status", "globalChoice": "spk_ticketstatus" },
         { "schemaName": "spk_Product", "type": "Picklist", "displayName": "Product", "globalChoice": "spk_product" },
@@ -195,6 +239,8 @@
         { "schemaName": "spk_OpenedOn", "type": "DateTime", "displayName": "Opened On (UTC)", "format": "DateAndTime", "behavior": "TimeZoneIndependent" },
         { "schemaName": "spk_ResolvedOn", "type": "DateTime", "displayName": "Resolved On (UTC)", "format": "DateAndTime", "behavior": "TimeZoneIndependent" },
         { "schemaName": "spk_ResolutionSummary", "type": "Memo", "displayName": "Resolution Summary", "maxLength": 4000 },
+        { "schemaName": "spk_Outcome", "type": "Picklist", "displayName": "Outcome", "globalChoice": "spk_outcome" },
+        { "schemaName": "spk_Tags", "type": "String", "displayName": "Tags", "maxLength": 400 },
         { "schemaName": "spk_SlaTargetHours", "type": "Decimal", "displayName": "SLA Target (business hours)", "precision": 2, "min": 0, "max": 1000 },
         { "schemaName": "spk_SlaElapsedHours", "type": "Decimal", "displayName": "SLA Elapsed (business hours)", "precision": 2, "min": 0, "max": 100000 },
         { "schemaName": "spk_SlaRemainingHours", "type": "Decimal", "displayName": "SLA Remaining (business hours)", "precision": 2, "min": -100000, "max": 100000 },
@@ -233,6 +279,27 @@
         { "schemaName": "spk_TicketId", "displayName": "Ticket", "target": "spk_ticket", "relationshipSchemaName": "spk_ticket_ticketnote", "cascadeDelete": "Cascade" }
       ],
       "keys": [ { "schemaName": "spk_key_notecode", "displayName": "Note Code Key", "columns": [ "spk_notecode" ] } ]
+    },
+    {
+      "logicalName": "spk_agentaction", "schemaName": "spk_AgentAction", "entitySet": "spk_agentactions",
+      "displayName": "Agent Action", "pluralName": "Agent Actions",
+      "description": "Every write the agent attempts through the MCP server, allowed or denied, written by the MCP server's own application user. Dataverse audits only successful changes, so denied attempts are recorded here. No seed rows.",
+      "ownership": "UserOwned", "audit": true,
+      "primaryName": { "schemaName": "spk_Name", "displayName": "Summary", "maxLength": 200 },
+      "columns": [
+        { "schemaName": "spk_CorrelationId", "type": "String", "displayName": "Correlation ID", "maxLength": 64, "required": true },
+        { "schemaName": "spk_Tool", "type": "String", "displayName": "Tool", "maxLength": 100 },
+        { "schemaName": "spk_TicketNumber", "type": "String", "displayName": "Ticket Number", "maxLength": 20 },
+        { "schemaName": "spk_UserOid", "type": "String", "displayName": "User Object ID", "maxLength": 64 },
+        { "schemaName": "spk_UserName", "type": "String", "displayName": "User Name", "maxLength": 200 },
+        { "schemaName": "spk_AgentId", "type": "String", "displayName": "Agent ID", "maxLength": 64 },
+        { "schemaName": "spk_ArgumentSummary", "type": "Memo", "displayName": "Argument Summary", "maxLength": 2000 },
+        { "schemaName": "spk_Authorization", "type": "Picklist", "displayName": "Authorization", "globalChoice": "spk_authorizationresult" },
+        { "schemaName": "spk_Outcome", "type": "Picklist", "displayName": "Outcome", "globalChoice": "spk_actionoutcome" },
+        { "schemaName": "spk_ErrorCode", "type": "String", "displayName": "Error Code", "maxLength": 50 },
+        { "schemaName": "spk_DurationMs", "type": "Integer", "displayName": "Duration (ms)", "min": 0, "max": 2147483647 },
+        { "schemaName": "spk_OccurredOn", "type": "DateTime", "displayName": "Occurred On (UTC)", "format": "DateAndTime", "behavior": "TimeZoneIndependent" }
+      ]
     }
   ],
   "extendTables": [
@@ -249,7 +316,9 @@
         { "schemaName": "spk_RemoteAccessVersion", "type": "String", "displayName": "Remote Access Client Version", "maxLength": 20 },
         { "schemaName": "spk_GatewayFirmware", "type": "String", "displayName": "Secure Gateway Firmware", "maxLength": 20 },
         { "schemaName": "spk_EndpointAgentVersion", "type": "String", "displayName": "Endpoint Agent Version", "maxLength": 20 },
-        { "schemaName": "spk_AccountManager", "type": "String", "displayName": "Account Manager", "maxLength": 100 }
+        { "schemaName": "spk_AccountManager", "type": "String", "displayName": "Account Manager", "maxLength": 100 },
+        { "schemaName": "spk_ServicesInScope", "type": "Memo", "displayName": "Services in Scope", "maxLength": 2000 },
+        { "schemaName": "spk_ConfigurationNotes", "type": "Memo", "displayName": "Configuration Notes", "maxLength": 2000 }
       ],
       "keys": [ { "schemaName": "spk_key_customercode", "displayName": "Customer Code Key", "columns": [ "spk_customercode" ] } ]
     },
@@ -268,8 +337,8 @@
     "description": "Relecloud Managed Services support console over the Service Desk tables. A custom model-driven app built by Spektra for this lab.",
     "sitemap": [
       { "area": "Service Desk", "groups": [
-        { "group": "Work", "subareas": [ "spk_ticket", "spk_ticketnote" ] },
-        { "group": "Customers", "subareas": [ "account", "contact", "spk_customerprocedure" ] } ] },
+        { "group": "Work", "subareas": [ "spk_ticket", "spk_ticketnote", "spk_agentaction" ] },
+        { "group": "Customers", "subareas": [ "account", "contact", "spk_customerprocedure", "spk_customerdocument" ] } ] },
       { "area": "Knowledge", "groups": [
         { "group": "Knowledge", "subareas": [ "spk_knowledgearticle", "spk_runbook" ] } ] },
       { "area": "Configuration", "groups": [
@@ -278,20 +347,21 @@
   },
   "forms": {
     "spk_ticket": [
-      { "section": "Summary", "columns": [ "spk_ticketnumber", "spk_name", "spk_customerid", "spk_contactid", "spk_status", "spk_priority", "spk_category", "spk_assignedtechnicianid", "spk_channel", "spk_affectedusers" ] },
-      { "section": "Details", "columns": [ "spk_description", "spk_product", "spk_productversion", "spk_relatedarticleid" ] },
+      { "section": "Summary", "columns": [ "spk_ticketnumber", "spk_name", "spk_customerid", "spk_contactid", "spk_status", "spk_priority", "spk_category", "spk_subcategory", "spk_assignedtechnicianid", "spk_channel", "spk_affectedusers" ] },
+      { "section": "Details", "columns": [ "spk_description", "spk_product", "spk_productversion", "spk_relatedarticleid", "spk_tags" ] },
       { "section": "SLA", "columns": [ "spk_openedon", "spk_slatargethours", "spk_slaelapsedhours", "spk_slaremaininghours", "spk_sladueon", "spk_slastatus", "spk_slacalculatedon" ] },
       { "section": "Escalation", "columns": [ "spk_isescalated", "spk_escalationlevel", "spk_escalatedon", "spk_escalationreason" ] },
-      { "section": "Resolution", "columns": [ "spk_resolvedon", "spk_resolutionsummary" ] },
+      { "section": "Resolution", "columns": [ "spk_resolvedon", "spk_resolutionsummary", "spk_outcome" ] },
       { "section": "Traceability", "columns": [ "spk_correlationid" ] }
     ],
     "spk_ticketnote": [
-      { "section": "Note", "columns": [ "spk_ticketid", "spk_isinternal", "spk_author", "spk_notedon", "spk_name", "spk_body", "spk_correlationid" ] }
+      { "section": "Note", "columns": [ "spk_notecode", "spk_ticketid", "spk_isinternal", "spk_author", "spk_notedon", "spk_name", "spk_body", "spk_correlationid" ] }
     ],
     "spk_knowledgearticle": [
       { "section": "Article", "columns": [ "spk_articlenumber", "spk_name", "spk_kbstatus", "spk_category", "spk_product", "spk_lastreviewedon" ] },
       { "section": "Content", "columns": [ "spk_symptom", "spk_cause", "spk_resolution" ] },
-      { "section": "Applicability", "columns": [ "spk_appliesto", "spk_appliestoversions", "spk_appliestotiers", "spk_appliestocontracts", "spk_keywords" ] }
+      { "section": "Applicability", "columns": [ "spk_appliesto", "spk_appliestoversions", "spk_appliestotiers", "spk_appliestocontracts", "spk_keywords" ] },
+      { "section": "Related", "columns": [ "spk_relatedarticles" ] }
     ],
     "spk_runbook": [
       { "section": "Runbook", "columns": [ "spk_runbookcode", "spk_name", "spk_category", "spk_product", "spk_relatedarticles", "spk_lastreviewedon" ] },
@@ -300,8 +370,17 @@
     "spk_customerprocedure": [
       { "section": "Procedure", "columns": [ "spk_procedurecode", "spk_name", "spk_customerid", "spk_proceduretype", "spk_appliesto", "spk_lastreviewedon", "spk_details" ] }
     ],
+    "spk_customerdocument": [
+      { "section": "Document", "columns": [ "spk_documentcode", "spk_name", "spk_customerid", "spk_documenttype", "spk_version", "spk_lastreviewedon" ] },
+      { "section": "Content", "columns": [ "spk_body" ] }
+    ],
+    "spk_agentaction": [
+      { "section": "Action", "columns": [ "spk_occurredon", "spk_name", "spk_tool", "spk_ticketnumber", "spk_authorization", "spk_outcome", "spk_errorcode", "spk_durationms" ] },
+      { "section": "Who", "columns": [ "spk_username", "spk_useroid", "spk_agentid" ] },
+      { "section": "Details", "columns": [ "spk_argumentsummary", "spk_correlationid" ] }
+    ],
     "spk_technician": [
-      { "section": "Technician", "columns": [ "spk_techniciancode", "spk_name", "spk_team", "spk_tier", "spk_isavailable", "spk_email", "spk_skills" ] }
+      { "section": "Technician", "columns": [ "spk_techniciancode", "spk_name", "spk_team", "spk_tier", "spk_isavailable", "spk_availabilitynote", "spk_email", "spk_skills" ] }
     ],
     "spk_slapolicy": [
       { "section": "Policy", "columns": [ "spk_policycode", "spk_name", "spk_slatier", "spk_priority", "spk_responsehours", "spk_resolutionhours", "spk_calendarid", "spk_description" ] }
@@ -310,12 +389,18 @@
       { "section": "Calendar", "columns": [ "spk_calendarcode", "spk_name", "spk_timezone", "spk_workdays", "spk_daystart", "spk_dayend", "spk_hoursperday", "spk_holidays", "spk_description" ] }
     ]
   },
+  "extendForms": {
+    "$comment": "Sections added to an existing main form without replacing it. The account form keeps its own tabs and timeline (the labeled configuration document is a note on the timeline).",
+    "account": [
+      { "section": "Managed Service", "columns": [ "spk_customercode", "spk_industry", "spk_slatier", "spk_contracttype", "spk_seatcount", "spk_sitecount", "spk_accountmanager", "spk_servicesinscope", "spk_configurationnotes", "spk_backupagentversion", "spk_remoteaccessversion", "spk_gatewayfirmware", "spk_endpointagentversion" ] }
+    ]
+  },
   "views": {
     "spk_ticket": [
       { "name": "Open Tickets", "default": true,
         "filter": "<condition attribute='spk_status' operator='in'><value>765400101</value><value>765400102</value><value>765400103</value></condition>",
         "order": { "attribute": "spk_openedon", "descending": true },
-        "columns": [ "spk_ticketnumber", "spk_name", "spk_customerid", "spk_priority", "spk_status", "spk_assignedtechnicianid", "spk_slaremaininghours", "spk_slastatus" ] },
+        "columns": [ "spk_ticketnumber", "spk_name", "spk_customerid", "spk_priority", "spk_category", "spk_subcategory", "spk_status", "spk_assignedtechnicianid", "spk_slaremaininghours", "spk_slastatus" ] },
       { "name": "Open Tickets by SLA Remaining",
         "filter": "<condition attribute='spk_status' operator='in'><value>765400101</value><value>765400102</value><value>765400103</value></condition><condition attribute='spk_slaremaininghours' operator='not-null' />",
         "order": { "attribute": "spk_slaremaininghours", "descending": false },
@@ -331,12 +416,12 @@
       { "name": "All Tickets",
         "filter": "",
         "order": { "attribute": "spk_openedon", "descending": true },
-        "columns": [ "spk_ticketnumber", "spk_name", "spk_customerid", "spk_category", "spk_priority", "spk_status", "spk_openedon", "spk_resolvedon" ] }
+        "columns": [ "spk_ticketnumber", "spk_name", "spk_customerid", "spk_category", "spk_subcategory", "spk_priority", "spk_status", "spk_outcome", "spk_openedon", "spk_resolvedon" ] }
     ],
     "spk_ticketnote": [
       { "name": "All Ticket Notes", "default": true, "filter": "",
         "order": { "attribute": "spk_notedon", "descending": true },
-        "columns": [ "spk_ticketid", "spk_isinternal", "spk_author", "spk_notedon", "spk_name" ] }
+        "columns": [ "spk_notecode", "spk_ticketid", "spk_isinternal", "spk_author", "spk_notedon", "spk_name" ] }
     ],
     "spk_knowledgearticle": [
       { "name": "Published Articles", "default": true,
@@ -357,10 +442,24 @@
         "order": { "attribute": "spk_procedurecode", "descending": false },
         "columns": [ "spk_procedurecode", "spk_name", "spk_customerid", "spk_proceduretype", "spk_lastreviewedon" ] }
     ],
+    "spk_customerdocument": [
+      { "name": "All Customer Documents", "default": true, "filter": "",
+        "order": { "attribute": "spk_documentcode", "descending": false },
+        "columns": [ "spk_documentcode", "spk_name", "spk_customerid", "spk_documenttype", "spk_version", "spk_lastreviewedon" ] }
+    ],
+    "spk_agentaction": [
+      { "name": "All Agent Actions", "default": true, "filter": "",
+        "order": { "attribute": "spk_occurredon", "descending": true },
+        "columns": [ "spk_occurredon", "spk_name", "spk_tool", "spk_ticketnumber", "spk_username", "spk_authorization", "spk_outcome", "spk_errorcode", "spk_correlationid" ] },
+      { "name": "Denied Agent Actions",
+        "filter": "<condition attribute='spk_authorization' operator='in'><value>765401602</value><value>765401603</value></condition>",
+        "order": { "attribute": "spk_occurredon", "descending": true },
+        "columns": [ "spk_occurredon", "spk_name", "spk_tool", "spk_ticketnumber", "spk_username", "spk_authorization", "spk_errorcode", "spk_correlationid" ] }
+    ],
     "spk_technician": [
       { "name": "Active Technicians", "default": true, "filter": "",
         "order": { "attribute": "spk_name", "descending": false },
-        "columns": [ "spk_techniciancode", "spk_name", "spk_team", "spk_tier", "spk_isavailable", "spk_skills" ] }
+        "columns": [ "spk_techniciancode", "spk_name", "spk_team", "spk_tier", "spk_isavailable", "spk_availabilitynote", "spk_skills" ] }
     ],
     "account": [
       { "name": "Managed Customers", "default": false,
@@ -458,6 +557,6 @@
   ],
   "audit": {
     "organization": true,
-    "tables": [ "spk_ticket", "spk_ticketnote", "spk_knowledgearticle", "spk_runbook", "spk_customerprocedure", "spk_technician", "account", "contact" ]
+    "tables": [ "spk_ticket", "spk_ticketnote", "spk_knowledgearticle", "spk_runbook", "spk_customerprocedure", "spk_customerdocument", "spk_agentaction", "spk_technician", "account", "contact" ]
   }
 }

@@ -1,0 +1,7 @@
+# Icons staged by Get-ProductIcons.ps1. Diagrams embed the icons they use, so this folder is
+# rebuilt on demand and never committed.
+icons/
+
+# Python bytecode from importing svgkit.
+__pycache__/
+*.pyc

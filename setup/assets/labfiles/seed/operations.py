@@ -1,11 +1,13 @@
-"""Operational content added in lab version 2: customer procedures, runbooks, escalation and
-technician patterns in the ticket history, sensitive test values for the data protection
-exercise, the labelled customer configuration document, and the two new incidents that wait
-in the queue.
+"""Operational content: customer procedures, runbooks, escalation and technician patterns in
+the ticket history, sensitive values for the data protection exercise, the labeled customer
+configuration document, the seeded incomplete ticket, and the two new incidents that wait in
+the queue.
 
 Everything here is fictional and deterministic: no random draws, so adding it never changes
-the historical tickets that the generator builds from ticket_templates.py. The guides depend
-on specific records here; search for "EXERCISE" before changing anything.
+the historical tickets that the generator builds from ticket_templates.py and
+history_additions.py. Tickets are referred to by role key (see exercise_tickets.py); the
+generator assigns their numbers. The guides depend on specific records here; search for
+"EXERCISE" before changing anything.
 """
 
 # ===========================================================================
@@ -161,7 +163,7 @@ RUNBOOKS = [
 # Patterns applied to the historical tickets after they are generated.
 # EXERCISE: Exercise 2 Task 3 and Exercise 4 Task 3 cite the technician pattern for vault
 # quota tickets (KB0023, always Priya Raman); Exercise 7 cites the certificate pattern
-# (KB0133, always Daniel Cho).
+# (KB0133, always Daniel Cho). Lab version 3 adds the patterns below the line.
 # ===========================================================================
 TECHNICIAN_BY_ARTICLE = {
     "KB0023": "TECH-01",
@@ -172,6 +174,13 @@ TECHNICIAN_BY_ARTICLE = {
     "KB0042": "TECH-08",
     "KB0141": "TECH-07",
     "KB0143": "TECH-07",
+    # ==== lab version 3
+    "KB0130": "TECH-06",
+    "KB0040": "TECH-08",
+    "KB0054": "TECH-14",
+    "KB0126": "TECH-14",
+    "KB0142": "TECH-07",
+    "KB0147": "TECH-07",
 }
 
 # (article or None for any, customer or None for any, priority or None for any) -> escalation.
@@ -188,32 +197,50 @@ ESCALATION_RULES = [
      "reason": "Vault size increase quoted by the account manager."},
     {"article": "KB0133", "priority": 2, "level": "Vendor",
      "reason": "Application vendor engaged to confirm the certificate binding."},
+    # ==== lab version 3 (article rules after the version 2 rules, so no earlier ticket changes)
+    {"article": "KB0040", "level": "Vendor",
+     "reason": "Gateway vendor engaged with the HA diagnostic bundle."},
+    {"article": "KB0126", "level": "Vendor",
+     "reason": "Warranty case logged with the server vendor for a replacement disk."},
+    {"article": "KB0130", "level": "Vendor",
+     "reason": "Application vendor engaged: their update changed the filing format."},
+    {"article": "KB0100", "level": "Account Manager",
+     "reason": "Account manager asked to confirm the purchased licenses and quote more."},
+    {"article": "KB0142", "level": "L3 Specialist",
+     "reason": "Escalated to the L3 security engineer to review the sign-in logs and block the source addresses."},
+    {"article": "KB0016", "level": "L3 Specialist",
+     "reason": "Escalated to the L3 Backup and Recovery engineer for a vault integrity check."},
 ]
 
 # ===========================================================================
-# Sensitive test values for Exercise 6 Task 2. Payment card numbers are the card networks'
-# published test numbers; they pass the Luhn check, so the Credit Card Number sensitive
-# information type detects them, but they can't be charged.
-# EXERCISE: TCK-10486 is the ticket the guide uses.
+# Sensitive values for Exercise 6 Task 2. Microsoft Purview's Credit Card Number sensitive
+# information type ignores the payment industry's reserved test numbers, so these notes use
+# 4532667785213500: a Luhn-valid number that Microsoft's own documentation uses as an
+# example. It is not a real card. Each note puts the keyword "card number" and an expiry date
+# next to it, because the type's high-confidence pattern needs both nearby.
+# EXERCISE: the note on the trey_vault_quota ticket is the one the guide uses.
+# History notes go on the first original historical ticket of the customer, a third of the
+# way (in business hours) between opening and resolution.
 # ===========================================================================
+CARD_NUMBER = "4532667785213500"
 SENSITIVE_NOTES = [
-    {"ticket": "TCK-10486", "internal": True, "author": "Owen Fletcher", "after_bh": 6.0,
-     "body": "Finance director approved the vault increase by phone and read out the company card for the monthly "
-             "charge: Mastercard 5555 5555 5555 4444, expiry 09/29. Card details must not be kept in tickets; passed to "
+    {"role": "trey_vault_quota", "internal": True, "author": "Owen Fletcher", "after_bh": 6.0,
+     "body": "Finance director approved the vault increase by phone and read out the company card number for the "
+             "monthly charge: 4532 6677 8521 3500, exp 09/28. Card details must not be kept in tickets; passed to "
              "billing, remove this note once billing confirms."},
-    {"ticket": "TCK-10472", "internal": True, "author": "Lucas Moreau", "after_bh": 3.0,
-     "body": "Office manager approved the quote and paid the deposit by phone with Visa card 4111 1111 1111 1111, expiry "
-             "12/27. Card details must not be kept in tickets; remove after billing confirms."},
+    {"role": "margies_firewall_quote", "internal": True, "author": "Lucas Moreau", "after_bh": 3.0,
+     "body": "Office manager approved the quote and paid the deposit by phone, card number 4532667785213500, exp 12/27. "
+             "Card details must not be kept in tickets; remove after billing confirms."},
     {"history_customer": "CUST-005", "internal": True, "author": "Elena Petrova",
-     "body": "Customer paid the call-out fee by card over the phone: Visa 4012 8888 8888 1881, expiry 03/28. Card "
-             "details passed to billing."},
+     "body": "Customer paid for the remote cleanup by card over the phone, card number 4532 6677 8521 3500, exp 03/28. "
+             "Card details passed to billing."},
     {"history_customer": "CUST-012", "internal": True, "author": "Hannah Becker",
-     "body": "Store manager paid for the parts by card over the phone: Mastercard 5105 1051 0510 5100, expiry 06/28. "
+     "body": "Store manager paid for the billable fix by card over the phone, card number 4532667785213500, exp 06/28. "
              "Card details passed to billing."},
 ]
 
 # ===========================================================================
-# The labelled customer configuration document (Exercise 6 Task 2). It is attached to the
+# The labeled customer configuration document (Exercise 6 Task 2). It is attached to the
 # customer's account as a Dataverse note, and provisioning stamps the tenant's sensitivity
 # label on it when the label ID is known. Addresses are documentation ranges (RFC 5737).
 # ===========================================================================
@@ -229,7 +256,7 @@ CONFIG_DOCUMENT = {
         "Head office public address: 203.0.113.10. Branch addresses: 203.0.113.21 to 203.0.113.25.",
         "Backup internet link at head office: 198.51.100.40.",
         "Remote Access profile WGB-STAFF: IKE phase 1 lifetime 28800 seconds (changed under KB0058), IKE phase 2 "
-        "lifetime 3600 seconds, split tunnelling off.",
+        "lifetime 3600 seconds, split tunneling off.",
         "Administrative access: only from the Relecloud network operations range 192.0.2.0/24, with named "
         "administrator accounts. Break-glass access is held by the bank's IT manager.",
         "Pre-shared keys and certificates are stored in the Relecloud vault and never in this document.",
@@ -238,30 +265,35 @@ CONFIG_DOCUMENT = {
 
 # ===========================================================================
 # A seeded open ticket with too little information (Exercise 2 Task 3). Added to the open
-# queue by the generator; it is indexed like every other seeded ticket.
+# queue by the generator; it is indexed like every other seeded ticket. It is the newest
+# seeded ticket, so it takes the last open ticket number.
 # ===========================================================================
 INCOMPLETE_TICKET = {
-    "number": "TCK-10513", "customer": "CUST-016", "contact": 2,
+    "role": "incomplete_vanarsdel", "customer": "CUST-016", "contact": 2,
     "title": "It stopped working again",
     "description": "It stopped working again this morning, same as last time. Please fix it urgently, people are waiting.",
-    "category": None, "priority": None, "status": "New", "technician": None,
+    "category": None, "subcategory": None, "priority": None, "status": "New", "technician": None,
     "product": None, "affected": None, "channel": "Email", "elapsed_bh": 0.25, "kb": None, "notes": [],
+    "purpose": "Incomplete ticket: no system, product, error, number of people or meaning of 'last time'; the agent must ask",
+    "missing": ["which system or application stopped working", "the error message or what the users see",
+                "how many people are affected and where", "what happened 'last time' (a ticket number or date)"],
 }
 
 # ===========================================================================
 # New incidents. Provisioning loads these AFTER it exports the search content, so they are
-# never in the search index: the agent has never seen them. EXERCISE: TCK-10514 is the
-# incident for Exercise 2 Tasks 1 and 3 and Exercise 4 Task 3; TCK-10515 is the
-# end-to-end scenario in Exercise 7.
+# never in the search index: the agent has never seen them. They are unclassified: no
+# priority, category, subcategory, technician or SLA. EXERCISE: new_incident_adatum is the
+# incident for Exercise 2 Tasks 1 and 3 and Exercise 4 Task 3; new_incident_consolidated is
+# the end-to-end scenario in Exercise 7. They take the two numbers after the open tickets.
 # ===========================================================================
 NEW_INCIDENTS = [
-    {"number": "TCK-10514", "customer": "CUST-019", "contact": 0,
+    {"role": "new_incident_adatum", "customer": "CUST-019", "contact": 0,
      "title": "Nightly protection job stopped creating recovery points",
      "description": "Since Saturday night the nightly protection job for our project archive server has stopped creating "
                     "new recovery points. The console says our cloud storage allowance has been used up. We copied the "
                     "2019 to 2024 drawing archive onto that server last week.",
      "channel": "Email", "elapsed_bh": 0.2},
-    {"number": "TCK-10515", "customer": "CUST-020", "contact": 1,
+    {"role": "new_incident_consolidated", "customer": "CUST-020", "contact": 1,
      "title": "Dispatchers can't load routes: certificate warning",
      "description": "Since the start of the morning shift, five of our dispatchers at the north depot get a warning that "
                     "the routing application's security certificate has expired, and they can't load today's delivery "

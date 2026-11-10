@@ -1,0 +1,24 @@
+{
+  "bicep": {
+    "version": "0.48.1"
+  },
+  "analyzers": {
+    "core": {
+      "enabled": true,
+      "rules": {
+        "outputs-should-not-contain-secrets": {
+          "level": "off"
+        },
+        "no-unused-params": {
+          "level": "error"
+        },
+        "no-unused-vars": {
+          "level": "error"
+        },
+        "use-recent-api-versions": {
+          "level": "off"
+        }
+      }
+    }
+  }
+}

@@ -1,7 +1,7 @@
 [
   { "ResourceType": "Microsoft.Compute/virtualMachines",
-    "Parameter": [ { "Name": "max-cpu-cores", "Value": "4" },
-                   { "Name": "max-number-of-vCPUs", "Value": "4" },
+    "Parameter": [ { "Name": "max-cpu-cores", "Value": "2" },
+                   { "Name": "max-number-of-vCPUs", "Value": "2" },
                    { "Name": "max-number-of-instances", "Value": "1" } ] },
   { "ResourceType": "Microsoft.CognitiveServices/accounts",
     "Parameter": [ { "Name": "max-count", "Value": "1" } ] },
@@ -22,7 +22,7 @@
   { "ResourceType": "Microsoft.Insights/components",
     "Parameter": [ { "Name": "max-count", "Value": "1" } ] },
   { "ResourceType": "Microsoft.Storage/storageAccounts",
-    "Parameter": [ { "Name": "max-count", "Value": "0" } ] },
+    "Parameter": [ { "Name": "max-count", "Value": "1" } ] },
 
   { "ResourceType": "Microsoft.Documentdb/databaseAccounts",
     "Parameter": [ { "Name": "max-RU", "Value": "0" } ] },
