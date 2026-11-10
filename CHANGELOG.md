@@ -28,12 +28,19 @@ Rebuilt for the agreed table of contents v3: 7 exercises, 27 tasks and 104 steps
 ### MCP server (release `v3.0.0`)
 
 - Separate read and write endpoints (`/read/mcp` and `/write/mcp`), with output schemas on every tool.
-- An Agent Action row for every write attempt, so denied and declined actions leave a record.
-- Duplicate submission protection: a repeated identical write with the same correlation ID within 10 minutes returns the first result.
+- An Agent Action row for every write attempt that reaches the server, so a denied action leaves a record in Dataverse too. A declined approval never reaches the server; the agent run records it.
+- Duplicate submission protection: a repeated identical write within 10 minutes, with the same correlation ID or from the same user after a successful first call, returns the first result.
 
 ### Data
 
 - 120 knowledge articles (previously 50), 36 customer documents in a new table, 15 technicians in 4 teams, 500 historical tickets, 60 open tickets plus 2 new incidents, and 1,436 ticket notes, generated deterministically. `setup/DATA-SPEC.md` lists every record the guide quotes.
+
+### Delivery documents (2026-11-10)
+
+- [DESIGN-PACK.md](DESIGN-PACK.md): the Milestone 1 design pack (architecture, tool catalog with each tool's required permission, data specification, identity and token-flow design) and the adjustments made under the platform-dependency clause, with a sign-off block.
+- [SOW-COVERAGE.md](SOW-COVERAGE.md): every point of the statement of work and its exhibits, with its status and the file that delivers it, the handover package, and the open items.
+- [SUPPORT-GUIDE.md](SUPPORT-GUIDE.md): the customer test environment hand-over, token checks during the window with the 80 percent notice, the reviewers' export, and the workshop report.
+- [setup/tenant/RUNBOOK.md](setup/tenant/RUNBOOK.md): each subscription's activity log is exported before deletion and kept 30 days for the requester.
 
 ## Version 2.2 (2026-10-02, branch `toc-v2`)
 

@@ -16,16 +16,17 @@
     "extendForms" are added to, or refreshed in, an existing main form without replacing the
     rest of it (the account form keeps its timeline, where the labeled document lives).
 
-    Two uses:
-      1. Build once in a reference developer environment, check the app, then export the
-         unmanaged solution 'RelecloudServiceDesk' to assets/solutions/ so team deployments can
-         import it (faster and fully deterministic).
-      2. Fallback per team when no exported solution is present (Provision-ServiceDesk.ps1).
+    Provisioning runs it in every participant's environment (Provision-ServiceDesk.ps1, step
+    'schema'). Run it by hand to build the same schema in another Dataverse environment, for
+    example in the requester's own tenant. The tables, choices, views, forms and the app are
+    created in the unmanaged solution 'RelecloudServiceDesk', which can be exported from Power
+    Apps. The security roles and the column security profile come from Set-DataverseSecurity.ps1;
+    add them to the solution as existing components before an export that should include them.
 
     Requires an Azure CLI session ('az login') as a System Administrator of the environment.
 
 .EXAMPLE
-    .\Deploy-ServiceDeskSchema.ps1 -OrgUrl https://mspdesk123456.crm4.dynamics.com
+    .\Deploy-ServiceDeskSchema.ps1 -OrgUrl https://mspdesk123456.crm3.dynamics.com
 #>
 [CmdletBinding()]
 param(

@@ -165,8 +165,16 @@ A reset gives the participant a fresh environment in a new tenant. Provisioning 
 ### After the 24-hour review window
 
 1. Confirm with the delivery lead that the requester's reviewers have finished. Nothing is deleted before.
-2. Let CloudLabs delete the deployments as usual. With a Dedicated Tenant, the resource group and the subscription go with the deployment; ask CloudLabs whether the tenant is deleted or returned to a pool ([setup/README.md](../README.md#questions-for-cloudlabs)).
-3. If tenants are returned to a pool, clean the tenant objects that are not Azure resources, as a supplier Global Administrator, for each tenant:
+2. Export each subscription's activity log before the deployments are deleted. The statement of work lets the requester ask for the Azure subscription audit logs for up to 30 days after deletion, so take them while the subscription still exists. As an owner or reader of each subscription, spares included:
+
+   ```powershell
+   az account set --subscription <subscription ID>
+   az monitor activity-log list --start-time <the deployment time, in UTC> --max-events 100000 --output json > "<DeploymentID>-activity-log.json"
+   ```
+
+   Give the files to the delivery lead, who shares them only with the requester and only on request, and deletes them 30 days after the environments were deleted. They are the only logs the supplier keeps after teardown.
+3. Let CloudLabs delete the deployments as usual. With a Dedicated Tenant, the resource group and the subscription go with the deployment; ask CloudLabs whether the tenant is deleted or returned to a pool ([setup/README.md](../README.md#questions-for-cloudlabs)).
+4. If tenants are returned to a pool, clean the tenant objects that are not Azure resources, as a supplier Global Administrator, for each tenant:
 
    ```powershell
    pwsh setup/tenant/Remove-LabTenantObjects.ps1 -TenantId <tenant ID> -DeploymentID <DeploymentID>
@@ -178,7 +186,7 @@ A reset gives the participant a fresh environment in a new tenant. Provisioning 
 
 - In the CloudLabs portal, every deployment of the event, spares included, shows as deleted.
 - In each tenant that was not deleted: the Power Platform admin center lists no environment named `Relecloud Service Desk <DeploymentID>`, and **App registrations** lists no app named `Relecloud Lab Setup`, `Relecloud Service Desk MCP Gateway` or `Relecloud Service Desk Purview Integration`.
-- The temporary records of the event (support log, swap times, consistency reports) are filed with the delivery lead.
+- The temporary records of the event (support log, swap times, consistency reports, token checks) are filed with the delivery lead, and the delivery lead has sent the requester the [workshop report](../../SUPPORT-GUIDE.md#workshop-report).
 
 ### Reconcile the costs
 
@@ -206,7 +214,9 @@ With the delivery lead, compare the actual costs with the estimate in [estimates
 **Phase 7, close the event:**
 
 - [ ] The reviewers confirmed they are done before anything was deleted
+- [ ] Every subscription's activity log was exported before deletion, and the date it is deleted (30 days later) is recorded
 - [ ] Every deployment of the event is deleted, spares included
+- [ ] The workshop report was sent to the requester
 - [ ] Tenants returned to a pool were cleaned with `Remove-LabTenantObjects.ps1`
 - [ ] Costs are reconciled with the estimate, and the incident, swap and extension records are filed
 

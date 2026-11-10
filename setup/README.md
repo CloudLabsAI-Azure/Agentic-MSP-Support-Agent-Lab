@@ -54,6 +54,7 @@ Answer these before the first deployment; the answers decide the parameters and 
 | 7 | Is each tenant deleted after the event, or returned to a pool? | A pooled tenant keeps the Power Platform environment, the app registrations and the Purview objects | Phase 7 in [RUNBOOK.md](tenant/RUNBOOK.md#phase-7-close-the-event) |
 | 8 | What is the object ID of the CloudLabs validation service principal in each tenant, and its token? | It gets read-only data roles on search and storage for the graded steps | `validationPrincipalObjectId` in `deploy-01.parameters.json` |
 | 9 | Under which field name does the **Environment** tab show the Tier 1 Technician's sign-in and pass? | The guide tells participants to copy it from there | Lab guide |
+| 10 | Can the template library serve `assets/msp-labfiles.zip` without anonymous read access, for example through a SAS URL or a protected asset? | The archive carries the private MCP server source, which the statement of work treats as confidential, and the lab VM downloads it at first boot | `$projectBlob` in `scripts/psscript-01.ps1` and [Step 4](#step-4-upload-the-files-to-the-template-library) |
 
 ## Step 1: Check quota and region
 
