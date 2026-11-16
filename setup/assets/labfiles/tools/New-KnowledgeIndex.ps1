@@ -586,8 +586,16 @@ try {
     }
 
     $mappingHint = 'Lab staff: check outputFieldMappings in C:\LabFiles\search\servicedesk-export-indexer.json (/document/contentVector, or /document/contentVector/* as the embedding skill page shows), then run this script again.'
-    $stats = (Invoke-Search GET "indexes/$($index.name)/stats").Body
-    $vectorBytes = if ($stats -and $stats.PSObject.Properties['vectorIndexSize']) { [long]$stats.vectorIndexSize } else { $null }
+    # Index statistics lag the indexer by a minute or more, so a fresh index can report a vector size of 0
+    # even though every document has its vector. Poll for up to 90 seconds before reporting a problem.
+    $stats = $null; $vectorBytes = $null
+    for ($attempt = 1; $attempt -le 10; $attempt++) {
+        $stats = (Invoke-Search GET "indexes/$($index.name)/stats").Body
+        $vectorBytes = if ($stats -and $stats.PSObject.Properties['vectorIndexSize']) { [long]$stats.vectorIndexSize } else { $null }
+        if ($count -le 0 -or $null -eq $vectorBytes -or $vectorBytes -gt 0) { break }
+        if ($attempt -eq 1) { Write-Host '  Waiting for the index statistics to catch up with the indexer (up to 90 seconds)...' }
+        Start-Sleep -Seconds 10
+    }
     if ($count -gt 0 -and $null -ne $vectorBytes -and $vectorBytes -le 0) {
         Write-Problem 'The documents have no vectors (vector index size 0). The skillset ran but its output did not reach contentVector.'
         Write-Note $mappingHint
