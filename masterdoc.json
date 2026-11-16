@@ -1,41 +1,40 @@
 [
-  {
-    "Name": "Lab : Agentic MSP Support Agent Guided Lab",
-    "Language": "English",
-    "BaseURL": "https://github.com/CloudLabsAI-Azure/Agentic-MSP-Support-Agent-Lab",
-    "Files": [
-      {
-        "RawFilePath": "https://raw.githubusercontent.com/CloudLabsAI-Azure/Agentic-MSP-Support-Agent-Lab/refs/heads/toc-v3/Instructions/getting-started.md",
-        "Order": 1
-      },
-      {
-        "RawFilePath": "https://raw.githubusercontent.com/CloudLabsAI-Azure/Agentic-MSP-Support-Agent-Lab/refs/heads/toc-v3/Instructions/exercise-1.md",
-        "Order": 2
-      },
-      {
-        "RawFilePath": "https://raw.githubusercontent.com/CloudLabsAI-Azure/Agentic-MSP-Support-Agent-Lab/refs/heads/toc-v3/Instructions/exercise-2.md",
-        "Order": 3
-      },
-      {
-        "RawFilePath": "https://raw.githubusercontent.com/CloudLabsAI-Azure/Agentic-MSP-Support-Agent-Lab/refs/heads/toc-v3/Instructions/exercise-3.md",
-        "Order": 4
-      },
-      {
-        "RawFilePath": "https://raw.githubusercontent.com/CloudLabsAI-Azure/Agentic-MSP-Support-Agent-Lab/refs/heads/toc-v3/Instructions/exercise-4.md",
-        "Order": 5
-      },
-      {
-        "RawFilePath": "https://raw.githubusercontent.com/CloudLabsAI-Azure/Agentic-MSP-Support-Agent-Lab/refs/heads/toc-v3/Instructions/exercise-5.md",
-        "Order": 6
-      },
-      {
-        "RawFilePath": "https://raw.githubusercontent.com/CloudLabsAI-Azure/Agentic-MSP-Support-Agent-Lab/refs/heads/toc-v3/Instructions/exercise-6.md",
-        "Order": 7
-      },
-      {
-        "RawFilePath": "https://raw.githubusercontent.com/CloudLabsAI-Azure/Agentic-MSP-Support-Agent-Lab/refs/heads/toc-v3/Instructions/exercise-7.md",
-        "Order": 8
-      }
-    ]
-  }
+    {
+        "Name": "Lab : Agentic MSP Support Agent Guided Lab",
+        "Language": "English",
+        "Files": [
+          {
+            "RawFilePath": "https://raw.githubusercontent.com/CloudLabsAI-Azure/Agentic-MSP-Support-Agent-Lab/refs/heads/toc-v3/Instructions/getting-started.md",
+            "Order": 1
+          },
+          {
+            "RawFilePath": "https://raw.githubusercontent.com/CloudLabsAI-Azure/Agentic-MSP-Support-Agent-Lab/refs/heads/toc-v3/Instructions/exercise-1.md",
+            "Order": 2
+          },
+          {
+            "RawFilePath": "https://raw.githubusercontent.com/CloudLabsAI-Azure/Agentic-MSP-Support-Agent-Lab/refs/heads/toc-v3/Instructions/exercise-2.mdd",
+            "Order": 3
+          },
+          {
+            "RawFilePath": "https://raw.githubusercontent.com/CloudLabsAI-Azure/Agentic-MSP-Support-Agent-Lab/refs/heads/toc-v3/Instructions/exercise-3.md",
+            "Order": 4
+          },
+          {
+            "RawFilePath": "https://raw.githubusercontent.com/CloudLabsAI-Azure/Agentic-MSP-Support-Agent-Lab/refs/heads/toc-v3/Instructions/exercise-4.md",
+            "Order": 5
+          },
+          {
+            "RawFilePath": "https://raw.githubusercontent.com/CloudLabsAI-Azure/Agentic-MSP-Support-Agent-Lab/refs/heads/toc-v3/Instructions/exercise-5.md",
+            "Order": 6
+          },
+          {
+            "RawFilePath": "https://raw.githubusercontent.com/CloudLabsAI-Azure/Agentic-MSP-Support-Agent-Lab/refs/heads/toc-v3/Instructions/exercise-6.md",
+            "Order": 7
+          },
+          {
+            "RawFilePath": "https://raw.githubusercontent.com/CloudLabsAI-Azure/Agentic-MSP-Support-Agent-Lab/refs/heads/toc-v3/Instructions/exercise-7.md",
+            "Order": 8
+          }
+        ]
+    }
 ]
