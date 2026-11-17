@@ -160,7 +160,9 @@ In this task, you will take one new incident from intake to approved, audited ch
 > - If not, carefully read the error message and retry the step, following the instructions in the lab guide.
 > - If you need any assistance, please contact us at cloudlabs-support@spektrasystems.com. We are available 24/7 to help.
 
+<!--
 <validation step="REPLACE-WITH-VALIDATION-GUID" />
+-->
 
 ## Task 2: Present the Business Case
 
