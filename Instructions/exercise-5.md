@@ -33,7 +33,7 @@ In this task, you will find the identity behind every hop of one write and the t
    C:\LabFiles\tools\Get-AgentIdentity.ps1
    ```
 
-   Under **The agent and its Microsoft Entra Agent ID**, **Agent ID client ID** is the value you recorded in Exercise 1 next to **Agent ID (client ID)**, and **Agent ID object ID** is the object ID of the same identity. Under **Its tools (latest version)**, **servicedesk-read** shows the approval **never**, **servicedesk-write** shows **always**, and the Azure AI Search tool is the knowledge source you added in Exercise 1. The table **Which identity each hop of a Service Desk tool call uses** lists six hops: **1. You**, **2. The agent**, **3. The MCP connections**, **4. API Management**, **5. MCP server** and **6. Dataverse**.
+   Under **The agent and its Microsoft Entra Agent ID**, **Agent ID client ID** is the value you recorded in Exercise 1 next to **Agent ID (client ID)**, and **Agent ID object ID** is the object ID of the same identity; the two values can be the same. Under **Its tools (latest version)**, **servicedesk-read** shows the approval **never**, **servicedesk-write** shows **always** (if it shows *never for N tool(s)*, an **Always approve** option was selected on an approval request: run `C:\LabFiles\tools\Update-AgentDefinition.ps1 -Reset` and then `C:\LabFiles\tools\Update-AgentDefinition.ps1 -Instructions` to restore approval on every write), and the Azure AI Search tool is the knowledge source you added in Exercise 1. The table **Which identity each hop of a Service Desk tool call uses** lists six hops: **1. You**, **2. The agent**, **3. The MCP connections**, **4. API Management**, **5. MCP server** and **6. Dataverse**.
 
    > **[SCREENSHOT PENDING: E5T1S1-1 | PowerShell 7 window with Get-AgentIdentity.ps1 output: the Agent ID object ID and client ID, the tools table and the six-hop identity map | source: capture]**
 
@@ -109,7 +109,7 @@ In this task, you will find the identity behind every hop of one write and the t
 |---|---|---|
 | `Get-AgentIdentity.ps1` stops with *Azure CLI has no sign-in for your lab tenant* | Your Azure CLI sign-in expired | Run `az login`, sign in as the Senior Technician, and run the script again |
 | Searching **Agent identities** finds nothing | You searched by name, or the list hasn't refreshed | Search by the **Agent ID object ID** from the script, and refresh the page |
-| The Power Platform admin center doesn't list your environment, or **Settings** isn't available | Opening the admin center with only Dataverse roles, without a tenant administrator role, is still being confirmed for lab accounts | Contact support with your Deployment ID. The documented fallback gives your account System Administrator in this environment only |
+| The Power Platform admin center doesn't list your environment, or **Settings** isn't available | Opening the admin center with only Dataverse roles, without a tenant administrator role, is still being confirmed for lab accounts | Contact support with your Deployment ID. The documented fallback gives your account System Administrator in this environment only. After support confirms the role, sign out of the admin center and sign in again (with your Temporary Access Pass) so the environment list refreshes |
 
 ## Task 2: Verify Secure Secret Handling
 
@@ -151,7 +151,7 @@ In this task, you will check how the MCP server gets the one credential it runs 
    git -C C:\LabFiles\mcp-server grep -n --untracked "mcp-backend-key"
    ```
 
-   Every hit is the name, never a value: a comment in `.env.example`, the settings table in `README.md`, the default of `BACKEND_KEY_SECRET_NAME` in `config.py`, the description at the top of `keyvault.py`, and unit tests that use made-up values. Then run the following command, which searches the same files for strings shaped like credentials: a private key, a storage account key, a shared access signature or an access token:
+   Every hit is the name, never a value: the settings table in `README.md`, the default of `BACKEND_KEY_SECRET_NAME` in `config.py`, the description at the top of `keyvault.py`, and unit tests that use made-up values. Then run the following command, which searches the same files for strings shaped like credentials: a private key, a storage account key, a shared access signature or an access token:
 
    ```powershell
    git -C C:\LabFiles\mcp-server grep -n -I -E --untracked -e "PRIVATE KEY-----" -e "AccountKey=" -e "SharedAccessSignature=" -e "eyJ[A-Za-z0-9_-]{20,}\.eyJ"
@@ -163,7 +163,7 @@ In this task, you will check how the MCP server gets the one credential it runs 
    az containerapp secret list --name <inject key="Container App Name" enableCopy="false"/> --resource-group <inject key="Resource Group Name" enableCopy="false"/> --output json
    ```
 
-   It returns `[]`: the app stores no secret. Then run the following command, which lists the app's environment variables:
+   It returns `[]` or prints nothing: the app stores no secret. Then run the following command, which lists the app's environment variables:
 
    ```powershell
    az containerapp show --name <inject key="Container App Name" enableCopy="false"/> --resource-group <inject key="Resource Group Name" enableCopy="false"/> --query "properties.template.containers[0].env[].{name:name, value:value}" --output table
@@ -206,7 +206,7 @@ In this task, you will check how the MCP server gets the one credential it runs 
 
 - [ ] **mcp-backend-key** is in the key vault, you could read its properties, and Key Vault refused your read of its value
 - [ ] `keyvault.py` reads the key with a token of the managed identity, and the MCP server's log shows a Key Vault read and a `startup` line with the **key_source** `key vault` for each revision
-- [ ] The repository holds the secret's name and no credential, the Container App stores no secret (`[]`), and its environment variables hold only settings, names and addresses
+- [ ] The repository holds the secret's name and no credential, the Container App stores no secret (`[]` or no output), and its environment variables hold only settings, names and addresses
 - [ ] The vault's audit log shows **SecretGet** on **mcp-backend-key** with status **200** by the MCP Backend Identity Client ID at the server's startup time
 - [ ] You recorded the secret and its startup log entry in **Lab notes.txt**
 
