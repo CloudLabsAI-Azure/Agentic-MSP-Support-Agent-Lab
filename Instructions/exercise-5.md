@@ -251,7 +251,7 @@ In this task, you will narrow the agent's write role and make Dataverse refuse a
 
    The application user can now change only tickets owned in its own business unit, the root, and none of Lamna Healthcare's. Its other privileges are unchanged, so the agent still reads Lamna Healthcare's tickets and can still attach notes to them, because **Append to** on **Ticket** stays at **Organization**.
 
-   > **[SCREENSHOT PENDING: E5T3S2 | Service Desk Agent Write, Ticket row with Write set to Business Unit and Append and Append to still at Organization | source: capture]**
+   ![Service Desk Agent Write with Ticket Write at Business Unit](./media/screenshots/E5T3S2.png)
 
    > **Note:** Some versions of the role editor show **Save** instead of **Save + close**. Dataverse lets you change a privilege on a role only if you hold that privilege yourself; your Senior Technician role holds Write on tickets at **Organization** level, so this change is allowed. Wait about a minute before step 3: Dataverse caches permissions for up to about 30 seconds after a role change, and the MCP server asks Dataverse for the latest permissions on every request.
 

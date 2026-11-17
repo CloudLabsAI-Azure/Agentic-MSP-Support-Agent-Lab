@@ -102,7 +102,9 @@ In this task, you will reach the point at which the agent stops advising and sta
 
    **What this validates:** a declined call is never sent, so nothing changes, and the agent says so instead of reporting a result.
 
-   > **[SCREENSHOT PENDING: E4T1S3 | Declined approval request for update_ticket_status on TCK-10544, and the agent saying the call was not approved and the ticket is unchanged | source: capture]**
+   ![Declined update_ticket_status request on TCK-10544](./media/screenshots/E4T1S3.png)
+
+   ![Declined update_ticket_status request on TCK-10544](./media/screenshots/E4T1S3-a.png)
 
    > **Note:** The provided screenshot is for your reference; the output you receive may vary.
 
@@ -227,7 +229,7 @@ In this task, you will learn the sharpest data-protection lesson in the lab. Tic
 
    **What this validates:** the agent drafts a customer message from what the customer may read, and the internal flag decides what the read tool returns.
 
-   > **[SCREENSHOT PENDING: E4T2S3 | Playground draft of a customer update for TCK-10524 with no internal note content | source: capture]**
+   ![Customer update draft for TCK-10524](./media/screenshots/E4T2S3.png)
 
    > **Note:** The provided screenshot is for your reference; the output you receive may vary.
 
@@ -284,7 +286,7 @@ In this task, you will join everything from Exercises 1 and 2 to the MCP tools, 
 
    **What this validates:** the agent reaches a ticket that the knowledge index has never seen through the read tools, before it reasons about it.
 
-   > **[SCREENSHOT PENDING: E4T3S1 | Playground answer restating TCK-10561 from A. Datum Corporation with no priority, category or technician | source: capture]**
+   ![TCK-10561 restated with what is missing](./media/screenshots/E4T3S1.png)
 
    > **Note:** The provided screenshot is for your reference; the output you receive may vary.
 
