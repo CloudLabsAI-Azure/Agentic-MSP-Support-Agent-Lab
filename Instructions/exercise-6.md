@@ -251,7 +251,7 @@ In this task, you will follow one correlation identifier through every step of a
    $id = '<correlation ID>'
    ```
 
-   > **[SCREENSHOT PENDING: E6T3S1 | TCK-10544 in the Service Desk app with Priority P3 Medium and the Traceability section showing Last Correlation ID | source: capture]**
+   ![TCK-10544 with Priority P3 Medium](./media/screenshots/E6T3S1.png)
 
    > **Note:** If you changed TCK-10544 more than once, **Last Correlation ID** shows the latest change; trace that one instead. Every hop of this action has long arrived: agent traces usually reach Application Insights 2 to 5 minutes after an action, and gateway and console logs reach Log Analytics within minutes, while you made this change back in Exercise 4.
 
@@ -321,7 +321,7 @@ In this task, you will follow one correlation identifier through every step of a
 
    > **[SCREENSHOT PENDING: E6T3S4-1 | TCK-10544 Audit History with the Priority change from P4 Low to P3 Medium by the Senior Technician | source: capture]**
 
-   > **[SCREENSHOT PENDING: E6T3S4-2 | All Agent Actions view with the update_ticket_priority row for TCK-10544, Allowed and Succeeded, and its correlation ID | source: capture]**
+   ![All Agent Actions view](./media/screenshots/E6T3S4-2.png)
 
    > **Note:** **Audit History** can show a change after a delay that Microsoft doesn't specify; if the entry isn't there yet, refresh the page in a minute. The audit record also stores the MCP server's application user as the calling user, because the change ran on your behalf. Whether **Audit History** displays that calling user isn't documented; the trail in step 5 shows it.
 

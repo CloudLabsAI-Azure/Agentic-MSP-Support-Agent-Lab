@@ -27,9 +27,9 @@ In this task, you will take one new incident from intake to approved, audited ch
 
 1. Open the second new incident in your Service Desk queue. In the Service Desk app (double-click **Service Desk** on the desktop if it isn't open), select **Tickets** under **Work**, and select the **Untriaged Tickets** view. It lists the tickets that are still **New** and have no priority, including **TCK-10562** from **Consolidated Messenger**, *Dispatchers can't load routes: certificate warning*, and **TCK-10559** from **Lucerne Publishing**, another certificate warning. Open **TCK-10562**. Its **Summary** section shows **Status** **New**, **Channel** **Phone** and **Victor Murphy** as the **Requester**, with no **Priority**, **Category**, **Subcategory** or **Assigned Technician**, and its **SLA** section has no target yet. The **Description** under **Details** says that since the start of the morning shift, five dispatchers at the north depot see a warning that the routing application's security certificate has expired and can't load today's delivery routes; vans are waiting to leave, and the south depot is working normally.
 
-   > **[SCREENSHOT PENDING: E7T1S1-1 | Service Desk app, Untriaged Tickets view listing TCK-10562 from Consolidated Messenger and TCK-10559 from Lucerne Publishing | source: capture]**
+   ![Untriaged Tickets view with TCK-10562 and TCK-10559](./media/screenshots/E7T1S1-1.png)
 
-   > **[SCREENSHOT PENDING: E7T1S1-2 | TCK-10562 form with Status New, Channel Phone, Requester Victor Murphy, no priority, category or technician, and the description | source: capture]**
+   ![TCK-10562 before triage](./media/screenshots/E7T1S1-2.png)
 
    > **Note:** TCK-10562 isn't in the knowledge index. Provisioning loaded the two new incidents after the export, so the agent can reach this ticket only through the MCP read tools, as it would reach a ticket that arrived after the last indexing run.
 
@@ -53,7 +53,7 @@ In this task, you will take one new incident from intake to approved, audited ch
 
    **What this validates:** the agent reaches a ticket the index has never seen through the read tools, and recommends what Relecloud's best technician would, citing the customer's own procedure and the desk's own history, before anything changes.
 
-   > **[SCREENSHOT PENDING: E7T1S2 | Playground answer for TCK-10562 citing CUST-020-PR3, KB0133, RB-005 and CDOC-032, recommending Line-of-Business App, Certificate, P2 High and Daniel Cho, and keeping TCK-10559 and TCK-10524 apart | source: capture]**
+   ![Triage recommendation for TCK-10562](./media/screenshots/E7T1S2.png)
 
    > **Note:** The provided screenshot is for your reference; the output you receive may vary.
 
@@ -78,9 +78,11 @@ In this task, you will take one new incident from intake to approved, audited ch
 
    **What this validates:** every change waits for your decision on its exact arguments, runs as you and comes back with a correlation ID, and the one change the customer reads carries only what was written for the customer.
 
-   > **[SCREENSHOT PENDING: E7T1S3-1 | Playground approval request for update_ticket_priority with ticket_number TCK-10562, priority 2 and a reason that cites CUST-020-PR3 | source: capture]**
+   ![Approval request for update_ticket_priority on TCK-10562](./media/screenshots/E7T1S3-1.png)
 
-   > **[SCREENSHOT PENDING: E7T1S3-2 | Agent's report of the four outcomes on TCK-10562, each with its correlation ID | source: capture]**
+   ![Outcomes on TCK-10562 with correlation IDs](./media/screenshots/E7T1S3-2.png)
+
+   ![Outcomes on TCK-10562 with correlation IDs](./media/screenshots/E7T1S3-2b.png)
 
    > **Note:** The provided screenshot is for your reference; the output you receive may vary.
 
@@ -90,9 +92,9 @@ In this task, you will take one new incident from intake to approved, audited ch
 
    Then check the result in the Service Desk app. Open **TCK-10562** again, or select **Refresh** if it's still open. The **Summary** section shows **Status** **In Progress**, **Priority** **P2 High**, **Category** **Line-of-Business App**, **Subcategory** **Certificate** and **Assigned Technician** **Daniel Cho**; the **SLA** section shows **SLA Target (business hours)** **16**; and **Last Correlation ID** in the **Traceability** section holds the ID of the latest change to the ticket's fields, the assignment. The reply carries its own correlation ID on its note. Select the **Related** tab and then **Ticket Notes**: the reply is listed with **Internal Note** **Customer visible**, beside the notes marked **Internal** that record each change. Then, under **Work**, select **Agent Actions**: the **All Agent Actions** view lists the four writes on **TCK-10562**, newest first, each with **Authorization** **Allowed**, **Outcome** **Succeeded**, your account as **User Name**, and the **Correlation ID** the agent reported. TCK-10562 is no longer in the **Untriaged Tickets** view, and TCK-10559 still is.
 
-   > **[SCREENSHOT PENDING: E7T1S3-3 | TCK-10562 form after the writes: In Progress, P2 High, Line-of-Business App, Certificate, Daniel Cho and SLA Target (business hours) 16 | source: capture]**
+   ![TCK-10562 after the writes](./media/screenshots/E7T1S3-3.png)
 
-   > **[SCREENSHOT PENDING: E7T1S3-4 | Agent Actions, All Agent Actions view with the four TCK-10562 rows, Allowed and Succeeded, with their correlation IDs | source: capture]**
+   ![All Agent Actions view with the four TCK-10562 rows](./media/screenshots/E7T1S3-4.png)
 
    > **Note:** **SLA Elapsed (business hours)**, **SLA Remaining (business hours)**, **SLA Due On (UTC)** and **SLA Status** count from the ticket's **Opened On (UTC)**, which depends on when your environment was prepared, so your figures differ from other participants'. The target of 16 business hours is the same for everyone.
 
@@ -106,7 +108,7 @@ In this task, you will take one new incident from intake to approved, audited ch
 
    The **Timeline** lists each record in time order. The **Summary** answers six questions about this one write: **Who asked** is your account, <inject key="AzureAdUserEmail" enableCopy="false"/>, from the token the gateway validated, with your request; **Which agent** is **msp-support-agent** with its Agent ID; **Which tool** is **update_ticket_priority** on the write endpoint with **TCK-10562** and priority **2**; **What was authorized** begins with *approval: approved* and shows the gateway's token check and the authorization result **Allowed**; **What changed** is the update Dataverse audited for your account, with the priority going from empty to **P2 High**; and **What was returned** shows the outcome **ok**. Under **Sources checked**, **MCP server log**, **API Management**, **Application Insights**, **Foundry conversation**, **Dataverse audit** and **Agent Action row** each show **Found**, and the last line reads *Evidence written to C:\LabFiles\evidence\TCK-10562-priority.json and C:\LabFiles\evidence\TCK-10562-priority.md.*
 
-   > **[SCREENSHOT PENDING: E7T1S4-1 | PowerShell 7 window with the Get-ActionTrail.ps1 Summary and Sources checked for the TCK-10562 priority change, every source Found | source: capture]**
+   ![Get-ActionTrail.ps1 Summary and Sources checked for the TCK-10562 priority change](./media/screenshots/E7T1S4-1.png)
 
    > **Note:** Agent traces usually reach Application Insights 2 to 5 minutes after an action, gateway and MCP server logs reach Log Analytics in 3 to 10 minutes, and Microsoft doesn't document how long Dataverse takes to show an audit record. With `-WaitMinutes 10`, the script checks again every 60 seconds until every source is found or 10 minutes have passed, so you can start Task 2 in **Lab notes.txt** while it waits and come back. If a source still shows **Not found yet**, run the same command again a few minutes later: it overwrites both files with the complete trail.
 

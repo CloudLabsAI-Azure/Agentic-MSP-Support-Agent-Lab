@@ -72,7 +72,7 @@ In this task, you will confirm that every component responds before you build an
 
    > **Note:** The app's address is <inject key="Service Desk App URL" enableCopy="false"/>. If the desktop shortcut opens a different address, use the shortcut: it points to the environment that was actually created.
 
-   > **[SCREENSHOT PENDING: E1T1S3 | Service Desk app Tickets list with the Open Tickets view and its row count | source: capture]**
+   ![Open Tickets view in the Service Desk app with its row count](./media/screenshots/E1T1S3.png)
 
 1. Open your Foundry project and confirm the agent exists with its Microsoft Entra Agent ID, no knowledge source and only the baseline MCP tools. On the desktop, double-click **Microsoft Foundry**. If the page shows **Sign in**, select it and pick the Senior Technician account. Select your project **<inject key="Foundry Project Name" enableCopy="false"/>**, select **Build**, and then select **msp-support-agent**. If a **Your project is set up. What would you like to do next?** dialog appears, select **Skip**. On the **Playground** tab, expand **Tools**: it lists **servicedesk-read** and **servicedesk-write** and no knowledge tool. Then, in PowerShell 7, run the following command, which reads the agent's Entra Agent ID from the Foundry API:
 
@@ -94,7 +94,7 @@ In this task, you will confirm that every component responds before you build an
 
    The result is **TCK-10524** from **Humongous Insurance**, *Claims team cannot open policy documents*, with its status, priority, SLA figures and a `correlation_id`. In **Lab notes.txt**, next to **Baseline read tool: ticket and correlation ID**, record both.
 
-   > **[SCREENSHOT PENDING: E1T1S5 | PowerShell 7 window with the get_ticket result for TCK-10524 and its correlation_id | source: capture]**
+   ![get_ticket result for TCK-10524 with its correlation_id](./media/screenshots/E1T1S5.png)
 
 ### Expected results
 
@@ -124,7 +124,7 @@ In this task, you will build the index the agent grounds on. Azure AI Search is 
 
    Notice the split. `content` carries the text worth retrieving: an article's symptom, cause and resolution, a document's body, a ticket's description and resolution. `title`, `url` and `sourceId` carry no searchable text, but they are what the agent cites. Fields such as `customerCode`, `slaTier` and `articleStatus` let a query filter.
 
-   > **[SCREENSHOT PENDING: E1T2S1 | New-KnowledgeIndex.ps1 -ReviewOnly output listing the fields and their purpose | source: capture]**
+   ![New-KnowledgeIndex.ps1 -ReviewOnly field list](./media/screenshots/E1T2S1.png)
 
 1. Create an Azure AI Search index with the fields your agent needs to cite a source, not just answer from it. In Visual Studio Code, open `C:\LabFiles\search\index-definition.json` and find the fields `title`, `url` and `sourceId`: each is **retrievable**, so the index returns them with every result. Then run the following command, which checks the definition and creates the index, a data source for the export container, an embedding skillset and an indexer:
 
@@ -148,7 +148,7 @@ In this task, you will build the index the agent grounds on. Azure AI Search is 
 
    In the Foundry portal, refresh the **Playground** tab of **msp-support-agent** and expand **Tools**: it now lists the Azure AI Search tool with **servicedesk-knowledge**, as well as **servicedesk-read** and **servicedesk-write**.
 
-   > **[SCREENSHOT PENDING: E1T2S4 | Agent playground Tools section with the Azure AI Search tool and both MCP tools | source: capture]**
+   ![Playground Tools section with Azure AI Search and both MCP tools](./media/screenshots/E1T2S4.png)
 
    > **Note:** The script uses the search connection that provisioning created, because creating connections needs a role you don't hold. Agent versions can't be edited, so every change creates a new version. The playground always uses the latest version. If the script ends with **[check] Your agent's endpoint is pinned to version @latest**, that is about the agent's published endpoint, not the playground: you can ignore it for this lab.
 
@@ -166,7 +166,7 @@ In this task, you will build the index the agent grounds on. Azure AI Search is 
 
    > **Note:** The first time the agent calls a tool in your playground, the chat can show **Sign in to servicedesk-write** or **Sign in to servicedesk-read** with **Open consent** instead of an answer. Select **Open consent**. On the **Confirmation required** page, check that it names a connection created by **Microsoft Foundry Agent Service**, select **I have verified this request and trust the source**, and select **Allow access**. Do this once for each connection, then send the prompt again if the agent doesn't continue on its own.
 
-   > **[SCREENSHOT PENDING: E1T2S5 | Playground answer about RBA-1043 citing KB0007 | source: capture]**
+   ![Playground answer about RBA-1043 citing KB0007](./media/screenshots/E1T2S5.png)
 
    > **Note:** The provided screenshot is for your reference; the output you receive may vary.
 
@@ -209,7 +209,7 @@ In this task, you will prove that the grounding works before you trust it with a
 
    **What this validates:** the answer comes from Woodgrove Bank's own profile, procedures and documents, not from a generic description of a bank.
 
-   > **[SCREENSHOT PENDING: E1T3S1 | Answer about Woodgrove Bank citing its profile and documents | source: capture]**
+   ![Answer about Woodgrove Bank with its services and procedures](./media/screenshots/E1T3S1.png)
 
    > **Note:** The provided screenshot is for your reference; the output you receive may vary.
 
@@ -225,7 +225,7 @@ In this task, you will prove that the grounding works before you trust it with a
 
    **What this validates:** the agent names the specific article and the version range it applies to.
 
-   > **[SCREENSHOT PENDING: E1T3S2 | Answer citing KB0031 with the client 3.8.x and 3.9.x range | source: capture]**
+   ![Answer citing KB0031 for client 3.8.x and 3.9.x](./media/screenshots/E1T3S2.png)
 
    > **Note:** The provided screenshot is for your reference; the output you receive may vary.
 
@@ -241,7 +241,7 @@ In this task, you will prove that the grounding works before you trust it with a
 
    **What this validates:** the agent tells you when the data runs out instead of making something up, the behavior you need before you let it act.
 
-   > **[SCREENSHOT PENDING: E1T3S3 | Answer saying the data does not contain Woodgrove Bank's IT budget | source: capture]**
+   ![Answer saying the Service Desk data has no IT budget](./media/screenshots/E1T3S3.png)
 
    > **Note:** The provided screenshot is for your reference; the output you receive may vary.
 
@@ -277,7 +277,11 @@ In this task, you will see why grounding needs customer context: the dataset del
 
    In the Service Desk app, switch to the **Knowledge** area, open **Knowledge Articles**, open **KB0031** and **KB0058**, and compare their **Applies to** fields.
 
-   > **[SCREENSHOT PENDING: E1T4S1 | KB0031 and KB0058 in the Service Desk app with their Applies to fields | source: capture]**
+   ![Remote Access articles in the Knowledge area](./media/screenshots/E1T4S1.png)
+
+   ![Remote Access articles in the Knowledge area](./media/screenshots/E1T4S1-b.png)
+
+   ![Remote Access articles in the Knowledge area](./media/screenshots/E1T4S1-c.png)
 
    > **Note:** The provided screenshot is for your reference; the output you receive may vary.
 
@@ -293,7 +297,7 @@ In this task, you will see why grounding needs customer context: the dataset del
 
    **What this validates:** the agent resolves the conflict with the customer's own product versions instead of picking the first match.
 
-   > **[SCREENSHOT PENDING: E1T4S2 | Answer recommending KB0058 for Woodgrove Bank with the firmware and client versions | source: capture]**
+   ![Answer recommending KB0058 for Woodgrove Bank](./media/screenshots/E1T4S2.png)
 
    > **Note:** The provided screenshot is for your reference; the output you receive may vary.
 
@@ -327,7 +331,7 @@ In this task, you will ask the agent to show its sources. Whatever the agent can
 
    **What this validates:** every claim in the recommendation traces to a record you can open.
 
-   > **[SCREENSHOT PENDING: E1T5S1 | List of sources with identifiers and reasons | source: capture]**
+   ![Sources with identifiers and reasons](./media/screenshots/E1T5S1.png)
 
    > **Note:** The provided screenshot is for your reference; the output you receive may vary.
 

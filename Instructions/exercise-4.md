@@ -54,7 +54,7 @@ In this task, you will reach the point at which the agent stops advising and sta
 
    Under **Its tools (latest version)**, **servicedesk-read** shows the approval **never** with the scope **16 allowed tools**, and **servicedesk-write** shows **always** with **every tool the endpoint lists**. The write endpoint serves only write tools, so every write waits for your decision, including the tool you add in Task 5.
 
-   > **[SCREENSHOT PENDING: E4T1S1-1 | Invoke-McpTool.ps1 -List output with the seven write tools showing Kind write, Endpoint /write/mcp and Approval required | source: capture]**
+   ![Invoke-McpTool.ps1 -List showing the write tools](./media/screenshots/E4T1S1-1.png)
 
    > **[SCREENSHOT PENDING: E4T1S1-2 | Get-AgentIdentity.ps1 tools table with servicedesk-read approval never and servicedesk-write approval always for every tool the endpoint lists | source: capture]**
 
@@ -74,7 +74,7 @@ In this task, you will reach the point at which the agent stops advising and sta
 
    After you approve, the agent reports the change from **P4 Low** to **P3 Medium** with a new SLA target of **16** business hours (Contoso Pharmaceuticals is a **Platinum** customer, and a Platinum P3 resolves in 16 business hours), the code of the internal audit note it added, and the `correlation_id`.
 
-   > **Note:** **Approve** is a split button. Select the word **Approve** itself, which approves this one call. Don't use the arrow next to it: **Always approve this tool** and **Always approve all tools** turn approval off and save a new agent version, so later writes in this lab, and the checks in Exercises 5 and 6, run without an approval request. If you chose one by mistake, run `C:\LabFiles\tools\Update-AgentDefinition.ps1 -Reset` and then `C:\LabFiles\tools\Update-AgentDefinition.ps1 -Instructions`. The button to refuse a call is labelled **Deny**.
+   > **Note:** Selecting **Approve** opens a menu: select **Approve once**, which approves this one call. Don't select **Always approve this tool** or **Always approve all tools**: they turn approval off and save a new agent version, so later writes in this lab, and the checks in Exercises 5 and 6, run without an approval request. If you chose one by mistake, run `C:\LabFiles\tools\Update-AgentDefinition.ps1 -Reset` and then `C:\LabFiles\tools\Update-AgentDefinition.ps1 -Instructions`. The button to refuse a call is labelled **Deny**.
 
    **What this validates:** the change waits for your decision on its exact arguments, and runs only after you approve it.
 
@@ -102,7 +102,9 @@ In this task, you will reach the point at which the agent stops advising and sta
 
    **What this validates:** a declined call is never sent, so nothing changes, and the agent says so instead of reporting a result.
 
-   > **[SCREENSHOT PENDING: E4T1S3 | Declined approval request for update_ticket_status on TCK-10544, and the agent saying the call was not approved and the ticket is unchanged | source: capture]**
+   ![Declined update_ticket_status request on TCK-10544](./media/screenshots/E4T1S3.png)
+
+   ![Declined update_ticket_status request on TCK-10544](./media/screenshots/E4T1S3-a.png)
 
    > **Note:** The provided screenshot is for your reference; the output you receive may vary.
 
@@ -119,9 +121,9 @@ In this task, you will reach the point at which the agent stops advising and sta
 
    Then, under **Work**, select **Agent Actions**. The **All Agent Actions** view lists the newest rows first. The row **update_ticket_priority on TCK-10544: Succeeded** shows **Tool** `update_ticket_priority`, **Ticket Number** **TCK-10544**, your account as **User Name**, **Authorization** **Allowed**, **Outcome** **Succeeded** and the same **Correlation ID**. No row names `update_ticket_status`: the call you declined never reached the server.
 
-   > **[SCREENSHOT PENDING: E4T1S4-1 | TCK-10544 form with Priority P3 Medium, Status New, SLA Target (business hours) 16.00 and the Last Correlation ID | source: capture]**
+   ![TCK-10544 form](./media/screenshots/E4T1S4-1.png)
 
-   > **[SCREENSHOT PENDING: E4T1S4-2 | All Agent Actions view with the update_ticket_priority row for TCK-10544, Allowed and Succeeded, and its correlation ID | source: capture]**
+   ![All Agent Actions view](./media/screenshots/E4T1S4-2.png)
 
    Finally, in the Visual Studio Code terminal, run the following command, which reads the MCP server's tool invocation log (one JSON line per call) from your Container App's live log stream, and shows the calls of one tool:
 
@@ -137,7 +139,7 @@ In this task, you will reach the point at which the agent stops advising and sta
 
    It reports *No matching calls in the recent log*.
 
-   > **[SCREENSHOT PENDING: E4T1S4-3 | Show-McpServerLog.ps1 output with the update_ticket_priority row, outcome ok and Allowed, and no update_ticket_status call | source: capture]**
+   ![Show-McpServerLog.ps1 output for update_ticket_priority and update_ticket_status](./media/screenshots/E4T1S4-3.png)
 
    > **Note:** **SLA Elapsed (business hours)**, **SLA Remaining (business hours)**, **SLA Due On (UTC)**, **SLA Status** and **SLA Calculated On (UTC)** were recalculated from **Opened On (UTC)** at the moment of your change. They depend on when your environment was prepared, so they differ from other participants'; the target of 16 business hours is the same for everyone.
 
@@ -211,7 +213,7 @@ In this task, you will learn the sharpest data-protection lesson in the lab. Tic
 
    Open each of your two notes: **Body** is the text you approved, and **Correlation ID** matches the one the agent reported for it. The app doesn't show the note code, so match each note by its correlation ID. On the ticket form, **Last Correlation ID** is unchanged: adding a note doesn't change a ticket field, so the ID is recorded on the note instead.
 
-   > **[SCREENSHOT PENDING: E4T2S2 | TCK-10524 Related Ticket Notes with the new reply marked Customer visible and the new note marked Internal, both by Service desk agent (MCP) | source: capture]**
+   ![Ticket notes written by the Service desk agent (MCP)](./media/screenshots/E4T2S2.png)
 
    > **Note:** If the **Ticket Notes** list under **Related** doesn't show the **Internal Note** column, select **Work** > **Ticket Notes** instead. The **All Ticket Notes** view lists the newest notes first, with **Ticket**, **Internal Note**, **Author**, **Noted On (UTC)** and **Summary**, so your two notes are at the top.
 
@@ -227,7 +229,7 @@ In this task, you will learn the sharpest data-protection lesson in the lab. Tic
 
    **What this validates:** the agent drafts a customer message from what the customer may read, and the internal flag decides what the read tool returns.
 
-   > **[SCREENSHOT PENDING: E4T2S3 | Playground draft of a customer update for TCK-10524 with no internal note content | source: capture]**
+   ![Customer update draft for TCK-10524](./media/screenshots/E4T2S3.png)
 
    > **Note:** The provided screenshot is for your reference; the output you receive may vary.
 
@@ -284,7 +286,7 @@ In this task, you will join everything from Exercises 1 and 2 to the MCP tools, 
 
    **What this validates:** the agent reaches a ticket that the knowledge index has never seen through the read tools, before it reasons about it.
 
-   > **[SCREENSHOT PENDING: E4T3S1 | Playground answer restating TCK-10561 from A. Datum Corporation with no priority, category or technician | source: capture]**
+   ![TCK-10561 restated with what is missing](./media/screenshots/E4T3S1.png)
 
    > **Note:** The provided screenshot is for your reference; the output you receive may vary.
 
@@ -372,9 +374,9 @@ In this task, you will join everything from Exercises 1 and 2 to the MCP tools, 
 
    Then, under **Work**, select **Agent Actions**: the **All Agent Actions** view lists three rows for **TCK-10561**, for `update_ticket_category`, `update_ticket_priority` and `assign_ticket`, each **Allowed** and **Succeeded** with its own **Correlation ID**.
 
-   > **[SCREENSHOT PENDING: E4T3S5-1 | TCK-10561 form with In Progress, P3 Medium, Backup and Recovery, Storage quota, Priya Raman and SLA Target (business hours) 32.00 | source: capture]**
+   ![TCK-10561 after triage](./media/screenshots/E4T3S5-1.png)
 
-   > **[SCREENSHOT PENDING: E4T3S5-2 | All Agent Actions view with the three TCK-10561 rows, Allowed and Succeeded | source: capture]**
+   ![All Agent Actions view with the TCK-10561 rows](./media/screenshots/E4T3S5-2.png)
 
    > **Note:** **SLA Elapsed (business hours)**, **SLA Remaining (business hours)**, **SLA Due On (UTC)** and **SLA Status** count from the ticket's **Opened On (UTC)**, which depends on when your environment was prepared, so your figures differ from other participants'. The target of 32 business hours is the same for everyone.
 
@@ -475,7 +477,7 @@ In this task, you will tighten one limit and redeploy under time pressure. The b
 
    The row shows **Endpoint** `diagnostics`, **Outcome** `rejected`, **ErrorCode** `INVALID_ARGUMENT`, **Authorization** `Rejected by the MCP server` and **DecidedBy** `input validation`, with no user, because the diagnostics API carries none.
 
-   > **[SCREENSHOT PENDING: E4T4S4 | Invoke-McpTool.ps1 output with isError True, INVALID_ARGUMENT, received 30 and the constraint le 20 | source: capture]**
+   ![INVALID_ARGUMENT for limit 30 with constraint le 20](./media/screenshots/E4T4S4.png)
 
    > **Note:** The agent reads the new maximum from the tool's input schema. In a new chat, if you ask it for the 30 open tickets closest to breach, it should ask for at most 20, or correct its call after the `INVALID_ARGUMENT` error, as its instructions say. Validation reads the server's log, so the call above is the one that counts.
 
@@ -574,7 +576,7 @@ In this task, you will design one new tool, build it into your MCP server as ver
 
    > **[SCREENSHOT PENDING: E4T5S3-1 | tools_write.py in Visual Studio Code with the escalate_ticket block at the end of register(), after add_public_reply | source: capture]**
 
-   > **[SCREENSHOT PENDING: E4T5S3-2 | Invoke-McpTool.ps1 -List output with escalate_ticket as a write tool on /write/mcp with Approval required | source: capture]**
+   ![escalate_ticket listed as a write tool with approval required](./media/screenshots/E4T5S3-2.png)
 
    > **Note:** The deploy takes about as long as in Task 4, and the script prints the build and cycle times at the end. If you run out of time while it builds, keep it running and continue when it reports the revision ready; the previous revision serves the agent until then.
 
@@ -602,9 +604,9 @@ In this task, you will design one new tool, build it into your MCP server as ver
 
    In the Service Desk app, open **TCK-10561** again, or select **Refresh** if it's open. The **Escalation** section shows **Escalated** **Escalated**, **Escalation Level** **Account Manager**, **Escalated On (UTC)** the time of your approval, and **Escalation Reason** the agent's reason. **Status**, **Priority** and **Assigned Technician** are unchanged (**In Progress**, **P3 Medium**, **Priya Raman**), and **Last Correlation ID** is the escalation's correlation ID. Under **Related** > **Ticket Notes**, a new internal audit note starts *Escalated by the service desk agent to Account Manager (was none)*. Under **Work** > **Agent Actions**, the newest row is **escalate_ticket on TCK-10561: Succeeded**, with **Authorization** **Allowed**. Finally, select **Work** > **Tickets** and the **Escalated Tickets** view: **TCK-10561** is at the top, with **Escalation Level** **Account Manager**.
 
-   > **[SCREENSHOT PENDING: E4T5S4-2 | TCK-10561 Escalation section with Escalated, Escalation Level Account Manager, Escalated On (UTC) and Escalation Reason | source: capture]**
+   ![TCK-10561 Escalation section](./media/screenshots/E4T5S4-2.png)
 
-   > **[SCREENSHOT PENDING: E4T5S4-3 | All Agent Actions view with the escalate_ticket row for TCK-10561, Allowed and Succeeded | source: capture]**
+   ![All Agent Actions view with the escalate_ticket row](./media/screenshots/E4T5S4-3.png)
 
 ### Expected results
 

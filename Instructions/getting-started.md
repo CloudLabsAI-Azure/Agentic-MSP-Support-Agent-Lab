@@ -208,7 +208,7 @@ The lab scripts on the VM use your own Azure CLI sign-in. Sign in once now.
 
    In the output, **user** > **name** is the Senior Technician account.
 
-   > **[SCREENSHOT PENDING: GS10 | PowerShell 7 window showing az account show output with the Senior Technician account | source: capture]**
+   ![az account show output with the Senior Technician account](./media/screenshots/GS10.png)
 
 ## Meet Your Lab Environment
 

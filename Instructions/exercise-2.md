@@ -31,7 +31,7 @@ In this task, you will find the historical tickets closest to a new incident tha
 
    Notice what the description doesn't say: it has no error code, and none of the words *backup*, *vault* or *quota*. Provisioning loaded both new incidents after the export you indexed in Exercise 1, so the agent can reach TCK-10561 only through its Service Desk tools.
 
-   > **[SCREENSHOT PENDING: E2T1S1 | Untriaged Tickets view with five rows, and TCK-10561 open with its Description and empty Priority, Category and Assigned Technician | source: capture]**
+   ![Untriaged Tickets view](./media/screenshots/E2T1S1.png)
 
 1. Ask the agent to find the closest historical tickets in your environment. In the Foundry portal, open the **Playground** tab of **msp-support-agent** (on the desktop, double-click **Microsoft Foundry**, select your project **<inject key="Foundry Project Name" enableCopy="false"/>**, select **Build**, and then select **msp-support-agent**). Select **New chat**, enter the following prompt, and press **Enter**.
 
@@ -45,7 +45,7 @@ In this task, you will find the historical tickets closest to a new incident tha
 
    **What this validates:** the agent reaches a ticket that the index has never seen through an MCP read tool, and then matches it against history that it can cite.
 
-   > **[SCREENSHOT PENDING: E2T1S2 | Playground answer that restates TCK-10561 and lists KB0023 tickets and the open TCK-10521 with citations | source: capture]**
+   ![Similar tickets for TCK-10561](./media/screenshots/E2T1S2.png)
 
    > **Note:** The provided screenshot is for your reference; the output you receive may vary.
 
@@ -65,7 +65,7 @@ In this task, you will find the historical tickets closest to a new incident tha
 
    **What this validates:** the agent matches on the symptom, the cause and the trigger rather than on words: the incident never mentions a vault, a quota or RBA-2201, and several decoys share its customer or its product.
 
-   > **[SCREENSHOT PENDING: E2T1S3 | Playground answer explaining the symptom, cause and trigger behind each match and naming decoys such as TCK-10532 | source: capture]**
+   ![Why each match is similar](./media/screenshots/E2T1S3.png)
 
    > **Note:** The provided screenshot is for your reference; the output you receive may vary.
 
@@ -160,7 +160,9 @@ In this task, you will produce the summary a support lead wants before calling a
 
    **What this validates:** the agent separates what is open now from what is history, and ranks the open work by urgency rather than by ticket number.
 
-   > **[SCREENSHOT PENDING: E2T2S2 | Playground summary of Woodgrove Bank's six open tickets by category with remaining business hours, and its resolved history | source: capture]**
+   ![Woodgrove Bank support history](./media/screenshots/E2T2S2.png)
+
+   ![Woodgrove Bank support history](./media/screenshots/E2T2S2-b.png)
 
    > **Note:** The provided screenshot is for your reference; the output you receive may vary.
 
@@ -181,7 +183,7 @@ In this task, you will produce the summary a support lead wants before calling a
 
    **What this validates:** the agent sees three tickets as one problem with one fix, and knows which kinds of Woodgrove Bank incident have needed more than the service desk.
 
-   > **[SCREENSHOT PENDING: E2T2S3 | Playground answer flagging TCK-10518, TCK-10548 and TCK-10553 as one KB0058 issue and listing the eight escalated tickets with their levels | source: capture]**
+   ![Recurring issues and escalated tickets for Woodgrove Bank](./media/screenshots/E2T2S3.png)
 
    > **Note:** The provided screenshot is for your reference; the output you receive may vary.
 
@@ -189,7 +191,7 @@ In this task, you will produce the summary a support lead wants before calling a
 
 1. Verify the open ticket count against the Service Desk app. In the Service Desk app, select **Work** > **Tickets** and select the **Open Tickets** view. Select the **Customer** column header, select **Filter by**, choose **Woodgrove Bank**, and select **Apply**. The list shows **6** rows, the same six tickets as the agent's table. In **Lab notes.txt**, next to **Customer history: customer, open tickets the agent counted, open tickets in the app**, record **Woodgrove Bank (CUST-007), 6, 6**, or the count the agent gave if it differs.
 
-   > **[SCREENSHOT PENDING: E2T2S4 | Open Tickets view filtered on the Customer column for Woodgrove Bank, showing six rows | source: capture]**
+   ![Open Tickets filtered on Woodgrove Bank](./media/screenshots/E2T2S4.png)
 
    > **Note:** If the column menu in your app has no **Filter by**, sort the list by the **Customer** column and count the Woodgrove Bank rows instead.
 
@@ -235,7 +237,7 @@ In this task, you will see whether the agent triages by Relecloud's own pattern 
 
    **What this validates:** the triage follows Relecloud's own history and the customer's own procedure, and every part of it traces to a record you can open.
 
-   > **[SCREENSHOT PENDING: E2T3S2 | Playground recommendation for TCK-10561 with Backup and Recovery, Storage quota, P3 Medium, Priya Raman, 32 business hours, CUST-019-PR3 and the KB0023 history cited | source: capture]**
+   ![Triage recommendation for TCK-10561](./media/screenshots/E2T3S2.png)
 
    > **Note:** The provided screenshot is for your reference; the output you receive may vary.
 
@@ -253,7 +255,7 @@ In this task, you will see whether the agent triages by Relecloud's own pattern 
 
    **What this validates:** the agent asks instead of inventing a triage when a ticket lacks the facts a technician would need.
 
-   > **[SCREENSHOT PENDING: E2T3S3 | Playground answer for TCK-10560 asking for the system, the error, the people affected and what last time means, with no triage | source: capture]**
+   ![Agent asking for missing details on TCK-10560](./media/screenshots/E2T3S3.png)
 
    > **Note:** The provided screenshot is for your reference; the output you receive may vary.
 
@@ -291,7 +293,7 @@ In this task, you will find the open tickets closest to breaching their resoluti
 
    **What this validates:** the agent ranks risk by remaining business hours, and keeps the tickets that have already breached apart from the ones that can still be saved.
 
-   > **[SCREENSHOT PENDING: E2T4S1 | Playground answer listing TCK-10540, TCK-10524 and TCK-10504 as closest to breach and TCK-10501 and TCK-10512 as breached | source: capture]**
+   ![Tickets closest to breach and breached](./media/screenshots/E2T4S1.png)
 
    > **Note:** The provided screenshot is for your reference; the output you receive may vary.
 
@@ -317,7 +319,7 @@ In this task, you will find the open tickets closest to breaching their resoluti
 
    **What this validates:** every number in the risk list can be recomputed from the ticket's own fields, in business hours, at a stated time.
 
-   > **[SCREENSHOT PENDING: E2T4S2 | Playground table of the five tickets with tier, priority, target, elapsed and remaining business hours and the calculation time | source: capture]**
+   ![SLA working for the five tickets](./media/screenshots/E2T4S2.png)
 
    > **Note:** The provided screenshot is for your reference; the output you receive may vary.
 
@@ -327,11 +329,11 @@ In this task, you will find the open tickets closest to breaching their resoluti
 
 1. Verify one result against the SLA fields on the ticket record itself. In the Service Desk app, select **Work** > **Tickets**, select the **Open Tickets** view, and open **TCK-10540**, *Laboratory building network down*. In its **SLA** section, compare the fields with the agent's working. **Opened On (UTC)** is 10:30 AM and **SLA Calculated On (UTC)** is 2:00 PM (14:00) on the same day, which is 3.5 business hours. **SLA Target (business hours)** is **4.00**, **SLA Elapsed (business hours)** is **3.50** and **SLA Remaining (business hours)** is **0.50**. **SLA Due On (UTC)** is 2:30 PM (14:30) the same day, and **SLA Status** is **At Risk**. In the **Escalation** section, **Escalation Level** is **Major Incident**.
 
-   > **[SCREENSHOT PENDING: E2T4S3-1 | TCK-10540 SLA section with Opened On, SLA Target 4.00, SLA Elapsed 3.50, SLA Remaining 0.50, SLA Due On, SLA Status At Risk and SLA Calculated On | source: capture]**
+   ![TCK-10540 SLA section](./media/screenshots/E2T4S3-1.png)
 
    Then select the **Open Tickets by SLA Remaining** view. Its first five rows are **TCK-10501**, **TCK-10512**, **TCK-10540**, **TCK-10524** and **TCK-10504**, in the same order as the agent's table, and the view holds **57** tickets: the 62 open tickets minus the five untriaged ones, which have no remaining hours.
 
-   > **[SCREENSHOT PENDING: E2T4S3-2 | Open Tickets by SLA Remaining view with TCK-10501, TCK-10512, TCK-10540, TCK-10524 and TCK-10504 as the first five rows and 57 rows in total | source: capture]**
+   ![Open Tickets by SLA Remaining view](./media/screenshots/E2T4S3-2.png)
 
 ### Expected results
 
