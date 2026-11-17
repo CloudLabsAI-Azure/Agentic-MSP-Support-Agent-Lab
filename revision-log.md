@@ -14,7 +14,7 @@ Live test run 17 Nov 2026 (deployment 2474301). Scope of this revision: Getting 
 - exercise-5.md T1 Troubleshooting — sign out and back in after the admin-center role is granted.
 
 ## Added
-- exercise-4.md T1 step 1 — Note that **Approve** is a split button: the arrow's *Always approve…* options turn approval off and save a new agent version (this happened in the test run and broke the Ex5 approval checks); how to recover with `Update-AgentDefinition.ps1 -Reset` then `-Instructions`; the refuse button is **Deny**.
+- exercise-4.md T1 step 1 — Note that **Approve** opens a menu (select **Approve once**); its *Always approve…* options turn approval off and save a new agent version (this happened in the test run and broke the Ex5 approval checks); how to recover with `Update-AgentDefinition.ps1 -Reset` then `-Instructions`; the refuse button is **Deny**.
 - exercise-1.md T2 step 5 — Note on **Open consent** for servicedesk-write and servicedesk-read, including the **Confirmation required** page and its "I have verified this request" checkbox. It appears on the lab's first agent prompt, not first in Exercise 2.
 - exercise-1.md T1 Troubleshooting — row for **AuthorizationFailed** on `listSecrets` / `az group show -n labvm` (missing role assignment → contact support, not "az login again").
 

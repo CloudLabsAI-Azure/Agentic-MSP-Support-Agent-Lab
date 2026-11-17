@@ -74,7 +74,7 @@ In this task, you will reach the point at which the agent stops advising and sta
 
    After you approve, the agent reports the change from **P4 Low** to **P3 Medium** with a new SLA target of **16** business hours (Contoso Pharmaceuticals is a **Platinum** customer, and a Platinum P3 resolves in 16 business hours), the code of the internal audit note it added, and the `correlation_id`.
 
-   > **Note:** **Approve** is a split button. Select the word **Approve** itself, which approves this one call. Don't use the arrow next to it: **Always approve this tool** and **Always approve all tools** turn approval off and save a new agent version, so later writes in this lab, and the checks in Exercises 5 and 6, run without an approval request. If you chose one by mistake, run `C:\LabFiles\tools\Update-AgentDefinition.ps1 -Reset` and then `C:\LabFiles\tools\Update-AgentDefinition.ps1 -Instructions`. The button to refuse a call is labelled **Deny**.
+   > **Note:** Selecting **Approve** opens a menu: select **Approve once**, which approves this one call. Don't select **Always approve this tool** or **Always approve all tools**: they turn approval off and save a new agent version, so later writes in this lab, and the checks in Exercises 5 and 6, run without an approval request. If you chose one by mistake, run `C:\LabFiles\tools\Update-AgentDefinition.ps1 -Reset` and then `C:\LabFiles\tools\Update-AgentDefinition.ps1 -Instructions`. The button to refuse a call is labelled **Deny**.
 
    **What this validates:** the change waits for your decision on its exact arguments, and runs only after you approve it.
 
