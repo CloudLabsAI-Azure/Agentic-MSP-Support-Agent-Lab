@@ -27,9 +27,9 @@ In this task, you will take one new incident from intake to approved, audited ch
 
 1. Open the second new incident in your Service Desk queue. In the Service Desk app (double-click **Service Desk** on the desktop if it isn't open), select **Tickets** under **Work**, and select the **Untriaged Tickets** view. It lists the tickets that are still **New** and have no priority, including **TCK-10562** from **Consolidated Messenger**, *Dispatchers can't load routes: certificate warning*, and **TCK-10559** from **Lucerne Publishing**, another certificate warning. Open **TCK-10562**. Its **Summary** section shows **Status** **New**, **Channel** **Phone** and **Victor Murphy** as the **Requester**, with no **Priority**, **Category**, **Subcategory** or **Assigned Technician**, and its **SLA** section has no target yet. The **Description** under **Details** says that since the start of the morning shift, five dispatchers at the north depot see a warning that the routing application's security certificate has expired and can't load today's delivery routes; vans are waiting to leave, and the south depot is working normally.
 
-   > **[SCREENSHOT PENDING: E7T1S1-1 | Service Desk app, Untriaged Tickets view listing TCK-10562 from Consolidated Messenger and TCK-10559 from Lucerne Publishing | source: capture]**
+   ![Untriaged Tickets view with TCK-10562 and TCK-10559](./media/screenshots/E7T1S1-1.png)
 
-   > **[SCREENSHOT PENDING: E7T1S1-2 | TCK-10562 form with Status New, Channel Phone, Requester Victor Murphy, no priority, category or technician, and the description | source: capture]**
+   ![TCK-10562 before triage](./media/screenshots/E7T1S1-2.png)
 
    > **Note:** TCK-10562 isn't in the knowledge index. Provisioning loaded the two new incidents after the export, so the agent can reach this ticket only through the MCP read tools, as it would reach a ticket that arrived after the last indexing run.
 
