@@ -354,9 +354,9 @@ In this task, you will send the same request through the same agent as two diffe
 
    Select your project **<inject key="Foundry Project Name" enableCopy="false"/>**, select **Build**, select **msp-support-agent**, and open the **Playground** tab. This account holds no Microsoft Entra directory role, and in Dataverse only the **Service Desk Tier 1 Technician** role: read on the Service Desk tables, and no Write.
 
-   > **[SCREENSHOT PENDING: E5T4S1 | InPrivate Edge window with the Foundry portal signed in as the Tier 1 Technician, on the Playground tab of msp-support-agent | source: capture]**
+   ![The InPrivate Edge window with the Foundry portal signed in as the Tier 1 Technician, on the Playground tab of msp-support-agent](./media/screenshots/E5T4S1.png)
 
-   > **Note:** The Tier 1 Technician holds **Foundry Agent Consumer** on your project. If the Foundry portal doesn't show the project or the agent's playground to this account, contact support: the documented fallback for the playground is **Foundry User** on the project.
+   > **Note:** The Tier 1 Technician needs **Foundry User** on your project to open the portal playground; **Foundry Agent Consumer** alone shows *You don't have permission to create a project* and no project. If the Foundry portal doesn't show the project or the agent's playground to this account, contact support with your Deployment ID.
 
 1. Ask the agent to change a ticket's priority and confirm the request is denied for this user. In the InPrivate window, select **New chat**, enter the following prompt, and press **Enter**.
 
@@ -368,7 +368,9 @@ In this task, you will send the same request through the same agent as two diffe
 
    The first time this account calls a Service Desk tool, the chat shows **Open Consent**. Select it, sign in as the Tier 1 Technician in the tab that opens, close the confirmation tab, and send the prompt again if the agent doesn't continue on its own. It happens once for each connection, **servicedesk-read** and **servicedesk-write**. If the agent asks you to confirm in the chat, reply `Yes, go ahead.` When the approval request for **update_ticket_priority** appears, check that it names **TCK-10543** and priority **2**, and select **Approve**: the decision is left to Dataverse.
 
-   > **[SCREENSHOT PENDING: E5T4S2-1 | Open Consent in the Tier 1 Technician's playground | source: learn https://learn.microsoft.com/azure/foundry/media/mcp/foundry-open-consent.png]**
+   ![Open consent in the Tier 1 Technician's playground](./media/screenshots/E5T4S2-1.png)
+
+   ![The Confirmation required page for the servicedesk connection, with the I have verified this request and trust the source check box and Allow access](./media/screenshots/E5T4S2-1b-consent.png)
 
    **Expected Output:** the agent can read **TCK-10543** for this account, because the Tier 1 role reads tickets. The approved call fails, and the agent says the change isn't permitted for this user. If you ask for the exact error, it is **DATAVERSE_ACCESS_DENIED** from **dataverse** with status **403**, the code **0x80040220** (PrivilegeDenied) when Dataverse sends one, and a message that says a principal *is missing* the Write privilege on the ticket table (`prvWritespk_Ticket`) and suggests adding it to one of the principal's roles. Ask the agent for the call's `correlation_id` if its answer doesn't show it.
 
