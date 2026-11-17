@@ -220,8 +220,9 @@ In this task, you will confirm that the tool layer reaches real data in your own
 > - Hit the Validate button for the corresponding task. If you receive a success message, you can proceed to the next task.
 > - If not, carefully read the error message and retry the step, following the instructions in the lab guide.
 > - If you need any assistance, please contact us at cloudlabs-support@spektrasystems.com. We are available 24/7 to help.
-
+<!--
 <validation step="REPLACE-WITH-VALIDATION-GUID" />
+-->
 
 ## Task 3: Test Tool Error Handling
 
@@ -526,7 +527,9 @@ In this task, you will take one change from your VM all the way to the agent: ed
 > - If not, carefully read the error message and retry the step, following the instructions in the lab guide.
 > - If you need any assistance, please contact us at cloudlabs-support@spektrasystems.com. We are available 24/7 to help.
 
+<!--
 <validation step="REPLACE-WITH-VALIDATION-GUID" />
+-->
 
 ## Success Criteria
 
