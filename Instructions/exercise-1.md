@@ -190,9 +190,9 @@ In this task, you will build the index the agent grounds on. Azure AI Search is 
 > - Hit the Validate button for the corresponding task. If you receive a success message, you can proceed to the next task.
 > - If not, carefully read the error message and retry the step, following the instructions in the lab guide.
 > - If you need any assistance, please contact us at cloudlabs-support@spektrasystems.com. We are available 24/7 to help.
-
+<!--
 <validation step="REPLACE-WITH-VALIDATION-GUID" />
-
+-->
 ## Task 3: Test Retrieval on Simple Questions
 
 In this task, you will prove that the grounding works before you trust it with anything harder.
