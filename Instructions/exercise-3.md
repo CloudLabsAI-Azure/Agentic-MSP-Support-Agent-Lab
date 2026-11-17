@@ -138,7 +138,7 @@ In this task, you will confirm that the tool layer reaches real data in your own
 
    **What this validates:** the read tool reaches the live Dataverse record through API Management and the MCP server, as you, and returns a result the agent can quote field by field.
 
-   > **[SCREENSHOT PENDING: E3T2S1 | Playground answer for TCK-10524 with its fields, its SLA figures and the correlation ID of the get_ticket call | source: capture]**
+   ![Agent answer for TCK-10524 with its correlation ID](./media/screenshots/E3T2S1.png)
 
    > **Note:** The provided screenshot is for your reference; the output you receive may vary.
 
@@ -179,7 +179,7 @@ In this task, you will confirm that the tool layer reaches real data in your own
 
    The line records `gateway_api` `servicedesk-read`, `caller` `agent` and `correlation_source` `gateway`; your object ID and account under `user`; under `agent`, the Agent ID you recorded in Exercise 1; `arguments` with `ticket_number` **TCK-10524**; and `authorization` with `acting_as` `user`. The first entry of `backend_calls` is the request you traced in Task 1: `system` `dataverse`, `method` `GET`, `entity_set` `spk_tickets`, `path` `spk_tickets(spk_ticketnumber='TCK-10524')`, `status` `200`, Dataverse's `request_id` and `on_behalf_of_user` `true`. When Microsoft Purview checks are on, the Microsoft Graph calls that checked the description follow it.
 
-   > **[SCREENSHOT PENDING: E3T2S3-1 | Show-McpServerLog.ps1 row for get_ticket with read, ok, Allowed, dataverse, the Senior Technician and the correlation ID | source: capture]**
+   ![Show-McpServerLog.ps1 rows for get_ticket](./media/screenshots/E3T2S3-1.png)
 
    The same line reaches Log Analytics a few minutes later, and that copy is what the **Validate** button reads. In the Azure portal, search for **Log Analytics workspaces**, open **<inject key="Log Analytics Workspace" enableCopy="false"/>**, and select **Logs**. If the editor opens in **Simple mode**, select **KQL mode** in the dropdown at the top right of the query editor. Paste the following query, which lists the `get_ticket` calls of the last two hours from the MCP server's log, and select **Run**:
 
@@ -239,7 +239,7 @@ In this task, you will make the tool fail on purpose, twice, and check exactly w
 
    **What this validates:** the tool reports a missing record as a clear, final answer, and the agent passes it on instead of making up a ticket.
 
-   > **[SCREENSHOT PENDING: E3T3S1 | Playground answer saying that ticket TCK-99999 does not exist, with no status or priority | source: capture]**
+   ![TCK-99999 does not exist](./media/screenshots/E3T3S1.png)
 
    > **Note:** The provided screenshot is for your reference; the output you receive may vary.
 
@@ -291,7 +291,7 @@ In this task, you will make the tool fail on purpose, twice, and check exactly w
 
    **What this validates:** a call that breaks the input schema is refused before it reaches Dataverse, and the agent either reports the refusal or asks for the missing value.
 
-   > **[SCREENSHOT PENDING: E3T3S2-2 | Playground answer reporting INVALID_ARGUMENT for ticket_number, or asking which ticket to read | source: capture]**
+   ![INVALID_ARGUMENT returned to the agent](./media/screenshots/E3T3S2-2.png)
 
    > **Note:** The provided screenshot is for your reference; the output you receive may vary.
 
@@ -321,7 +321,7 @@ In this task, you will make the tool fail on purpose, twice, and check exactly w
 
    **What this validates:** the agent received a stable code it can act on, a message in plain language, the layer that decided, whether a retry can help, a hint for the next step and the correlation ID, and no exception text or stack trace.
 
-   > **[SCREENSHOT PENDING: E3T3S3-1 | Playground answer with the TICKET_NOT_FOUND result as JSON, with code, message, source, retryable, hint and correlation_id | source: capture]**
+   ![TICKET_NOT_FOUND result as JSON](./media/screenshots/E3T3S3-1.png)
 
    > **Note:** The provided screenshot is for your reference; the output you receive may vary.
 
@@ -341,7 +341,7 @@ In this task, you will make the tool fail on purpose, twice, and check exactly w
 
    `Allowed` on the not-found row is correct: nothing refused the call, Dataverse let you read tickets and simply had no ticket with that number. The rejected rows were decided by input validation and never called Dataverse; with `-CorrelationId` and `-Detail` you would see an empty `backend_calls` and the violation under `record`. An unexpected failure inside the server would come back as `INTERNAL_ERROR` with the correlation ID, while its stack trace stays in the server log (`invoke` in `catalogue.py`). In **Lab notes.txt**, next to **Error codes the agent received**, record **TICKET_NOT_FOUND for TCK-99999; INVALID_ARGUMENT for get_ticket without ticket_number**, and whether the agent sent that call or asked you for the number.
 
-   > **[SCREENSHOT PENDING: E3T3S3-2 | Show-McpServerLog.ps1 rows for the TICKET_NOT_FOUND call and the INVALID_ARGUMENT calls | source: capture]**
+   ![Log rows for the error calls](./media/screenshots/E3T3S3-2.png)
 
 1. Confirm the agent either recovers or asks a clarifying question, rather than inventing a result. In the same chat, enter the following prompt, and press **Enter**.
 
@@ -355,7 +355,7 @@ In this task, you will make the tool fail on purpose, twice, and check exactly w
 
    **What this validates:** after a failure the agent recovers with another read tool or asks you, and every ticket it names is one the tools returned.
 
-   > **[SCREENSHOT PENDING: E3T3S4 | Playground answer finding TCK-10524 through a search after the TCK-99999 error | source: capture]**
+   ![Agent finds TCK-10524 by searching](./media/screenshots/E3T3S4.png)
 
    > **Note:** The provided screenshot is for your reference; the output you receive may vary.
 
@@ -485,7 +485,7 @@ In this task, you will take one change from your VM all the way to the agent: ed
 
    **What this validates:** the agent gets its tool descriptions from the running server, so your change reached it with the new revision, without any change to the agent itself.
 
-   > **[SCREENSHOT PENDING: E3T4S4 | Playground answer quoting the get_sla_status description that ends with the new business hours sentence | source: capture]**
+   ![get_sla_status description with the business hours sentence](./media/screenshots/E3T4S4.png)
 
    > **Note:** The provided screenshot is for your reference; the output you receive may vary.
 

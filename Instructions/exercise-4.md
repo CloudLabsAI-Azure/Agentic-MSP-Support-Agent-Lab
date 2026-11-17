@@ -119,9 +119,9 @@ In this task, you will reach the point at which the agent stops advising and sta
 
    Then, under **Work**, select **Agent Actions**. The **All Agent Actions** view lists the newest rows first. The row **update_ticket_priority on TCK-10544: Succeeded** shows **Tool** `update_ticket_priority`, **Ticket Number** **TCK-10544**, your account as **User Name**, **Authorization** **Allowed**, **Outcome** **Succeeded** and the same **Correlation ID**. No row names `update_ticket_status`: the call you declined never reached the server.
 
-   > **[SCREENSHOT PENDING: E4T1S4-1 | TCK-10544 form with Priority P3 Medium, Status New, SLA Target (business hours) 16.00 and the Last Correlation ID | source: capture]**
+   ![TCK-10544 form](./media/screenshots/E4T1S4-1.png)
 
-   > **[SCREENSHOT PENDING: E4T1S4-2 | All Agent Actions view with the update_ticket_priority row for TCK-10544, Allowed and Succeeded, and its correlation ID | source: capture]**
+   ![All Agent Actions view](./media/screenshots/E4T1S4-2.png)
 
    Finally, in the Visual Studio Code terminal, run the following command, which reads the MCP server's tool invocation log (one JSON line per call) from your Container App's live log stream, and shows the calls of one tool:
 
@@ -211,7 +211,7 @@ In this task, you will learn the sharpest data-protection lesson in the lab. Tic
 
    Open each of your two notes: **Body** is the text you approved, and **Correlation ID** matches the one the agent reported for it. The app doesn't show the note code, so match each note by its correlation ID. On the ticket form, **Last Correlation ID** is unchanged: adding a note doesn't change a ticket field, so the ID is recorded on the note instead.
 
-   > **[SCREENSHOT PENDING: E4T2S2 | TCK-10524 Related Ticket Notes with the new reply marked Customer visible and the new note marked Internal, both by Service desk agent (MCP) | source: capture]**
+   ![Ticket notes written by the Service desk agent (MCP)](./media/screenshots/E4T2S2.png)
 
    > **Note:** If the **Ticket Notes** list under **Related** doesn't show the **Internal Note** column, select **Work** > **Ticket Notes** instead. The **All Ticket Notes** view lists the newest notes first, with **Ticket**, **Internal Note**, **Author**, **Noted On (UTC)** and **Summary**, so your two notes are at the top.
 
@@ -372,9 +372,9 @@ In this task, you will join everything from Exercises 1 and 2 to the MCP tools, 
 
    Then, under **Work**, select **Agent Actions**: the **All Agent Actions** view lists three rows for **TCK-10561**, for `update_ticket_category`, `update_ticket_priority` and `assign_ticket`, each **Allowed** and **Succeeded** with its own **Correlation ID**.
 
-   > **[SCREENSHOT PENDING: E4T3S5-1 | TCK-10561 form with In Progress, P3 Medium, Backup and Recovery, Storage quota, Priya Raman and SLA Target (business hours) 32.00 | source: capture]**
+   ![TCK-10561 after triage](./media/screenshots/E4T3S5-1.png)
 
-   > **[SCREENSHOT PENDING: E4T3S5-2 | All Agent Actions view with the three TCK-10561 rows, Allowed and Succeeded | source: capture]**
+   ![All Agent Actions view with the TCK-10561 rows](./media/screenshots/E4T3S5-2.png)
 
    > **Note:** **SLA Elapsed (business hours)**, **SLA Remaining (business hours)**, **SLA Due On (UTC)** and **SLA Status** count from the ticket's **Opened On (UTC)**, which depends on when your environment was prepared, so your figures differ from other participants'. The target of 32 business hours is the same for everyone.
 
@@ -602,9 +602,9 @@ In this task, you will design one new tool, build it into your MCP server as ver
 
    In the Service Desk app, open **TCK-10561** again, or select **Refresh** if it's open. The **Escalation** section shows **Escalated** **Escalated**, **Escalation Level** **Account Manager**, **Escalated On (UTC)** the time of your approval, and **Escalation Reason** the agent's reason. **Status**, **Priority** and **Assigned Technician** are unchanged (**In Progress**, **P3 Medium**, **Priya Raman**), and **Last Correlation ID** is the escalation's correlation ID. Under **Related** > **Ticket Notes**, a new internal audit note starts *Escalated by the service desk agent to Account Manager (was none)*. Under **Work** > **Agent Actions**, the newest row is **escalate_ticket on TCK-10561: Succeeded**, with **Authorization** **Allowed**. Finally, select **Work** > **Tickets** and the **Escalated Tickets** view: **TCK-10561** is at the top, with **Escalation Level** **Account Manager**.
 
-   > **[SCREENSHOT PENDING: E4T5S4-2 | TCK-10561 Escalation section with Escalated, Escalation Level Account Manager, Escalated On (UTC) and Escalation Reason | source: capture]**
+   ![TCK-10561 Escalation section](./media/screenshots/E4T5S4-2.png)
 
-   > **[SCREENSHOT PENDING: E4T5S4-3 | All Agent Actions view with the escalate_ticket row for TCK-10561, Allowed and Succeeded | source: capture]**
+   ![All Agent Actions view with the escalate_ticket row](./media/screenshots/E4T5S4-3.png)
 
 ### Expected results
 
