@@ -24,6 +24,24 @@ In this exercise, you will complete the following tasks:
 - Task 4: Tighten a Tool Boundary
 - Task 5: Design and Add a Scoped Tool
 
+## Before You Start
+
+Check your sign-ins before Task 1. If you took a break, a sign-in can have expired.
+
+1. The lab VM desktop is open on the left of the lab window. If the session shows a reconnect message, select **Reconnect**, or select **Resources** on the lab guide pane and start the VM.
+
+1. In **PowerShell 7** on the VM, run the following command, which shows the account the lab scripts use:
+
+   ```powershell
+   az account show --query user.name --output tsv
+   ```
+
+   It prints <inject key="AzureAdUserEmail" enableCopy="false"/>. If it prints an error or another account, run `az login` and sign in as the Senior Technician with the Temporary Access Pass from the **Environment** tab.
+
+1. Open the apps this exercise uses: double-click **MCP server (VS Code)** (no sign-in), **Microsoft Foundry** and **Service Desk** on the desktop. Foundry and the Service Desk app show the Senior Technician in the top-right corner.
+
+When any page asks you to sign in during this exercise, sign in as the Senior Technician unless a step says otherwise, as described in **How Sign-in Works in This Lab** on the Getting Started page: select the account on **Pick an account**, or enter the username and the Temporary Access Pass from the **Environment** tab, select **Skip for now** for any passkey or Authenticator prompt, and select **No** on **Stay signed in?**.
+
 ## Task 1: Call a Write Tool with Approval
 
 In this task, you will reach the point at which the agent stops advising and starts acting. Write tools require approval before they run, so you approve one change, decline another, and check both against the records they leave.
@@ -58,7 +76,7 @@ In this task, you will reach the point at which the agent stops advising and sta
 
    > **[SCREENSHOT PENDING: E4T1S1-2 | Get-AgentIdentity.ps1 tools table with servicedesk-read approval never and servicedesk-write approval always for every tool the endpoint lists | source: capture]**
 
-1. Through your agent, change a ticket's status or priority and approve the action when prompted. On the desktop, double-click **Microsoft Foundry**, select your project **<inject key="Foundry Project Name" enableCopy="false"/>**, select **Build**, and then select **msp-support-agent**. On the **Playground** tab, select **New chat**, enter the following prompt, and press **Enter**.
+1. Through your agent, change a ticket's status or priority and approve the action when prompted. On the desktop, double-click **Microsoft Foundry** (sign in as the Senior Technician if you're asked), select your project **<inject key="Foundry Project Name" enableCopy="false"/>**, select **Build**, and then select **msp-support-agent**. On the **Playground** tab, select **New chat**, enter the following prompt, and press **Enter**.
 
    **Prompt:**
 

@@ -36,3 +36,9 @@ Live test run 17 Nov 2026 (deployment 2474301). Scope of this revision: Getting 
 - Ex2 T3: agent cites CUST-019-PR1 instead of CUST-019-PR3 / Owen Fletcher.
 - Environment tab shows `tier1.technician@…`; readiness check and validation scripts use different spellings.
 - 136 `[SCREENSHOT PENDING …]` markers and 14 `REPLACE-WITH-VALIDATION-GUID` placeholders remain.
+
+### Sign-in instructions (17 Nov, after the live run)
+- Added: **How Sign-in Works in This Lab** on the Getting Started page. It covers where the credentials are (Environment tab), a table of every app with where to open it, its address and which account to use, the step-by-step Entra sign-in (Pick an account, Temporary Access Pass, Skip for now, Stay signed in No, Sign in to all apps No), how to check the signed-in account, and what to do when the Azure CLI sign-in or the pass expires.
+- Updated: Exercise 1, Task 1, step 1 now checks the VM, the Azure portal account and `az account show` instead of only saying the learner is signed in.
+- Added: a **Before You Start** sign-in check at the start of Exercises 2 to 7, listing the apps each exercise uses.
+- Updated: every first use of Service Desk, Foundry, the Entra admin center and the Power Platform admin center that didn't say so now says to sign in as the Senior Technician if asked; Exercise 5, Task 4 explains selecting **Use another account** for the Tier 1 Technician and checking the account shown.
