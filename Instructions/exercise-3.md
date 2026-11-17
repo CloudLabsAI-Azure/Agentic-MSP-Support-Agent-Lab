@@ -467,7 +467,7 @@ In this task, you will take one change from your VM all the way to the agent: ed
    az containerapp revision list --name <inject key="Container App Name" enableCopy="false"/> --resource-group <inject key="Resource Group Name" enableCopy="false"/> --all --query "[].{revision:name, active:properties.active, traffic:properties.trafficWeight, state:properties.runningState, image:properties.template.containers[0].image}" --output table
    ```
 
-   Your revision is active, with 100 percent of the traffic and the image `mcp-server:3.0.1`. The `baseline-` revision that provisioning created with `mcp-server:3.0.0` is now inactive, as is the placeholder revision the template created first. Now check what the server publishes. Run the following command, which prints the full description of `get_sla_status` from the running server's tool list:
+   Your revision is active, with 100 percent of the traffic and the image `mcp-server:3.0.1`. The previous revision, the `baseline-` revision that provisioning created with `mcp-server:3.0.0`, can stay **Active** with **0** percent of the traffic, so it is ready for a rollback; the revisions before it, such as the placeholder revision the template created first, are inactive. If you see two `baseline-` revisions, provisioning deployed the baseline twice: the newer one is the one that counts. Now check what the server publishes. Run the following command, which prints the full description of `get_sla_status` from the running server's tool list:
 
    ```powershell
    (.\scripts\Invoke-McpTool.ps1 -List -Raw | Where-Object name -eq 'get_sla_status').description

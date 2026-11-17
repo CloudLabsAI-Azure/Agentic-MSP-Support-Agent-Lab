@@ -74,7 +74,7 @@ In this task, you will confirm that every component responds before you build an
 
    > **[SCREENSHOT PENDING: E1T1S3 | Service Desk app Tickets list with the Open Tickets view and its row count | source: capture]**
 
-1. Open your Foundry project and confirm the agent exists with its Microsoft Entra Agent ID, no knowledge source and only the baseline MCP tools. On the desktop, double-click **Microsoft Foundry**, select your project **<inject key="Foundry Project Name" enableCopy="false"/>**, select **Build**, and then select **msp-support-agent**. On the **Playground** tab, expand **Tools**: it lists **servicedesk-read** and **servicedesk-write** and no knowledge tool. Then, in PowerShell 7, run the following command, which reads the agent's Entra Agent ID from the Foundry API:
+1. Open your Foundry project and confirm the agent exists with its Microsoft Entra Agent ID, no knowledge source and only the baseline MCP tools. On the desktop, double-click **Microsoft Foundry**. If the page shows **Sign in**, select it and pick the Senior Technician account. Select your project **<inject key="Foundry Project Name" enableCopy="false"/>**, select **Build**, and then select **msp-support-agent**. If a **Your project is set up. What would you like to do next?** dialog appears, select **Skip**. On the **Playground** tab, expand **Tools**: it lists **servicedesk-read** and **servicedesk-write** and no knowledge tool. Then, in PowerShell 7, run the following command, which reads the agent's Entra Agent ID from the Foundry API:
 
    ```powershell
    C:\LabFiles\tools\Get-AgentIdentity.ps1
@@ -110,6 +110,7 @@ In this task, you will confirm that every component responds before you build an
 | A readiness row shows **Not ready** | A component failed during provisioning | Stop and contact support with the table and your Deployment ID |
 | The Service Desk app asks you to sign in again or shows an access error | The app opened with another account | Sign out of the app, sign in as the Senior Technician, and open the shortcut again |
 | `Invoke-McpTool.ps1` reports that it can't read the subscription key | The Azure CLI sign-in expired | Run `az login` again as the Senior Technician and repeat the command |
+| `Invoke-McpTool.ps1` shows **AuthorizationFailed** for `listSecrets` on `lab-diagnostics`, or `az group show -n labvm` fails | Your role assignment on the resource group is missing | Don't work around it: contact support with the error and your Deployment ID |
 
 ## Task 2: Connect the Agent to the Knowledge Base
 
@@ -149,7 +150,7 @@ In this task, you will build the index the agent grounds on. Azure AI Search is 
 
    > **[SCREENSHOT PENDING: E1T2S4 | Agent playground Tools section with the Azure AI Search tool and both MCP tools | source: capture]**
 
-   > **Note:** The script uses the search connection that provisioning created, because creating connections needs a role you don't hold. Agent versions can't be edited, so every change creates a new version, and the agent serves the latest one.
+   > **Note:** The script uses the search connection that provisioning created, because creating connections needs a role you don't hold. Agent versions can't be edited, so every change creates a new version. The playground always uses the latest version. If the script ends with **[check] Your agent's endpoint is pinned to version @latest**, that is about the agent's published endpoint, not the playground: you can ignore it for this lab.
 
 1. Run a first query and confirm the answer draws on indexed content rather than on the model's own training. In the **Playground** chat, select **New chat**, enter the following prompt, and press **Enter**.
 
@@ -162,6 +163,8 @@ In this task, you will build the index the agent grounds on. Azure AI Search is 
    **Expected Output:** the cause is a pending restart after patching that leaves the Volume Shadow Copy writers in a failed or waiting state, so the snapshot does not finish within the default 600-second timeout. The fix starts with `vssadmin list writers`, then a restart in the next approved maintenance window, or a temporary snapshot timeout of 1,200 seconds if the backup can't wait. The answer cites **KB0007**, *Backup job fails with RBA-1043: snapshot provider timed out*, with a link to the article in the Service Desk app.
 
    **What this validates:** the agent answers from Relecloud's own article, not from general knowledge, and the citation fields you kept retrievable reach the answer.
+
+   > **Note:** The first time the agent calls a tool in your playground, the chat can show **Sign in to servicedesk-write** or **Sign in to servicedesk-read** with **Open consent** instead of an answer. Select **Open consent**. On the **Confirmation required** page, check that it names a connection created by **Microsoft Foundry Agent Service**, select **I have verified this request and trust the source**, and select **Allow access**. Do this once for each connection, then send the prompt again if the agent doesn't continue on its own.
 
    > **[SCREENSHOT PENDING: E1T2S5 | Playground answer about RBA-1043 citing KB0007 | source: capture]**
 

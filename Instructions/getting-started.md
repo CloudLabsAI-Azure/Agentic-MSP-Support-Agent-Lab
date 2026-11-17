@@ -196,6 +196,8 @@ The lab scripts on the VM use your own Azure CLI sign-in. Sign in once now.
 
    > **Note:** Depending on the Azure CLI version, the sign-in opens as a Windows account window or as a browser tab. Both work. If a command later fails with an error that asks for multifactor authentication, run `az login` again and sign in with the pass.
 
+1. If a **Sign in to all apps and websites on this device?** window appears, select **No, this app only**. Selecting **Yes** registers the lab VM with your tenant, which the lab doesn't need.
+
 1. If the Azure CLI lists subscriptions and asks you to select one, press **Enter** to keep the default.
 
 1. Run the following command, which shows the account the Azure CLI is signed in with:
