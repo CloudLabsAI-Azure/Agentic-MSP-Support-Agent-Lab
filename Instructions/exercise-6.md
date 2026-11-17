@@ -123,10 +123,6 @@ In this task, you will extend Dataverse column security to the contact email col
 > - If not, carefully read the error message and retry the step, following the instructions in the lab guide.
 > - If you need any assistance, please contact us at cloudlabs-support@spektrasystems.com. We are available 24/7 to help.
 
-<!--
-<validation step="REPLACE-WITH-VALIDATION-GUID" />
--->
-
 ## Task 2: Apply Microsoft Purview Data Protection
 
 In this task, you will see sensitive information detection, classification and DLP applied to the agent's interactions. Before the MCP server returns ticket text, notes or a customer document to the agent, it asks Microsoft Purview whether that text may go to an AI app for the signed-in user, and it checks a document's sensitivity label itself.
@@ -240,10 +236,6 @@ In this task, you will see sensitive information detection, classification and D
 > - Hit the Validate button for the corresponding task. If you receive a success message, you can proceed to the next task.
 > - If not, carefully read the error message and retry the step, following the instructions in the lab guide.
 > - If you need any assistance, please contact us at cloudlabs-support@spektrasystems.com. We are available 24/7 to help.
-
-<!--
-<validation step="REPLACE-WITH-VALIDATION-GUID" />
--->
 
 ## Task 3: Trace a Single Action End to End
 

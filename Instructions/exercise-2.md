@@ -129,10 +129,6 @@ In this task, you will find the historical tickets closest to a new incident tha
 > - If not, carefully read the error message and retry the step, following the instructions in the lab guide.
 > - If you need any assistance, please contact us at cloudlabs-support@spektrasystems.com. We are available 24/7 to help.
 
-<!--
-<validation step="REPLACE-WITH-VALIDATION-GUID" />
--->
-
 ## Task 2: Summarize a Customer's Support History
 
 In this task, you will produce the summary a support lead wants before calling a customer: what is open, what keeps coming back, and what was escalated before.

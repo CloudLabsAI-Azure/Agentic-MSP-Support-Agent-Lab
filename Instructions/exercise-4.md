@@ -169,9 +169,6 @@ In this task, you will reach the point at which the agent stops advising and sta
 > - If not, carefully read the error message and retry the step, following the instructions in the lab guide.
 > - If you need any assistance, please contact us at cloudlabs-support@spektrasystems.com. We are available 24/7 to help.
 
-<!--
-<validation step="REPLACE-WITH-VALIDATION-GUID" />
--->
 ## Task 2: Separate a Public Reply from an Internal Note
 
 In this task, you will learn the sharpest data-protection lesson in the lab. Ticket notes in Dataverse carry an internal flag: a customer-visible reply is written for the customer, an internal note is for technicians only, and nothing from the second may reach the first. You work on **TCK-10524**, *Claims team cannot open policy documents*, from **Humongous Insurance**, which already holds two internal notes that must never reach the customer: **TCK-10524-N2**, the account manager's note that Humongous Insurance is disputing last month's invoice, so no service credits may be offered, and **TCK-10524-N3**, Daniel Cho's finding that the customer's own administrator renewed the certificate on the old server APP02 instead of APP03.
@@ -268,10 +265,6 @@ In this task, you will learn the sharpest data-protection lesson in the lab. Tic
 > - Hit the Validate button for the corresponding task. If you receive a success message, you can proceed to the next task.
 > - If not, carefully read the error message and retry the step, following the instructions in the lab guide.
 > - If you need any assistance, please contact us at cloudlabs-support@spektrasystems.com. We are available 24/7 to help.
-
-<!--
-<validation step="REPLACE-WITH-VALIDATION-GUID" />
--->
 
 ## Task 3: Chain Grounding into Action
 
@@ -406,10 +399,6 @@ In this task, you will join everything from Exercises 1 and 2 to the MCP tools, 
 > - If not, carefully read the error message and retry the step, following the instructions in the lab guide.
 > - If you need any assistance, please contact us at cloudlabs-support@spektrasystems.com. We are available 24/7 to help.
 
-<!--
-<validation step="REPLACE-WITH-VALIDATION-GUID" />
--->
-
 ## Task 4: Tighten a Tool Boundary
 
 In this task, you will tighten one limit and redeploy under time pressure. The baseline already validates its inputs: every argument of every tool has a range, a pattern, a list of values or a length, checked before the tool runs. You lower one of those boundaries in code, ship it as version 3.0.2, and prove that the server enforces the new one.
@@ -510,10 +499,6 @@ In this task, you will tighten one limit and redeploy under time pressure. The b
 > - Hit the Validate button for the corresponding task. If you receive a success message, you can proceed to the next task.
 > - If not, carefully read the error message and retry the step, following the instructions in the lab guide.
 > - If you need any assistance, please contact us at cloudlabs-support@spektrasystems.com. We are available 24/7 to help.
-
-<!--
-<validation step="REPLACE-WITH-VALIDATION-GUID" />
--->
 
 ## Task 5: Design and Add a Scoped Tool
 
@@ -638,10 +623,6 @@ In this task, you will design one new tool, build it into your MCP server as ver
 > - Hit the Validate button for the corresponding task. If you receive a success message, you can proceed to the next task.
 > - If not, carefully read the error message and retry the step, following the instructions in the lab guide.
 > - If you need any assistance, please contact us at cloudlabs-support@spektrasystems.com. We are available 24/7 to help.
-
-<!--
-<validation step="REPLACE-WITH-VALIDATION-GUID" />
--->
 
 ## Success Criteria
 

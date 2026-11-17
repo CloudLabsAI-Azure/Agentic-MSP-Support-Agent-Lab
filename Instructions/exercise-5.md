@@ -333,10 +333,6 @@ In this task, you will narrow the agent's write role and make Dataverse refuse a
 > - If not, carefully read the error message and retry the step, following the instructions in the lab guide.
 > - If you need any assistance, please contact us at cloudlabs-support@spektrasystems.com. We are available 24/7 to help.
 
-<!--
-<validation step="REPLACE-WITH-VALIDATION-GUID" />
--->
-
 ## Task 4: Apply User-Level Authorization
 
 In this task, you will send the same request through the same agent as two different people and see Dataverse decide differently for each. The agent must not gain more access than the person using it.
@@ -464,10 +460,6 @@ In this task, you will send the same request through the same agent as two diffe
 > - Hit the Validate button for the corresponding task. If you receive a success message, you can proceed to the next task.
 > - If not, carefully read the error message and retry the step, following the instructions in the lab guide.
 > - If you need any assistance, please contact us at cloudlabs-support@spektrasystems.com. We are available 24/7 to help.
-
-<!--
-<validation step="REPLACE-WITH-VALIDATION-GUID" />
--->
 
 ## Success Criteria
 
