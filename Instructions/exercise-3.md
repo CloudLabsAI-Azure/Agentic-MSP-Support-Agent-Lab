@@ -56,7 +56,7 @@ In this task, you will read the server your agent calls, from its tool catalog d
    | Communication | `get_ticket_notes` |
    | Customer documents | `search_customer_documents`, `get_customer_document` |
 
-   > **[SCREENSHOT PENDING: E3T1S2 | Invoke-McpTool.ps1 -List output with 16 read tools on /read/mcp, approval not required, and 7 write tools on /write/mcp, approval required | source: capture]**
+   ![Invoke-McpTool.ps1 -List with 16 read tools and 7 write tools](./media/screenshots/E3T1S2.png)
 
    Then read where that list comes from. In the **Explorer**, open these three files, and use **Ctrl+F** to find the names in the second column:
 
@@ -102,7 +102,7 @@ In this task, you will read the server your agent calls, from its tool catalog d
 
    Every read tool needs **Read** privileges only, on the tables it touches. For example, `get_ticket` needs *Read on spk_ticket, account, contact, spk_technician, spk_knowledgearticle*, `get_sla_status` needs *Read on spk_ticket, account, spk_slapolicy*, and `get_customer_contacts` needs *Read on account, contact (column security applies)*. These are Dataverse table privileges, and both identities must hold them for a call on your behalf: your own security role, and the MCP server's application user, which holds them through its **Service Desk Agent Read** role. Column security can still withhold single columns: the contact phone columns are secured from the start, so the server never receives a phone number, and `get_ticket_notes` returns internal notes only when a technician asks for them. In **Lab notes.txt**, next to **Permission each read tool needs (for Exercise 5)**, press **Ctrl+V** to paste the 16 lines.
 
-   > **[SCREENSHOT PENDING: E3T1S4 | Terminal with the 16 read tools and the relecloud/permission text of each | source: capture]**
+   ![Permission text of each read tool](./media/screenshots/E3T1S4.png)
 
    > **Note:** The seven write tools publish their permission the same way, with Write, Create, Append and Append To privileges; you use them in Exercise 4. If the command can't reach the gateway, the **Permission** line of each tool's section in `TOOLS.md` holds the same text.
 
@@ -277,7 +277,7 @@ In this task, you will make the tool fail on purpose, twice, and check exactly w
 
    The server checked the arguments against the input schema before the tool ran: `ServiceDeskMCPServer.call_tool` in `catalogue.py` hands the violation to `refuse_invalid`, which answers with `INVALID_ARGUMENT`, so nothing reached Dataverse.
 
-   > **[SCREENSHOT PENDING: E3T3S2-1 | Terminal with the INVALID_ARGUMENT result of get_ticket called with no arguments, isError True | source: capture]**
+   ![INVALID_ARGUMENT result of get_ticket with no arguments](./media/screenshots/E3T3S2-1.png)
 
    Then ask the agent. In the playground, in the same chat, enter the following prompt, and press **Enter**.
 

@@ -94,7 +94,7 @@ In this task, you will confirm that every component responds before you build an
 
    The result is **TCK-10524** from **Humongous Insurance**, *Claims team cannot open policy documents*, with its status, priority, SLA figures and a `correlation_id`. In **Lab notes.txt**, next to **Baseline read tool: ticket and correlation ID**, record both.
 
-   > **[SCREENSHOT PENDING: E1T1S5 | PowerShell 7 window with the get_ticket result for TCK-10524 and its correlation_id | source: capture]**
+   ![get_ticket result for TCK-10524 with its correlation_id](./media/screenshots/E1T1S5.png)
 
 ### Expected results
 
@@ -124,7 +124,7 @@ In this task, you will build the index the agent grounds on. Azure AI Search is 
 
    Notice the split. `content` carries the text worth retrieving: an article's symptom, cause and resolution, a document's body, a ticket's description and resolution. `title`, `url` and `sourceId` carry no searchable text, but they are what the agent cites. Fields such as `customerCode`, `slaTier` and `articleStatus` let a query filter.
 
-   > **[SCREENSHOT PENDING: E1T2S1 | New-KnowledgeIndex.ps1 -ReviewOnly output listing the fields and their purpose | source: capture]**
+   ![New-KnowledgeIndex.ps1 -ReviewOnly field list](./media/screenshots/E1T2S1.png)
 
 1. Create an Azure AI Search index with the fields your agent needs to cite a source, not just answer from it. In Visual Studio Code, open `C:\LabFiles\search\index-definition.json` and find the fields `title`, `url` and `sourceId`: each is **retrievable**, so the index returns them with every result. Then run the following command, which checks the definition and creates the index, a data source for the export container, an embedding skillset and an indexer:
 

@@ -35,7 +35,7 @@ In this task, you will find the identity behind every hop of one write and the t
 
    Under **The agent and its Microsoft Entra Agent ID**, **Agent ID client ID** is the value you recorded in Exercise 1 next to **Agent ID (client ID)**, and **Agent ID object ID** is the object ID of the same identity; the two values can be the same. Under **Its tools (latest version)**, **servicedesk-read** shows the approval **never**, **servicedesk-write** shows **always** (if it shows *never for N tool(s)*, an **Always approve** option was selected on an approval request: run `C:\LabFiles\tools\Update-AgentDefinition.ps1 -Reset` and then `C:\LabFiles\tools\Update-AgentDefinition.ps1 -Instructions` to restore approval on every write), and the Azure AI Search tool is the knowledge source you added in Exercise 1. The table **Which identity each hop of a Service Desk tool call uses** lists six hops: **1. You**, **2. The agent**, **3. The MCP connections**, **4. API Management**, **5. MCP server** and **6. Dataverse**.
 
-   > **[SCREENSHOT PENDING: E5T1S1-1 | PowerShell 7 window with Get-AgentIdentity.ps1 output: the Agent ID object ID and client ID, the tools table and the six-hop identity map | source: capture]**
+   ![Get-AgentIdentity.ps1 output](./media/screenshots/E5T1S1-1.png)
 
    Then find each identity where it lives:
 
@@ -123,7 +123,7 @@ In this task, you will check how the MCP server gets the one credential it runs 
 
    The command fails with a **Forbidden** error: Key Vault refuses the read for your account and records the refusal in its audit log, which you look at in step 4.
 
-   > **[SCREENSHOT PENDING: E5T2S1 | Key vault Secrets list with mcp-backend-key and its properties visible to a Key Vault Reader, and the az keyvault secret show command refused with Forbidden | source: learn https://learn.microsoft.com/azure/key-vault/media/rbac/image-12.png]**
+   ![az keyvault secret show refused with Forbidden](./media/screenshots/E5T2S1-cli.png)
 
    > **Note:** Some portal versions list **Secrets** directly in the key vault's menu instead of under **Objects**. The wording of the Azure CLI error depends on its version; what matters is that no value comes back.
 
@@ -171,7 +171,7 @@ In this task, you will check how the MCP server gets the one credential it runs 
 
    Every value is a setting, a name or an address. `KEY_VAULT_URL` is your vault; `BACKEND_KEY_SECRET_NAME` holds the secret's name, `mcp-backend-key`, and `PURVIEW_CLIENT_SECRET_NAME` the name `purview-client-secret`; `AZURE_CLIENT_ID` is the MCP Backend Identity Client ID; and `DATAVERSE_URL`, `AGENT_ID`, `GOLDEN_ENVIRONMENT_VERSION` and the `MCP_` paths are plain configuration. No variable holds a key.
 
-   > **[SCREENSHOT PENDING: E5T2S3 | PowerShell 7 window with the two git grep searches, az containerapp secret list returning an empty list, and the table of environment variables | source: capture]**
+   ![Secret searches and Container App environment variables](./media/screenshots/E5T2S3.png)
 
    > **Note:** In the Azure portal, the app's secrets are under the Container App's **Security** > **Secrets**; some portal versions show **Settings** > **Secrets**. Anyone who can manage a Container App can also read its app secrets, which is one more reason the key lives only in Key Vault.
 
@@ -376,7 +376,7 @@ In this task, you will send the same request through the same agent as two diffe
 
    **What this validates:** the same agent, server and tool, on a ticket that the application user may still change: the refusal comes from the Tier 1 Technician's own role, which Dataverse applies to every call the server makes on that person's behalf.
 
-   > **[SCREENSHOT PENDING: E5T4S2-2 | Tier 1 Technician's playground with the approved update_ticket_priority call on TCK-10543 refused by Dataverse | source: capture]**
+   ![The Tier 1 Technician's playground: the approved update_ticket_priority call on TCK-10543 refused with DATAVERSE_ACCESS_DENIED](./media/screenshots/E5T4S2-2.png)
 
    > **Note:** The provided screenshot is for your reference; the output you receive may vary.
 
@@ -396,7 +396,9 @@ In this task, you will send the same request through the same agent as two diffe
 
    **What this validates:** the same agent, MCP server, tool and arguments, and only the person changed. Dataverse allowed the call because your role and the application user's role both hold Write on this ticket, which is owned in the root business unit.
 
-   > **[SCREENSHOT PENDING: E5T4S3 | Senior Technician's playground with the approved update_ticket_priority call, and TCK-10543 in the Service Desk app with Priority P2 High, SLA Target 8 and the Last Correlation ID | source: capture]**
+   ![The Senior Technician's playground with the approved update_ticket_priority call, and TCK-10543 in the Service Desk app at P2 High with an SLA target of 8](./media/screenshots/E5T4S3.png)
+
+   ![The Senior Technician's playground with the approved update_ticket_priority call, and TCK-10543 in the Service Desk app at P2 High with an SLA target of 8](./media/screenshots/E5T4S3-b-record.png)
 
    > **Note:** The provided screenshot is for your reference; the output you receive may vary.
 
@@ -406,9 +408,9 @@ In this task, you will send the same request through the same agent as two diffe
 
    **Dataverse audit.** Open **TCK-10543**, select the **Related** tab, and then select **Audit History**. The priority change from **P3 Medium** to **P2 High** is recorded with your account as the user who made it. There's no entry for the Tier 1 Technician's attempt: it changed nothing.
 
-   > **[SCREENSHOT PENDING: E5T4S4-1 | Agent Actions view with the denied and the allowed update_ticket_priority rows on TCK-10543 and their user names | source: capture]**
+   ![All Agent Actions with the Tier 1 Technician's row Denied by Dataverse and the Senior Technician's row Allowed on TCK-10543](./media/screenshots/E5T4S4-1.png)
 
-   > **[SCREENSHOT PENDING: E5T4S4-2 | Audit History of TCK-10543 with the priority change from P3 Medium to P2 High by the Senior Technician | source: learn https://learn.microsoft.com/power-platform/admin/media/dataverse-audit-log-single-record.png]**
+   ![Audit History of TCK-10543: Priority changed from P3 Medium to P2 High by the Senior Technician, with no entry for the Tier 1 attempt](./media/screenshots/E5T4S4-2.png)
 
    **MCP server log.** On the **Logs** page of the Log Analytics workspace, run the following query, which lists the priority changes requested on TCK-10543:
 

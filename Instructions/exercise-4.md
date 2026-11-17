@@ -54,7 +54,7 @@ In this task, you will reach the point at which the agent stops advising and sta
 
    Under **Its tools (latest version)**, **servicedesk-read** shows the approval **never** with the scope **16 allowed tools**, and **servicedesk-write** shows **always** with **every tool the endpoint lists**. The write endpoint serves only write tools, so every write waits for your decision, including the tool you add in Task 5.
 
-   > **[SCREENSHOT PENDING: E4T1S1-1 | Invoke-McpTool.ps1 -List output with the seven write tools showing Kind write, Endpoint /write/mcp and Approval required | source: capture]**
+   ![Invoke-McpTool.ps1 -List showing the write tools](./media/screenshots/E4T1S1-1.png)
 
    > **[SCREENSHOT PENDING: E4T1S1-2 | Get-AgentIdentity.ps1 tools table with servicedesk-read approval never and servicedesk-write approval always for every tool the endpoint lists | source: capture]**
 
@@ -137,7 +137,7 @@ In this task, you will reach the point at which the agent stops advising and sta
 
    It reports *No matching calls in the recent log*.
 
-   > **[SCREENSHOT PENDING: E4T1S4-3 | Show-McpServerLog.ps1 output with the update_ticket_priority row, outcome ok and Allowed, and no update_ticket_status call | source: capture]**
+   ![Show-McpServerLog.ps1 output for update_ticket_priority and update_ticket_status](./media/screenshots/E4T1S4-3.png)
 
    > **Note:** **SLA Elapsed (business hours)**, **SLA Remaining (business hours)**, **SLA Due On (UTC)**, **SLA Status** and **SLA Calculated On (UTC)** were recalculated from **Opened On (UTC)** at the moment of your change. They depend on when your environment was prepared, so they differ from other participants'; the target of 16 business hours is the same for everyone.
 
@@ -475,7 +475,7 @@ In this task, you will tighten one limit and redeploy under time pressure. The b
 
    The row shows **Endpoint** `diagnostics`, **Outcome** `rejected`, **ErrorCode** `INVALID_ARGUMENT`, **Authorization** `Rejected by the MCP server` and **DecidedBy** `input validation`, with no user, because the diagnostics API carries none.
 
-   > **[SCREENSHOT PENDING: E4T4S4 | Invoke-McpTool.ps1 output with isError True, INVALID_ARGUMENT, received 30 and the constraint le 20 | source: capture]**
+   ![INVALID_ARGUMENT for limit 30 with constraint le 20](./media/screenshots/E4T4S4.png)
 
    > **Note:** The agent reads the new maximum from the tool's input schema. In a new chat, if you ask it for the 30 open tickets closest to breach, it should ask for at most 20, or correct its call after the `INVALID_ARGUMENT` error, as its instructions say. Validation reads the server's log, so the call above is the one that counts.
 
@@ -574,7 +574,7 @@ In this task, you will design one new tool, build it into your MCP server as ver
 
    > **[SCREENSHOT PENDING: E4T5S3-1 | tools_write.py in Visual Studio Code with the escalate_ticket block at the end of register(), after add_public_reply | source: capture]**
 
-   > **[SCREENSHOT PENDING: E4T5S3-2 | Invoke-McpTool.ps1 -List output with escalate_ticket as a write tool on /write/mcp with Approval required | source: capture]**
+   ![escalate_ticket listed as a write tool with approval required](./media/screenshots/E4T5S3-2.png)
 
    > **Note:** The deploy takes about as long as in Task 4, and the script prints the build and cycle times at the end. If you run out of time while it builds, keep it running and continue when it reports the revision ready; the previous revision serves the agent until then.
 
