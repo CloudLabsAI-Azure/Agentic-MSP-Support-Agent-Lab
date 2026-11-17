@@ -22,6 +22,24 @@ In this exercise, you will complete the following tasks:
 - Task 2: Apply Microsoft Purview Data Protection
 - Task 3: Trace a Single Action End to End
 
+## Before You Start
+
+Check your sign-ins before Task 1. If you took a break, a sign-in can have expired.
+
+1. The lab VM desktop is open on the left of the lab window. If the session shows a reconnect message, select **Reconnect**, or select **Resources** on the lab guide pane and start the VM.
+
+1. In **PowerShell 7** on the VM, run the following command, which shows the account the lab scripts use:
+
+   ```powershell
+   az account show --query user.name --output tsv
+   ```
+
+   It prints <inject key="AzureAdUserEmail" enableCopy="false"/>. If it prints an error or another account, run `az login` and sign in as the Senior Technician with the Temporary Access Pass from the **Environment** tab.
+
+1. Open the apps this exercise uses: **Microsoft Foundry**, **Service Desk** and **Microsoft Purview** on the desktop, the **Power Platform admin center** at `https://admin.powerplatform.microsoft.com`, and the Azure portal for Log Analytics. Each shows the Senior Technician in the top-right corner.
+
+When any page asks you to sign in during this exercise, sign in as the Senior Technician unless a step says otherwise, as described in **How Sign-in Works in This Lab** on the Getting Started page: select the account on **Pick an account**, or enter the username and the Temporary Access Pass from the **Environment** tab, select **Skip for now** for any passkey or Authenticator prompt, and select **No** on **Stay signed in?**.
+
 ## Task 1: Restrict What the Agent Can Return
 
 In this task, you will extend Dataverse column security to the contact email column and test what the agent does with a value it can't read. Platform control, application control, or both: by the end of the task, be able to argue which you would trust an agent with.
@@ -54,7 +72,7 @@ In this task, you will extend Dataverse column security to the contact email col
 
    > **[SCREENSHOT PENDING: E6T1S1-2 | Email column of the Contact table with Advanced options expanded and Enable column security selected | source: learn https://learn.microsoft.com/power-platform/admin/media/field-security-advanced-options-enable.png]**
 
-   Then let the profile's members read it. In another tab, open the Power Platform admin center at `https://admin.powerplatform.microsoft.com`. Select **Manage**, select **Environments**, and select **Relecloud Service Desk <inject key="DeploymentID" enableCopy="false"/>**. Select **Settings** > **Users + permissions** > **Column security profiles**, and select **Contact Phone Protection**. On the **Column Permission** tab, in the **Name** column select the contact table's email column (**Email**, `emailaddress1`), which is listed now that it is secured, and select **Edit**. Set **Read** to **Allowed**, leave **Read unmasked**, **Update** and **Create** at **Not Allowed**, and select **Save**. The profile's **Users** tab still lists only you: the MCP server's application user is not a member, so from now on Dataverse withholds the email column from it as well.
+   Then let the profile's members read it. In another tab, open the Power Platform admin center at `https://admin.powerplatform.microsoft.com`, and sign in as the Senior Technician if you're asked. Select **Manage**, select **Environments**, and select **Relecloud Service Desk <inject key="DeploymentID" enableCopy="false"/>**. Select **Settings** > **Users + permissions** > **Column security profiles**, and select **Contact Phone Protection**. On the **Column Permission** tab, in the **Name** column select the contact table's email column (**Email**, `emailaddress1`), which is listed now that it is secured, and select **Edit**. Set **Read** to **Allowed**, leave **Read unmasked**, **Update** and **Create** at **Not Allowed**, and select **Save**. The profile's **Users** tab still lists only you: the MCP server's application user is not a member, so from now on Dataverse withholds the email column from it as well.
 
    > **[SCREENSHOT PENDING: E6T1S1-3 | Contact Phone Protection, Column Permission tab, with Read Allowed on the contact columns emailaddress1, telephone1 and mobilephone | source: capture]**
 

@@ -23,11 +23,29 @@ In this exercise, you will complete the following tasks:
 - Task 3: Recommend Priority, Category and Assignment
 - Task 4: Detect an SLA Risk
 
+## Before You Start
+
+Check your sign-ins before Task 1. If you took a break, a sign-in can have expired.
+
+1. The lab VM desktop is open on the left of the lab window. If the session shows a reconnect message, select **Reconnect**, or select **Resources** on the lab guide pane and start the VM.
+
+1. In **PowerShell 7** on the VM, run the following command, which shows the account the lab scripts use:
+
+   ```powershell
+   az account show --query user.name --output tsv
+   ```
+
+   It prints <inject key="AzureAdUserEmail" enableCopy="false"/>. If it prints an error or another account, run `az login` and sign in as the Senior Technician with the Temporary Access Pass from the **Environment** tab.
+
+1. Open the apps this exercise uses and check the account in the top-right corner of each: double-click **Service Desk** and **Microsoft Foundry** on the desktop. Both show the Senior Technician.
+
+When any page asks you to sign in during this exercise, sign in as the Senior Technician unless a step says otherwise, as described in **How Sign-in Works in This Lab** on the Getting Started page: select the account on **Pick an account**, or enter the username and the Temporary Access Pass from the **Environment** tab, select **Skip for now** for any passkey or Authenticator prompt, and select **No** on **Stay signed in?**.
+
 ## Task 1: Identify Similar Historical Incidents
 
 In this task, you will find the historical tickets closest to a new incident that the agent has never seen. A match helps a technician only when the agent can say why it matches, so you also ask for the reasons and check one match yourself.
 
-1. Open the new, unclassified incident waiting in your Service Desk queue; it is not in your search index, so your agent has never seen it. On the VM desktop, double-click **Service Desk**, select **Work** > **Tickets**, and select the **Untriaged Tickets** view: it lists five tickets, including the two new incidents **TCK-10561** and **TCK-10562**. Open **TCK-10561**, *Nightly protection job stopped creating recovery points*, from **A. Datum Corporation**. Its **Description** says that since Saturday night the nightly protection job for the project archive server has stopped creating new recovery points, that the console says the cloud storage allowance has been used up, and that the customer copied the 2019 to 2024 drawing archive onto that server last week. **Priority**, **Category**, **Subcategory** and **Assigned Technician** are empty, and the **SLA** section shows no target or remaining hours, because a ticket without a priority has no SLA clock yet.
+1. Open the new, unclassified incident waiting in your Service Desk queue; it is not in your search index, so your agent has never seen it. On the VM desktop, double-click **Service Desk** (sign in as the Senior Technician if you're asked), select **Work** > **Tickets**, and select the **Untriaged Tickets** view: it lists five tickets, including the two new incidents **TCK-10561** and **TCK-10562**. Open **TCK-10561**, *Nightly protection job stopped creating recovery points*, from **A. Datum Corporation**. Its **Description** says that since Saturday night the nightly protection job for the project archive server has stopped creating new recovery points, that the console says the cloud storage allowance has been used up, and that the customer copied the 2019 to 2024 drawing archive onto that server last week. **Priority**, **Category**, **Subcategory** and **Assigned Technician** are empty, and the **SLA** section shows no target or remaining hours, because a ticket without a priority has no SLA clock yet.
 
    Notice what the description doesn't say: it has no error code, and none of the words *backup*, *vault* or *quota*. Provisioning loaded both new incidents after the export you indexed in Exercise 1, so the agent can reach TCK-10561 only through its Service Desk tools.
 

@@ -28,7 +28,19 @@ In this exercise, you will complete the following tasks:
 
 In this task, you will confirm that every component responds before you build anything. If any check fails, stop and contact support rather than working around it.
 
-1. Sign in with your Senior Technician credentials and launch your assigned lab. You did this on the getting-started page: the VM is open, and the Azure portal and the Azure CLI are signed in as <inject key="AzureAdUserEmail" enableCopy="false"/>. Use this account for the whole lab unless a step says otherwise.
+1. Confirm you're signed in as the Senior Technician before you start. You signed in on the **Getting Started** page; this step checks that the sign-ins are still in place.
+
+   - **The lab VM.** The VM desktop is open on the left of the lab window. If it isn't, select **Resources** on the lab guide pane and start the VM, and then select the VM's name to connect.
+   - **The Azure portal.** In Microsoft Edge on the VM, the Azure portal tab shows the Senior Technician's initials in the top-right corner. Select them to see the full account, <inject key="AzureAdUserEmail" enableCopy="false"/>. If the portal shows **Sign in**, sign in as the Senior Technician, as described in **How Sign-in Works in This Lab** on the Getting Started page.
+   - **The Azure CLI.** In **PowerShell 7** (select **Start**, type **PowerShell 7**, and open **PowerShell 7 (x64)**), run the following command:
+
+     ```powershell
+     az account show --query user.name --output tsv
+     ```
+
+     It prints <inject key="AzureAdUserEmail" enableCopy="false"/>. If it prints an error or another account, run `az login` and sign in as the Senior Technician with the Temporary Access Pass from the **Environment** tab.
+
+   Use this account for the whole lab unless a step says otherwise. When any app asks you to sign in later, follow **How Sign-in Works in This Lab** on the Getting Started page.
 
 1. Run the readiness check on your lab VM desktop and confirm every component reports ready. Double-click **Lab readiness check** on the desktop. It needs no sign-in: it checks the environment with the lab VM's own identity and prints one row per component.
 
@@ -80,7 +92,7 @@ In this task, you will confirm that every component responds before you build an
    C:\LabFiles\tools\Get-AgentIdentity.ps1
    ```
 
-   The output shows the agent identity's client ID and object ID. In a new tab, open the Microsoft Entra admin center at `https://entra.microsoft.com`, select **Entra ID** > **Agents** > **Agent identities**, and search for the object ID: the agent is listed with its own identity, separate from yours. In **Lab notes.txt**, next to **Agent ID (client ID)**, record the client ID.
+   The output shows the agent identity's client ID and object ID. In a new tab, open the Microsoft Entra admin center at `https://entra.microsoft.com`, and sign in as the Senior Technician if you're asked (select the account on **Pick an account**, or enter the username and the Temporary Access Pass from the **Environment** tab). Select **Entra ID** > **Agents** > **Agent identities**, and search for the object ID: the agent is listed with its own identity, separate from yours. In **Lab notes.txt**, next to **Agent ID (client ID)**, record the client ID.
 
    > **[SCREENSHOT PENDING: E1T1S4 | Agent playground Tools section listing servicedesk-read and servicedesk-write with no knowledge source | source: capture]**
 

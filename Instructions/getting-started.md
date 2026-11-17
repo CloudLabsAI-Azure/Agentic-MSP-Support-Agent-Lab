@@ -210,6 +210,60 @@ The lab scripts on the VM use your own Azure CLI sign-in. Sign in once now.
 
    ![az account show output with the Senior Technician account](./media/screenshots/GS10.png)
 
+## How Sign-in Works in This Lab
+
+Every app in this lab uses the same Microsoft Entra sign-in. Use this section whenever a page asks you to sign in, here or in any exercise.
+
+### Where to find your credentials
+
+Your credentials are on the **Environment** tab of the lab guide pane, on the right of the lab window:
+
+| Account | Used for | Username | Password |
+|---|---|---|---|
+| **Senior Technician** | The whole lab, unless a step says otherwise | <inject key="AzureAdUserEmail" enableCopy="true"/> | The **Temporary Access Pass** on the **Environment** tab |
+| **Tier 1 Technician** | Only Exercise 5, Task 4, in an InPrivate window | <inject key="Tier 1 Technician Username" enableCopy="true"/> | The Tier 1 Technician's **Temporary Access Pass** on the **Environment** tab |
+
+The Temporary Access Pass is the password for every app. You don't need a phone or an authenticator app.
+
+### Where you sign in
+
+Every app runs inside the lab VM, on the left of the lab window. Don't open them in your own computer's browser.
+
+| App | How to open it on the VM | Address | Sign in as |
+|---|---|---|---|
+| Azure portal | Double-click **Azure Portal** on the desktop | `https://portal.azure.com` | Senior Technician |
+| Azure CLI (used by the lab scripts) | In **PowerShell 7**, run `az login` | Opens a sign-in window or browser tab | Senior Technician |
+| Microsoft Foundry | Double-click **Microsoft Foundry** on the desktop | `https://ai.azure.com` | Senior Technician (Tier 1 Technician in Exercise 5, Task 4) |
+| Service Desk app | Double-click **Service Desk** on the desktop | Your Service Desk environment in Power Apps | Senior Technician |
+| Microsoft Entra admin center | Double-click **Microsoft Entra admin center** on the desktop | `https://entra.microsoft.com` | Senior Technician |
+| Power Platform admin center | In Edge on the VM, open a new tab | `https://admin.powerplatform.microsoft.com` | Senior Technician |
+| Microsoft Purview | Double-click **Microsoft Purview** on the desktop | `https://purview.microsoft.com` | Senior Technician |
+| Visual Studio Code | Double-click **MCP server (VS Code)** on the desktop | Local folder `C:\LabFiles\mcp-server` | No sign-in |
+
+### How to sign in
+
+Microsoft Edge on the VM remembers your sign-in after the Azure portal, so most apps open already signed in. When a page does ask:
+
+1. If the page shows **Sign in**, select it.
+
+1. On **Pick an account**, select the Senior Technician account if it's listed. If it isn't, select **Use another account**, enter the username from the **Environment** tab, and select **Next**.
+
+1. On **Enter Temporary Access Pass** (or **Enter password**), paste the Temporary Access Pass from the **Environment** tab, and select **Sign in**.
+
+1. If you're asked to set up a passkey or the Microsoft Authenticator app, select **Skip for now**.
+
+1. If you see **Stay signed in?**, select **No**.
+
+1. If you see **Sign in to all apps and websites on this device?**, select **No, this app only**.
+
+1. Check the account in the top-right corner of the page. It shows the Senior Technician (or, in Exercise 5, Task 4, the Tier 1 Technician). If it shows a different account, select it, select **Sign out**, and sign in again.
+
+> **Note:** If an app shows an access error right after an administrator granted you a role, sign out of that app and sign in again: the new role is only in a fresh sign-in.
+
+> **Note:** If a PowerShell command fails with an error that asks you to run `az login`, or with an error about multifactor authentication, your Azure CLI sign-in has expired. Run `az login` again and sign in as the Senior Technician, as in **Sign In to the Azure CLI** above.
+
+> **Important:** If the sign-in page says the Temporary Access Pass has expired or isn't valid, don't try other credentials. Contact support with your Deployment ID: <inject key="DeploymentID" enableCopy="true"/>.
+
 ## Meet Your Lab Environment
 
 1. On the VM desktop, find the shortcuts the environment created for you: **Lab readiness check**, **Service Desk**, **Microsoft Foundry**, **Azure Portal**, **Microsoft Purview**, **Microsoft Entra admin center** and **MCP server (VS Code)**.

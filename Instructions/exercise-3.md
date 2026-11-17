@@ -23,6 +23,24 @@ In this exercise, you will complete the following tasks:
 - Task 3: Test Tool Error Handling
 - Task 4: Redeploy Your Copy of the MCP Server
 
+## Before You Start
+
+Check your sign-ins before Task 1. If you took a break, a sign-in can have expired.
+
+1. The lab VM desktop is open on the left of the lab window. If the session shows a reconnect message, select **Reconnect**, or select **Resources** on the lab guide pane and start the VM.
+
+1. In **PowerShell 7** on the VM, run the following command, which shows the account the lab scripts use:
+
+   ```powershell
+   az account show --query user.name --output tsv
+   ```
+
+   It prints <inject key="AzureAdUserEmail" enableCopy="false"/>. If it prints an error or another account, run `az login` and sign in as the Senior Technician with the Temporary Access Pass from the **Environment** tab.
+
+1. Open the apps this exercise uses: double-click **MCP server (VS Code)** (no sign-in), **Microsoft Foundry** and **Service Desk** on the desktop. Foundry and the Service Desk app show the Senior Technician in the top-right corner. You also use the Azure portal for Log Analytics in Task 2.
+
+When any page asks you to sign in during this exercise, sign in as the Senior Technician unless a step says otherwise, as described in **How Sign-in Works in This Lab** on the Getting Started page: select the account on **Pick an account**, or enter the username and the Temporary Access Pass from the **Environment** tab, select **Skip for now** for any passkey or Authenticator prompt, and select **No** on **Stay signed in?**.
+
 ## Task 1: Review the MCP Server on Your Lab VM
 
 In this task, you will read the server your agent calls, from its tool catalog down to the Dataverse request one tool sends, and note the permission each read tool needs.
@@ -126,7 +144,7 @@ In this task, you will read the server your agent calls, from its tool catalog d
 
 In this task, you will confirm that the tool layer reaches real data in your own environment: you call a read tool through the agent, check the result against the Service Desk app, and find the call in the server's log.
 
-1. Invoke a read tool from your agent with a valid argument. Make the call through the agent: only then does it pass the read gateway with your own token, which the **Validate** step for this task looks for. The diagnostics API you used in Task 1 carries no user. On the desktop, double-click **Microsoft Foundry**, select your project **<inject key="Foundry Project Name" enableCopy="false"/>**, select **Build**, and then select **msp-support-agent**. On the **Playground** tab, select **New chat**, enter the following prompt, and press **Enter**.
+1. Invoke a read tool from your agent with a valid argument. Make the call through the agent: only then does it pass the read gateway with your own token, which the **Validate** step for this task looks for. The diagnostics API you used in Task 1 carries no user. On the desktop, double-click **Microsoft Foundry** (sign in as the Senior Technician if you're asked), select your project **<inject key="Foundry Project Name" enableCopy="false"/>**, select **Build**, and then select **msp-support-agent**. On the **Playground** tab, select **New chat**, enter the following prompt, and press **Enter**.
 
    **Prompt:**
 

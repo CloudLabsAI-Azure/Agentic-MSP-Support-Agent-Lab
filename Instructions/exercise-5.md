@@ -23,6 +23,26 @@ In this exercise, you will complete the following tasks:
 - Task 3: Enforce a Least-Privilege Boundary
 - Task 4: Apply User-Level Authorization
 
+## Before You Start
+
+Check your sign-ins before Task 1. If you took a break, a sign-in can have expired.
+
+1. The lab VM desktop is open on the left of the lab window. If the session shows a reconnect message, select **Reconnect**, or select **Resources** on the lab guide pane and start the VM.
+
+1. In **PowerShell 7** on the VM, run the following command, which shows the account the lab scripts use:
+
+   ```powershell
+   az account show --query user.name --output tsv
+   ```
+
+   It prints <inject key="AzureAdUserEmail" enableCopy="false"/>. If it prints an error or another account, run `az login` and sign in as the Senior Technician with the Temporary Access Pass from the **Environment** tab.
+
+1. This exercise uses more sign-ins than the others: the Azure portal, the **Microsoft Entra admin center** and **Microsoft Foundry** (desktop shortcuts), and the **Power Platform admin center** at `https://admin.powerplatform.microsoft.com`, all as the Senior Technician. Task 4 adds a second sign-in as the **Tier 1 Technician** in an InPrivate window; its credentials are on the **Environment** tab.
+
+   > **Note:** If the Power Platform admin center shows **No environments**, sign out of it and sign in again as the Senior Technician. If it still lists none, contact support: your account needs a role on the Service Desk environment.
+
+When any page asks you to sign in during this exercise, sign in as the Senior Technician unless a step says otherwise, as described in **How Sign-in Works in This Lab** on the Getting Started page: select the account on **Pick an account**, or enter the username and the Temporary Access Pass from the **Environment** tab, select **Skip for now** for any passkey or Authenticator prompt, and select **No** on **Stay signed in?**.
+
 ## Task 1: Map the Identities and Token Flow
 
 In this task, you will find the identity behind every hop of one write and the token each hop presents. Every hop from you through the agent and the MCP server to Dataverse runs as a defined identity: find each one.
@@ -39,10 +59,10 @@ In this task, you will find the identity behind every hop of one write and the t
 
    Then find each identity where it lives:
 
-   - **The agent's Microsoft Entra Agent ID.** On the desktop, double-click **Microsoft Entra admin center**, select **Entra ID** > **Agents** > **Agent identities**, and search for the **Agent ID object ID**. The agent identity is listed with its own object ID, separate from your account. Open it, and keep the tab open for step 3.
+   - **The agent's Microsoft Entra Agent ID.** On the desktop, double-click **Microsoft Entra admin center** (sign in as the Senior Technician if you're asked), select **Entra ID** > **Agents** > **Agent identities**, and search for the **Agent ID object ID**. The agent identity is listed with its own object ID, separate from your account. Open it, and keep the tab open for step 3.
    - **The gateway.** In the Azure portal, open the API Management instance **<inject key="API Management Name" enableCopy="false"/>** and select **APIs** > **Named values**. **mcp-gateway-app-id** is the application ID of the gateway app registration, **Relecloud Service Desk MCP Gateway**, whose tokens are the only ones the gateway accepts; **mcp-gateway-audience** is <inject key="MCP Gateway Audience" enableCopy="false"/>; **mcp-gateway-scope** is `ServiceDesk.Access`; and **agent-id** is your agent's **Agent ID client ID**. **mcp-backend-key** has the type **Key vault**: you meet it again in Task 2.
    - **The MCP server's managed identity.** **<inject key="MCP Backend Identity Name" enableCopy="false"/>**, with the client ID <inject key="MCP Backend Identity Client ID" enableCopy="false"/>. Hop **5. MCP server** of the script's map names it, together with the Container App **<inject key="Container App Name" enableCopy="false"/>** that uses it.
-   - **The Dataverse application user.** In a new tab, browse to `https://admin.powerplatform.microsoft.com`. Select **Manage** > **Environments**, select your environment, **Relecloud Service Desk <inject key="DeploymentID" enableCopy="false"/>**, and select **Settings**. Select **Users + permissions** > **Application users**, select the application user named after **<inject key="MCP Backend Identity Name" enableCopy="false"/>**, and select **Details**. **Microsoft Entra application ID** is the MCP Backend Identity Client ID; **Assigned security roles** are **Service Desk Agent Read**, **Service Desk Agent Write** and **Delegate**; and **Business unit** is your environment's root business unit. Dataverse maps every token of the managed identity to this user. Keep this tab open for step 3 and Task 3.
+   - **The Dataverse application user.** In a new tab, browse to `https://admin.powerplatform.microsoft.com`, and sign in as the Senior Technician if you're asked. Select **Manage** > **Environments**, select your environment, **Relecloud Service Desk <inject key="DeploymentID" enableCopy="false"/>**, and select **Settings**. Select **Users + permissions** > **Application users**, select the application user named after **<inject key="MCP Backend Identity Name" enableCopy="false"/>**, and select **Details**. **Microsoft Entra application ID** is the MCP Backend Identity Client ID; **Assigned security roles** are **Service Desk Agent Read**, **Service Desk Agent Write** and **Delegate**; and **Business unit** is your environment's root business unit. Dataverse maps every token of the managed identity to this user. Keep this tab open for step 3 and Task 3.
 
    > **[SCREENSHOT PENDING: E5T1S1-2 | Microsoft Entra admin center, Entra ID > Agents > Agent identities, with the agent identity found by its object ID | source: capture]**
 
@@ -343,10 +363,12 @@ In this task, you will send the same request through the same agent as two diffe
    https://ai.azure.com
    ```
 
-   Sign in with the Tier 1 Technician's account:
+   Sign in with the Tier 1 Technician's account, not your own. Select **Sign in**. On **Pick an account**, select **Use another account** (the InPrivate window doesn't list your Senior Technician sign-in), and enter:
 
    - **Email/Username:** <inject key="Tier 1 Technician Username" enableCopy="true"/>
    - **Temporary Access Pass:** the Tier 1 Technician's pass on the **Environment** tab
+
+   After you sign in, select the initials in the top-right corner of the Foundry portal and check that it shows the Tier 1 Technician. If it shows the Senior Technician, you're in a normal window: close it and open the InPrivate window again with **Ctrl+Shift+N**.
 
    > **Note:** The page may say **Enter Temporary Access Pass** or simply **Enter password**. Paste the same value either way. If you're asked to set up a passkey or the Microsoft Authenticator app, select **Skip for now**, and if you see **Stay signed in?**, select **No**.
 
